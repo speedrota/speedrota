@@ -1,0 +1,225 @@
+// ==========================================
+// SPEEDROTA - PRISMA SCHEMA
+// ==========================================
+// Design por Contrato:
+// - Todas as tabelas têm createdAt/updatedAt
+// - IDs são UUIDs
+// - Soft delete via deletedAt onde aplicável
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Para desenvolvimento local: SQLite
+// Para produção: PostgreSQL
+// Configure DATABASE_URL no .env
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================================
+// USUÁRIOS E AUTENTICAÇÃO
+// ==========================================
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  passwordHash  String    @map("password_hash")
+  nome          String
+  telefone      String?
+  
+  // Plano de assinatura
+  plano         Plano     @default(FREE)
+  mpCustomerId  String?   @map("mp_customer_id")
+  planoExpiraEm DateTime? @map("plano_expira_em")
+  
+  // Limites do plano atual
+  rotasNoMes    Int       @default(0) @map("rotas_no_mes")
+  mesAtual      Int       @default(1) @map("mes_atual") // 1-12
+  
+  // Timestamps
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+  
+  // Relacionamentos
+  rotas         Rota[]
+  refreshTokens RefreshToken[]
+  pagamentos    Pagamento[]
+  
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String   @map("user_id")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("refresh_tokens")
+}
+
+enum Plano {
+  FREE
+  PRO
+  FULL
+  ENTERPRISE
+}
+
+// ==========================================
+// ROTAS E PARADAS
+// ==========================================
+
+model Rota {
+  id              String    @id @default(uuid())
+  userId          String    @map("user_id")
+  
+  // Origem
+  origemLat       Float     @map("origem_lat")
+  origemLng       Float     @map("origem_lng")
+  origemEndereco  String    @map("origem_endereco")
+  origemFonte     String    @map("origem_fonte") // 'gps' | 'manual'
+  
+  // Métricas calculadas
+  distanciaTotalKm  Float?  @map("distancia_total_km")
+  tempoViagemMin    Float?  @map("tempo_viagem_min")
+  tempoEntregasMin  Float?  @map("tempo_entregas_min")
+  combustivelL      Float?  @map("combustivel_l")
+  custoR            Float?  @map("custo_r")
+  
+  // Status
+  status          StatusRota @default(RASCUNHO)
+  incluirRetorno  Boolean   @default(true) @map("incluir_retorno")
+  
+  // Timestamps
+  calculadaEm     DateTime? @map("calculada_em")
+  iniciadaEm      DateTime? @map("iniciada_em")
+  finalizadaEm    DateTime? @map("finalizada_em")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  
+  // Relacionamentos
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  paradas         Parada[]
+  
+  @@map("rotas")
+}
+
+model Parada {
+  id              String    @id @default(uuid())
+  rotaId          String    @map("rota_id")
+  
+  // Localização
+  lat             Float
+  lng             Float
+  endereco        String
+  cidade          String
+  uf              String
+  cep             String?
+  
+  // Destinatário
+  nome            String
+  telefone        String?
+  
+  // Fornecedor
+  fornecedor      String    // 'natura', 'mercadolivre', etc
+  
+  // OCR/Fonte
+  fonte           String    // 'ocr' | 'manual' | 'pdf'
+  confianca       Float     @default(1.0) // 0-1
+  
+  // Ordem na rota (após otimização)
+  ordem           Int?
+  distanciaAnterior Float?  @map("distancia_anterior")
+  tempoAnterior   Float?    @map("tempo_anterior")
+  
+  // Status da entrega
+  statusEntrega   StatusEntrega @default(PENDENTE) @map("status_entrega")
+  entregueEm      DateTime? @map("entregue_em")
+  observacao      String?
+  
+  // Timestamps
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  
+  // Relacionamentos
+  rota            Rota      @relation(fields: [rotaId], references: [id], onDelete: Cascade)
+  
+  @@map("paradas")
+}
+
+enum StatusRota {
+  RASCUNHO    // Destinos sendo adicionados
+  CALCULADA   // Rota otimizada
+  EM_ANDAMENTO // Entregador está executando
+  FINALIZADA  // Todas entregas feitas
+  CANCELADA
+}
+
+enum StatusEntrega {
+  PENDENTE
+  ENTREGUE
+  AUSENTE     // Destinatário ausente
+  RECUSADA
+  REAGENDADA
+}
+
+// ==========================================
+// PAGAMENTOS (MERCADO PAGO)
+// ==========================================
+
+model Pagamento {
+  id                  String    @id @default(uuid())
+  
+  // Mercado Pago IDs
+  mpPreferenceId      String?   @map("mp_preference_id")
+  mpPaymentId         String?   @map("mp_payment_id")
+  
+  // Dados do pagamento
+  userId              String    @map("user_id")
+  plano               Plano
+  valorCentavos       Int       @map("valor_centavos") // Em centavos para evitar floating point
+  moeda               String    @default("BRL")
+  
+  // Status
+  status              StatusPagamento @default(PENDENTE)
+  
+  // Timestamps
+  pagoEm              DateTime? @map("pago_em")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+  
+  // Relacionamentos
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("pagamentos")
+}
+
+enum StatusPagamento {
+  PENDENTE
+  PROCESSANDO
+  PAGO
+  FALHOU
+  CANCELADO
+  REEMBOLSADO
+}
+
+// ==========================================
+// CONFIGURAÇÕES DO SISTEMA
+// ==========================================
+
+model ConfiguracaoSistema {
+  id                  String    @id @default(uuid())
+  chave               String    @unique
+  valor               String
+  descricao           String?
+  
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+  
+  @@map("configuracoes_sistema")
+}

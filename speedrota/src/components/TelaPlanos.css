@@ -1,0 +1,260 @@
+/**
+ * @fileoverview Estilos da Tela de Planos
+ */
+
+.planos-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+  backdrop-filter: blur(4px);
+}
+
+.planos-modal {
+  background: white;
+  border-radius: 1rem;
+  max-width: 900px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+.planos-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #64748b;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.planos-close:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+.planos-header {
+  text-align: center;
+  padding: 2rem 2rem 1rem;
+}
+
+.planos-header h2 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 0.5rem;
+}
+
+.planos-header p {
+  color: #64748b;
+  margin: 0;
+}
+
+.planos-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem;
+  gap: 1rem;
+}
+
+.planos-erro {
+  margin: 0 2rem;
+  padding: 0.75rem 1rem;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 0.5rem;
+  color: #dc2626;
+  text-align: center;
+}
+
+/* Grid de Planos */
+.planos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.5rem;
+  padding: 1.5rem 2rem;
+}
+
+/* Card do Plano */
+.plano-card {
+  background: white;
+  border: 2px solid #e2e8f0;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  transition: all 0.2s;
+}
+
+.plano-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.plano-card.popular {
+  border-color: var(--primary, #2563eb);
+  box-shadow: 0 4px 20px rgba(37, 99, 235, 0.15);
+}
+
+.plano-card.atual {
+  border-color: #22c55e;
+  background: #f0fdf4;
+}
+
+.plano-badge {
+  position: absolute;
+  top: -0.75rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--primary, #2563eb);
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.plano-badge.atual {
+  background: #22c55e;
+}
+
+.plano-nome {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0.5rem 0 1rem;
+  text-align: center;
+}
+
+.plano-preco {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.preco-valor {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.preco-periodo {
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.plano-recursos {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.5rem;
+  flex: 1;
+}
+
+.plano-recursos li {
+  padding: 0.5rem 0;
+  color: #475569;
+  font-size: 0.875rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.plano-recursos li:last-child {
+  border-bottom: none;
+}
+
+/* Botão */
+.plano-btn {
+  width: 100%;
+  padding: 0.875rem 1.5rem;
+  background: var(--primary, #2563eb);
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.plano-btn:hover:not(:disabled) {
+  background: var(--primary-dark, #1d4ed8);
+  transform: translateY(-1px);
+}
+
+.plano-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.plano-btn.atual {
+  background: #22c55e;
+}
+
+.plano-btn.downgrade {
+  background: #94a3b8;
+}
+
+/* Footer */
+.planos-footer {
+  text-align: center;
+  padding: 1.5rem 2rem 2rem;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.planos-footer p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+/* Loading spinner */
+.loading-spinner {
+  display: inline-block;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Mobile */
+@media (max-width: 640px) {
+  .planos-modal {
+    margin: 0;
+    border-radius: 1rem 1rem 0 0;
+    max-height: 95vh;
+  }
+  
+  .planos-grid {
+    padding: 1rem;
+    gap: 1rem;
+  }
+  
+  .planos-footer {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}

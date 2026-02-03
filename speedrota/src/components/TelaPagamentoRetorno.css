@@ -1,0 +1,94 @@
+/**
+ * @fileoverview Estilos da Tela de Retorno do Pagamento
+ */
+
+.pagamento-retorno {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%);
+  padding: 1rem;
+}
+
+.retorno-card {
+  background: white;
+  border-radius: 1rem;
+  padding: 3rem 2rem;
+  max-width: 420px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+.retorno-icon {
+  font-size: 4rem;
+  margin-bottom: 1.5rem;
+  display: inline-block;
+}
+
+.retorno-icon.sucesso {
+  animation: bounce 0.5s ease;
+}
+
+.retorno-icon.carregando {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.retorno-titulo {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 1rem;
+}
+
+.retorno-descricao {
+  color: #64748b;
+  line-height: 1.6;
+  margin: 0 0 2rem;
+}
+
+.retorno-btn {
+  width: 100%;
+  padding: 0.875rem 1.5rem;
+  background: var(--primary, #2563eb);
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.retorno-btn:hover {
+  background: var(--primary-dark, #1d4ed8);
+}
+
+.retorno-btn-secundario {
+  width: 100%;
+  padding: 0.75rem 1.5rem;
+  background: transparent;
+  color: var(--primary, #2563eb);
+  border: 2px solid var(--primary, #2563eb);
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 1rem;
+}
+
+.retorno-btn-secundario:hover {
+  background: rgba(37, 99, 235, 0.1);
+}
