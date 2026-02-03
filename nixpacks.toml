@@ -1,0 +1,11 @@
+[phases.setup]
+nixPkgs = ["nodejs_20", "npm"]
+
+[phases.install]
+cmds = ["cd speedrota-api && npm install"]
+
+[phases.build]
+cmds = ["cd speedrota-api && npx prisma generate"]
+
+[start]
+cmd = "cd speedrota-api && npm start"
