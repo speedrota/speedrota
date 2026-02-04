@@ -10,7 +10,7 @@ import javax.inject.Singleton
 /**
  * Repositório de autenticação
  * 
- * @description Gerencia login, registro e sessão do usuário
+ * @description Gerencia login, registro, recuperação de senha e sessão do usuário
  * @pre API disponível
  * @post Token armazenado localmente após login/registro
  */
@@ -130,5 +130,85 @@ class AuthRepository @Inject constructor(
      */
     suspend fun getToken(): String? {
         return preferences.token.first()
+    }
+    
+    // ==================== PASSWORD RECOVERY ====================
+    
+    /**
+     * Solicita código de recuperação de senha
+     * @pre email registrado no sistema
+     * @post Código de 6 dígitos enviado por email (validade 15min)
+     */
+    suspend fun forgotPassword(email: String): Result<ForgotPasswordResponse> {
+        return try {
+            val response = api.forgotPassword(ForgotPasswordRequest(email))
+            
+            if (response.success) {
+                Result.success(response)
+            } else {
+                Result.failure(Exception(response.error ?: "Erro ao solicitar recuperação"))
+            }
+        } catch (e: retrofit2.HttpException) {
+            val errorBody = e.response()?.errorBody()?.string()
+            Result.failure(Exception("HTTP ${e.code()}: ${errorBody ?: e.message()}"))
+        } catch (e: java.net.SocketTimeoutException) {
+            Result.failure(Exception("Servidor demorou para responder. Tente novamente."))
+        } catch (e: java.net.UnknownHostException) {
+            Result.failure(Exception("Sem conexão com a internet"))
+        } catch (e: Exception) {
+            Result.failure(Exception("Erro: ${e.message}"))
+        }
+    }
+    
+    /**
+     * Verifica código de recuperação
+     * @pre código de 6 dígitos válido e não expirado
+     * @post Código validado, pronto para redefinir senha
+     */
+    suspend fun verifyResetCode(email: String, code: String): Result<VerifyResetCodeResponse> {
+        return try {
+            val response = api.verifyResetCode(VerifyResetCodeRequest(email, code))
+            
+            if (response.success) {
+                Result.success(response)
+            } else {
+                Result.failure(Exception(response.error ?: "Código inválido"))
+            }
+        } catch (e: retrofit2.HttpException) {
+            val errorBody = e.response()?.errorBody()?.string()
+            Result.failure(Exception("HTTP ${e.code()}: ${errorBody ?: e.message()}"))
+        } catch (e: java.net.SocketTimeoutException) {
+            Result.failure(Exception("Servidor demorou para responder. Tente novamente."))
+        } catch (e: java.net.UnknownHostException) {
+            Result.failure(Exception("Sem conexão com a internet"))
+        } catch (e: Exception) {
+            Result.failure(Exception("Erro: ${e.message}"))
+        }
+    }
+    
+    /**
+     * Redefine a senha
+     * @pre código validado, nova senha >= 6 caracteres
+     * @post Senha atualizada com sucesso
+     */
+    suspend fun resetPassword(email: String, code: String, novaSenha: String): Result<ResetPasswordResponse> {
+        return try {
+            val response = api.resetPassword(ResetPasswordRequest(email, code, novaSenha))
+            
+            if (response.success) {
+                Result.success(response)
+            } else {
+                Result.failure(Exception(response.error ?: "Erro ao redefinir senha"))
+            }
+        } catch (e: retrofit2.HttpException) {
+            val errorBody = e.response()?.errorBody()?.string()
+            Result.failure(Exception("HTTP ${e.code()}: ${errorBody ?: e.message()}"))
+        } catch (e: java.net.SocketTimeoutException) {
+            Result.failure(Exception("Servidor demorou para responder. Tente novamente."))
+        } catch (e: java.net.UnknownHostException) {
+            Result.failure(Exception("Sem conexão com a internet"))
+        } catch (e: Exception) {
+            Result.failure(Exception("Erro: ${e.message}"))
+        }
     }
 }

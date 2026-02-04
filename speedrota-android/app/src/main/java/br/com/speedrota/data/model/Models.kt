@@ -49,6 +49,48 @@ data class UserResponse(
     val error: String? = null
 )
 
+// ==================== PASSWORD RECOVERY ====================
+
+@Serializable
+data class ForgotPasswordRequest(
+    val email: String
+)
+
+@Serializable
+data class ForgotPasswordResponse(
+    val success: Boolean,
+    val message: String? = null,
+    val resetCode: String? = null, // Apenas em dev
+    val error: String? = null
+)
+
+@Serializable
+data class VerifyResetCodeRequest(
+    val email: String,
+    val code: String
+)
+
+@Serializable
+data class VerifyResetCodeResponse(
+    val success: Boolean,
+    val message: String? = null,
+    val error: String? = null
+)
+
+@Serializable
+data class ResetPasswordRequest(
+    val email: String,
+    val code: String,
+    val novaSenha: String
+)
+
+@Serializable
+data class ResetPasswordResponse(
+    val success: Boolean,
+    val message: String? = null,
+    val error: String? = null
+)
+
 // ==================== ROTAS ====================
 
 @Serializable

@@ -32,6 +32,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 fun LoginScreen(
     viewModel: LoginViewModel = hiltViewModel(),
     onNavigateToRegister: () -> Unit,
+    onNavigateToForgotPassword: () -> Unit,
     onLoginSuccess: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -136,6 +137,20 @@ fun LoginScreen(
                 unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
             )
         )
+        
+        // Esqueci minha senha
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End
+        ) {
+            TextButton(onClick = onNavigateToForgotPassword) {
+                Text(
+                    text = "Esqueci minha senha",
+                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+        }
 
         // Erro
         if (uiState.error != null) {

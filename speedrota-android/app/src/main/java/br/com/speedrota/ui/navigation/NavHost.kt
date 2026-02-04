@@ -11,6 +11,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import br.com.speedrota.ui.screens.auth.LoginScreen
 import br.com.speedrota.ui.screens.auth.RegisterScreen
+import br.com.speedrota.ui.screens.auth.ForgotPasswordScreen
 import br.com.speedrota.ui.screens.home.HomeScreen
 import br.com.speedrota.ui.screens.origem.OrigemScreen
 import br.com.speedrota.ui.screens.destinos.DestinosScreen
@@ -35,6 +36,9 @@ fun SpeedRotaNavHost() {
                 onNavigateToRegister = {
                     navController.navigate(Screen.Register.route)
                 },
+                onNavigateToForgotPassword = {
+                    navController.navigate(Screen.ForgotPassword.route)
+                },
                 onLoginSuccess = {
                     navController.navigate(Screen.Home.route) {
                         popUpTo(Screen.Login.route) { inclusive = true }
@@ -50,6 +54,19 @@ fun SpeedRotaNavHost() {
                 },
                 onRegisterSuccess = {
                     navController.navigate(Screen.Home.route) {
+                        popUpTo(Screen.Login.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+        
+        composable(Screen.ForgotPassword.route) {
+            ForgotPasswordScreen(
+                onBack = {
+                    navController.popBackStack()
+                },
+                onSuccess = {
+                    navController.navigate(Screen.Login.route) {
                         popUpTo(Screen.Login.route) { inclusive = true }
                     }
                 }

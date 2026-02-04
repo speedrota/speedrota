@@ -23,6 +23,15 @@ interface SpeedRotaApi {
     @GET("auth/me")
     suspend fun getMe(): UserResponse
     
+    @POST("auth/forgot-password")
+    suspend fun forgotPassword(@Body request: ForgotPasswordRequest): ForgotPasswordResponse
+    
+    @POST("auth/verify-reset-code")
+    suspend fun verifyResetCode(@Body request: VerifyResetCodeRequest): VerifyResetCodeResponse
+    
+    @POST("auth/reset-password")
+    suspend fun resetPassword(@Body request: ResetPasswordRequest): ResetPasswordResponse
+    
     // ==================== ROTAS ====================
     
     @GET("rotas")
