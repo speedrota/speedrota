@@ -47,6 +47,7 @@ model User {
   rotas         Rota[]
   refreshTokens RefreshToken[]
   pagamentos    Pagamento[]
+  passwordResetTokens PasswordResetToken[]
   
   @@map("users")
 }
@@ -61,6 +62,20 @@ model RefreshToken {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   @@map("refresh_tokens")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String   @map("user_id")
+  email     String
+  expiresAt DateTime @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("password_reset_tokens")
 }
 
 enum Plano {

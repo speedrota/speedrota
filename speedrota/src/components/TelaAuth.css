@@ -192,27 +192,96 @@
   text-decoration: underline;
 }
 
-/* Demo */
-.auth-demo {
-  margin-top: 1rem;
-  padding: 0.75rem;
-  background: #f0f9ff;
+/* Forgot Password Link */
+.auth-forgot-link {
+  text-align: right;
+  margin-top: -0.5rem;
+}
+
+.auth-forgot-link button {
+  background: none;
+  border: none;
+  color: var(--primary, #2563eb);
+  font-size: 0.875rem;
+  cursor: pointer;
+  padding: 0;
+}
+
+.auth-forgot-link button:hover {
+  text-decoration: underline;
+}
+
+/* Back Link */
+.auth-back-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.auth-back-link button {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: none;
+  border: none;
+  color: #64748b;
+  font-size: 0.875rem;
+  cursor: pointer;
+  padding: 0.25rem 0;
+}
+
+.auth-back-link button:hover {
+  color: #334155;
+}
+
+/* Code Input */
+.auth-code-input {
+  text-align: center;
+  font-size: 1.5rem !important;
+  font-weight: 600;
+  letter-spacing: 0.5rem;
+  padding: 1rem !important;
+}
+
+/* Success Message */
+.auth-success {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: #f0fdf4;
+  border: 1px solid #86efac;
   border-radius: 0.5rem;
+  color: #16a34a;
+  font-size: 0.875rem;
+}
+
+/* Hint Text */
+.auth-hint {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-top: 0.5rem;
   text-align: center;
 }
 
-.auth-demo p {
-  font-size: 0.75rem;
-  color: #64748b;
-  margin: 0 0 0.25rem;
+/* Title for recovery screens */
+.auth-title {
+  text-align: center;
+  margin-bottom: 1rem;
 }
 
-.auth-demo code {
-  font-size: 0.8rem;
-  color: #0369a1;
-  background: #e0f2fe;
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.25rem;
+.auth-title h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 0.5rem;
+}
+
+.auth-title p {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin: 0;
 }
 
 /* Mobile */
@@ -228,5 +297,10 @@
   
   .auth-logo h1 {
     font-size: 1.5rem;
+  }
+  
+  .auth-code-input {
+    font-size: 1.25rem !important;
+    letter-spacing: 0.25rem;
   }
 }

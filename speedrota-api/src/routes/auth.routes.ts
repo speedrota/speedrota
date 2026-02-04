@@ -11,6 +11,7 @@
 import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import { prisma } from '../lib/prisma.js';
 
 // ==========================================
@@ -243,7 +244,8 @@ export async function authRoutes(app: FastifyInstance) {
 
   /**
    * POST /auth/forgot-password
-   * Solicitar recuperação de senha (placeholder)
+   * Solicitar recuperação de senha
+   * Gera um token e retorna (em produção enviaria por email)
    */
   app.post('/forgot-password', async (request, reply) => {
     const schema = z.object({
@@ -259,12 +261,161 @@ export async function authRoutes(app: FastifyInstance) {
       });
     }
     
-    // TODO: Implementar envio de email
-    // Por enquanto, apenas retorna sucesso (não revela se email existe)
+    const { email } = body.data;
+    
+    // Buscar usuário
+    const user = await prisma.user.findUnique({
+      where: { email, deletedAt: null },
+    });
+    
+    // Sempre retorna sucesso para não revelar se email existe
+    if (!user) {
+      return {
+        success: true,
+        message: 'Se o email existir, você receberá um código de recuperação',
+      };
+    }
+    
+    // Invalidar tokens anteriores
+    await prisma.passwordResetToken.updateMany({
+      where: { userId: user.id, usedAt: null },
+      data: { usedAt: new Date() },
+    });
+    
+    // Gerar código de 6 dígitos
+    const resetCode = crypto.randomInt(100000, 999999).toString();
+    
+    // Token expira em 15 minutos
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+    
+    // Salvar token
+    await prisma.passwordResetToken.create({
+      data: {
+        token: resetCode,
+        userId: user.id,
+        email: user.email,
+        expiresAt,
+      },
+    });
+    
+    console.log(`📧 Código de recuperação para ${email}: ${resetCode}`);
+    
+    // TODO: Em produção, enviar por email usando serviço como SendGrid/Resend
+    // Por enquanto, retornamos o código diretamente (para desenvolvimento)
     
     return {
       success: true,
-      message: 'Se o email existir, você receberá instruções para recuperar a senha',
+      message: 'Se o email existir, você receberá um código de recuperação',
+      // Em desenvolvimento, retorna o código diretamente
+      ...(process.env.NODE_ENV !== 'production' && { resetCode }),
+    };
+  });
+
+  /**
+   * POST /auth/verify-reset-code
+   * Verificar se o código de recuperação é válido
+   */
+  app.post('/verify-reset-code', async (request, reply) => {
+    const schema = z.object({
+      email: z.string().email(),
+      code: z.string().length(6),
+    });
+    
+    const body = schema.safeParse(request.body);
+    
+    if (!body.success) {
+      return reply.status(400).send({
+        success: false,
+        error: 'Dados inválidos',
+      });
+    }
+    
+    const { email, code } = body.data;
+    
+    // Buscar token válido
+    const resetToken = await prisma.passwordResetToken.findFirst({
+      where: {
+        email,
+        token: code,
+        usedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+    });
+    
+    if (!resetToken) {
+      return reply.status(400).send({
+        success: false,
+        error: 'Código inválido ou expirado',
+      });
+    }
+    
+    return {
+      success: true,
+      message: 'Código válido',
+    };
+  });
+
+  /**
+   * POST /auth/reset-password
+   * Redefinir senha usando código de recuperação
+   */
+  app.post('/reset-password', async (request, reply) => {
+    const schema = z.object({
+      email: z.string().email(),
+      code: z.string().length(6),
+      novaSenha: z.string().min(6, 'Senha deve ter no mínimo 6 caracteres'),
+    });
+    
+    const body = schema.safeParse(request.body);
+    
+    if (!body.success) {
+      return reply.status(400).send({
+        success: false,
+        error: 'Dados inválidos',
+        details: body.error.flatten().fieldErrors,
+      });
+    }
+    
+    const { email, code, novaSenha } = body.data;
+    
+    // Buscar token válido
+    const resetToken = await prisma.passwordResetToken.findFirst({
+      where: {
+        email,
+        token: code,
+        usedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+      include: { user: true },
+    });
+    
+    if (!resetToken) {
+      return reply.status(400).send({
+        success: false,
+        error: 'Código inválido ou expirado',
+      });
+    }
+    
+    // Hash da nova senha
+    const passwordHash = await bcrypt.hash(novaSenha, 10);
+    
+    // Atualizar senha e marcar token como usado
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: resetToken.userId },
+        data: { passwordHash },
+      }),
+      prisma.passwordResetToken.update({
+        where: { id: resetToken.id },
+        data: { usedAt: new Date() },
+      }),
+    ]);
+    
+    console.log(`✅ Senha redefinida para ${email}`);
+    
+    return {
+      success: true,
+      message: 'Senha redefinida com sucesso! Faça login com a nova senha.',
     };
   });
 }

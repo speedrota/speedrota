@@ -145,6 +145,33 @@ export const authService = {
   },
   
   /**
+   * Solicitar recuperação de senha
+   * @pre Email válido
+   * @post Código de recuperação enviado (retornado em dev)
+   */
+  async forgotPassword(email: string): Promise<{ message: string; resetCode?: string }> {
+    return api.post('/auth/forgot-password', { email });
+  },
+  
+  /**
+   * Verificar código de recuperação
+   * @pre Email e código válidos
+   * @post Confirmação que código é válido
+   */
+  async verifyResetCode(email: string, code: string): Promise<{ message: string }> {
+    return api.post('/auth/verify-reset-code', { email, code });
+  },
+  
+  /**
+   * Redefinir senha com código
+   * @pre Email, código e nova senha válidos
+   * @post Senha alterada
+   */
+  async resetPassword(email: string, code: string, novaSenha: string): Promise<{ message: string }> {
+    return api.post('/auth/reset-password', { email, code, novaSenha });
+  },
+  
+  /**
    * Verificar se está logado (localmente)
    */
   isLoggedIn(): boolean {
