@@ -36,9 +36,21 @@ interface SpeedRotaApi {
     
     // ==================== PAGAMENTOS ====================
     
-    @POST("pagamentos/pix")
-    suspend fun gerarPix(@Body request: PixRequest): PixResponse
+    @GET("pagamentos/plans")
+    suspend fun listarPlanos(): PlanosResponse
     
-    @GET("pagamentos/{id}/status")
-    suspend fun verificarStatusPagamento(@Path("id") id: String): StatusPagamentoResponse
+    @POST("pagamentos/create-preference")
+    suspend fun criarPreferencia(@Body request: PreferenceRequest): PreferenceResponse
+    
+    @POST("pagamentos/confirm-upgrade")
+    suspend fun confirmarUpgrade(@Body request: ConfirmUpgradeRequest): ConfirmUpgradeResponse
+    
+    @GET("pagamentos/payment-status/{paymentId}")
+    suspend fun verificarStatusPagamento(@Path("paymentId") paymentId: String): PaymentStatusResponse
+    
+    @GET("pagamentos/subscription")
+    suspend fun obterAssinatura(): SubscriptionResponse
+    
+    @GET("pagamentos/public-key")
+    suspend fun obterPublicKey(): PublicKeyResponse
 }

@@ -23,7 +23,10 @@ data class PagamentoUiState(
     val isLoading: Boolean = true,
     val isCopied: Boolean = false,
     val isPagamentoConfirmado: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    // Novos campos para Mercado Pago
+    val checkoutUrl: String = "",
+    val preferenceId: String = ""
 )
 
 @HiltViewModel
@@ -37,32 +40,80 @@ class PagamentoViewModel @Inject constructor(
     
     private var pollingJob: Job? = null
 
-    fun gerarPix(plano: String) {
+    /**
+     * Cria preferência de pagamento e retorna URL do checkout
+     * Este é o método principal para iniciar um pagamento
+     */
+    fun iniciarPagamento(plano: String) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             
-            val email = preferencesManager.userEmail.first() ?: ""
-            
-            pagamentoRepository.gerarPix(plano, email)
-                .onSuccess { response ->
+            pagamentoRepository.criarPreferencia(plano)
+                .onSuccess { preference ->
                     _uiState.value = _uiState.value.copy(
-                        valor = response.valor ?: getValorPlano(plano),
-                        qrCodeBase64 = response.qrCodeBase64 ?: "",
-                        codigoCopiaCola = response.copiaCola ?: "",
-                        pagamentoId = response.pagamentoId ?: "",
+                        valor = getValorPlano(plano),
+                        checkoutUrl = preference.initPoint,
+                        preferenceId = preference.preferenceId,
                         isLoading = false
                     )
-                    
-                    // Iniciar polling do status
-                    response.pagamentoId?.let { id ->
-                        startPolling(id)
-                    }
                 }
                 .onFailure { error ->
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        error = error.message ?: "Erro ao gerar PIX"
+                        error = error.message ?: "Erro ao iniciar pagamento"
                     )
+                }
+        }
+    }
+    
+    /**
+     * Método legado - agora redireciona para iniciarPagamento
+     * O PIX é oferecido pelo próprio Mercado Pago no checkout
+     */
+    fun gerarPix(plano: String) {
+        iniciarPagamento(plano)
+    }
+
+    /**
+     * Confirma upgrade após retorno do checkout
+     */
+    fun confirmarUpgrade(plano: String, paymentId: String? = null) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true)
+            
+            pagamentoRepository.confirmarUpgrade(plano, paymentId)
+                .onSuccess { upgradeData ->
+                    _uiState.value = _uiState.value.copy(
+                        isPagamentoConfirmado = true,
+                        statusPagamento = "approved",
+                        isLoading = false
+                    )
+                }
+                .onFailure { error ->
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = error.message ?: "Erro ao confirmar upgrade"
+                    )
+                }
+        }
+    }
+    
+    /**
+     * Verifica status de um pagamento específico
+     */
+    fun verificarPagamento(paymentId: String) {
+        viewModelScope.launch {
+            pagamentoRepository.verificarStatus(paymentId)
+                .onSuccess { status ->
+                    _uiState.value = _uiState.value.copy(
+                        statusPagamento = status.status
+                    )
+                    
+                    if (status.approved) {
+                        _uiState.value = _uiState.value.copy(
+                            isPagamentoConfirmado = true
+                        )
+                    }
                 }
         }
     }
@@ -75,19 +126,19 @@ class PagamentoViewModel @Inject constructor(
         }
     }
 
-    private fun startPolling(pagamentoId: String) {
+    private fun startPolling(paymentId: String) {
         pollingJob?.cancel()
         pollingJob = viewModelScope.launch {
             repeat(60) { // Verifica por até 5 minutos (60 * 5s)
                 delay(5000) // 5 segundos
                 
-                pagamentoRepository.verificarStatus(pagamentoId)
+                pagamentoRepository.verificarStatus(paymentId)
                     .onSuccess { response ->
                         _uiState.value = _uiState.value.copy(
-                            statusPagamento = response.status ?: "pending"
+                            statusPagamento = response.status
                         )
                         
-                        if (response.status == "approved") {
+                        if (response.approved) {
                             _uiState.value = _uiState.value.copy(
                                 isPagamentoConfirmado = true
                             )

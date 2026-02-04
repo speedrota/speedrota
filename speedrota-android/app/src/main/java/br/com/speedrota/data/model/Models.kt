@@ -115,9 +115,128 @@ data class MetricasRota(
 
 // ==================== PAGAMENTOS ====================
 
+// Request para criar preferência de pagamento
+@Serializable
+data class PreferenceRequest(
+    val plano: String // "PRO" ou "FULL"
+)
+
+// Response da criação de preferência
+@Serializable
+data class PreferenceResponse(
+    val success: Boolean,
+    val data: PreferenceData? = null,
+    val error: String? = null
+)
+
+@Serializable
+data class PreferenceData(
+    val preferenceId: String,
+    val initPoint: String, // URL para checkout
+    val sandboxInitPoint: String? = null
+)
+
+// Request para confirmar upgrade
+@Serializable
+data class ConfirmUpgradeRequest(
+    val plano: String,
+    val paymentId: String? = null
+)
+
+// Response de confirmação de upgrade
+@Serializable
+data class ConfirmUpgradeResponse(
+    val success: Boolean,
+    val data: UpgradeData? = null,
+    val error: String? = null
+)
+
+@Serializable
+data class UpgradeData(
+    val plano: String,
+    val mensagem: String
+)
+
+// Response do status do pagamento
+@Serializable
+data class PaymentStatusResponse(
+    val success: Boolean,
+    val data: PaymentStatusData? = null,
+    val error: String? = null
+)
+
+@Serializable
+data class PaymentStatusData(
+    val id: Long? = null,
+    val status: String, // "pending", "approved", "rejected"
+    val statusDetail: String? = null,
+    val approved: Boolean
+)
+
+// Response da assinatura atual
+@Serializable
+data class SubscriptionResponse(
+    val success: Boolean,
+    val data: SubscriptionData? = null,
+    val error: String? = null
+)
+
+@Serializable
+data class SubscriptionData(
+    val plano: String,
+    val expiraEm: String? = null,
+    val ativo: Boolean,
+    val rotasNoMes: Int,
+    val limites: LimitesPlano
+)
+
+@Serializable
+data class LimitesPlano(
+    val rotasPorMes: Int? = null,
+    val paradasPorRota: Int,
+    val fornecedores: Int? = null,
+    val historicosDias: Int,
+    val pdfUpload: Boolean,
+    val apiAccess: Boolean
+)
+
+// Response dos planos disponíveis
+@Serializable
+data class PlanosResponse(
+    val success: Boolean,
+    val data: List<PlanoInfo>? = null,
+    val error: String? = null
+)
+
+@Serializable
+data class PlanoInfo(
+    val id: String,
+    val nome: String,
+    val preco: Double,
+    val precoFormatado: String,
+    val recursos: List<String>,
+    val limites: LimitesPlano,
+    val popular: Boolean? = false
+)
+
+// Response da public key
+@Serializable
+data class PublicKeyResponse(
+    val success: Boolean,
+    val data: PublicKeyData? = null,
+    val error: String? = null
+)
+
+@Serializable
+data class PublicKeyData(
+    val publicKey: String
+)
+
+// ==================== LEGACY (mantido para compatibilidade) ====================
+
 @Serializable
 data class PixRequest(
-    val plano: String, // "PRO" ou "FULL"
+    val plano: String,
     val email: String
 )
 
