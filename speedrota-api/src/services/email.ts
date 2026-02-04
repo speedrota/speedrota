@@ -151,11 +151,17 @@ async function sendZeptoEmail(
     return false;
   }
   
-  // Garantir formato correto do token (remover espaços extras)
+  // Garantir formato correto do token
   token = token.trim();
   
-  // Log para debug (primeiros 20 chars)
-  console.log(`📧 ZeptoMail token (início): ${token.substring(0, 30)}...`);
+  // Se o token já começa com "Zoho-enczapikey" ou "zoho-enczapikey", usar como está
+  // Caso contrário, adicionar o prefixo
+  if (!token.toLowerCase().startsWith('zoho-enczapikey')) {
+    token = `Zoho-enczapikey ${token}`;
+  }
+  
+  // Log para debug (primeiros 40 chars)
+  console.log(`📧 ZeptoMail Authorization: ${token.substring(0, 40)}...`);
   
   const payload = {
     bounce_address: BOUNCE_ADDRESS,
