@@ -301,16 +301,18 @@ export async function authRoutes(app: FastifyInstance) {
     
     console.log(`📧 Código de recuperação para ${email}: ${resetCode}`);
     
-    // Enviar email com código de recuperação
-    const emailEnviado = await enviarEmailRecuperacao(
-      user.email,
-      user.nome,
-      resetCode
-    );
-    
-    if (!emailEnviado) {
-      console.warn(`⚠️ Falha ao enviar email para ${email}, mas código foi gerado`);
-    }
+    // Enviar email com código de recuperação (fire-and-forget, não bloqueia resposta)
+    enviarEmailRecuperacao(user.email, user.nome, resetCode)
+      .then((enviado) => {
+        if (enviado) {
+          console.log(`✅ Email enviado com sucesso para ${email}`);
+        } else {
+          console.warn(`⚠️ Falha ao enviar email para ${email}, mas código foi gerado`);
+        }
+      })
+      .catch((err) => {
+        console.error(`❌ Erro ao enviar email para ${email}:`, err);
+      });
     
     return {
       success: true,

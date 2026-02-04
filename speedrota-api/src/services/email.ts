@@ -18,19 +18,31 @@ import { env } from '../config/env.js';
  * Cria transporter sob demanda para garantir que env já foi carregada
  */
 function criarTransporter() {
+  console.log('📧 Criando transporter SMTP...');
+  console.log(`   Host: smtp.zoho.com`);
+  console.log(`   User: ${env.SMTP_USER || '(não configurado)'}`);
+  console.log(`   Pass: ${env.SMTP_PASS ? '****' : '(não configurado)'}`);
+  
   if (!env.SMTP_USER || !env.SMTP_PASS) {
     console.warn('⚠️ SMTP não configurado (SMTP_USER ou SMTP_PASS ausente)');
     return null;
   }
   
+  // Usar porta 587 com STARTTLS (mais compatível com Render)
   return nodemailer.createTransport({
     host: 'smtp.zoho.com',
-    port: 465,
-    secure: true,
+    port: 587,
+    secure: false, // STARTTLS
     auth: {
       user: env.SMTP_USER,
       pass: env.SMTP_PASS,
     },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
+    tls: {
+      rejectUnauthorized: false
+    }
   });
 }
 
