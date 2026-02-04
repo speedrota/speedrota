@@ -152,7 +152,7 @@ export default function App() {
       
       {/* Conteúdo principal */}
       <main className="main">
-        {etapaAtual === 'home' && <TelaHome />}
+        {etapaAtual === 'home' && <TelaHome onAbrirHistorico={() => setMostrarHistorico(true)} />}
         {etapaAtual === 'origem' && <TelaOrigem />}
         {etapaAtual === 'destinos' && <TelaDestinos />}
         {etapaAtual === 'rota' && <TelaRota />}

@@ -4,11 +4,25 @@
 
 import { useRouteStore } from '../store/routeStore';
 
-export function TelaHome() {
+interface TelaHomeProps {
+  onAbrirHistorico?: () => void;
+}
+
+export function TelaHome({ onAbrirHistorico }: TelaHomeProps) {
   const novaRota = useRouteStore((state) => state.novaRota);
+  const carregarHistorico = useRouteStore((state) => state.carregarHistorico);
   
   const handleNovaRota = () => {
     novaRota();
+  };
+  
+  const handleHistorico = () => {
+    if (onAbrirHistorico) {
+      onAbrirHistorico();
+    } else {
+      // Fallback: carregar histórico e mostrar na mesma página
+      carregarHistorico();
+    }
   };
   
   return (
@@ -27,7 +41,7 @@ export function TelaHome() {
         
         <button 
           className="btn btn-secondary" 
-          onClick={() => alert('Histórico em desenvolvimento')}
+          onClick={handleHistorico}
         >
           📋 Histórico de Rotas
         </button>

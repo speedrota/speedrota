@@ -134,17 +134,21 @@ export async function rotaRoutes(app: FastifyInstance) {
         createdAt: { gte: dataLimite },
       },
       include: {
-        _count: {
-          select: { paradas: true },
+        paradas: {
+          orderBy: { ordem: 'asc' },
         },
       },
       orderBy: { createdAt: 'desc' },
       take: 50,
     });
     
+    // Retornar no formato esperado pelo frontend
     return {
-      success: true,
-      data: rotas,
+      rotas: rotas,
+      total: rotas.length,
+      pagina: 1,
+      porPagina: 50,
+      totalPaginas: 1,
     };
   });
 
