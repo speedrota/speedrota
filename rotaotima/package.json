@@ -1,8 +1,8 @@
 {
-  "name": "speedrota",
+  "name": "rotaotima",
   "version": "1.0.0",
   "type": "module",
-  "description": "SpeedRota - Suas entregas, uma rota inteligente",
+  "description": "RotaÓtima - Suas entregas, uma rota inteligente",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
