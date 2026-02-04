@@ -31,6 +31,15 @@ android {
         manifestPlaceholders["MAPS_API_KEY"] = project.findProperty("MAPS_API_KEY") ?: ""
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = file("../speedrota-release.keystore")
+            storePassword = "SpeedRota2026"
+            keyAlias = "speedrota"
+            keyPassword = "SpeedRota2026"
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
@@ -39,7 +48,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName("debug") // TODO: Configurar release signing
+            signingConfig = signingConfigs.getByName("release")
         }
     }
     
