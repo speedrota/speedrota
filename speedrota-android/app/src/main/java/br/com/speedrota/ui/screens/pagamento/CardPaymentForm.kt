@@ -36,6 +36,7 @@ import br.com.speedrota.ui.theme.*
  * @pre Public Key do Mercado Pago disponível
  * @post Dados validados e prontos para tokenização
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CardPaymentForm(
     uiState: PagamentoUiState,
@@ -447,6 +448,7 @@ fun CardBrandIcon(brand: CardBrand) {
 /**
  * Seletor de parcelas
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InstallmentSelector(
     valor: Double,
