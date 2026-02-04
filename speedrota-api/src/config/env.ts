@@ -35,11 +35,14 @@ const envSchema = z.object({
   RATE_LIMIT_MAX: z.coerce.number().default(100),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().default(60000),
   
-  // SMTP (Zoho Mail)
+  // SMTP (Zoho Mail) - Mantido para compatibilidade
   SMTP_HOST: z.string().optional().default('smtp.zoho.com'),
   SMTP_PORT: z.coerce.number().optional().default(465),
   SMTP_USER: z.string().optional().default(''),
   SMTP_PASS: z.string().optional().default(''),
+  
+  // Resend (Email API - recomendado para Render)
+  RESEND_API_KEY: z.string().optional().default(''),
 });
 
 // Parse e valida

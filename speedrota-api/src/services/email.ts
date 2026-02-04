@@ -1,49 +1,31 @@
 /**
- * @fileoverview Serviço de Email usando Nodemailer + Zoho SMTP
+ * @fileoverview Serviço de Email usando Resend API
  * 
  * DESIGN POR CONTRATO:
- * @pre Variáveis SMTP configuradas no ambiente
- * @post Email enviado com sucesso
- * @throws Erro se SMTP falhar
+ * @pre RESEND_API_KEY configurada no ambiente
+ * @post Email enviado com sucesso via API HTTP
+ * @throws Erro se API falhar
+ * 
+ * NOTA: Render bloqueia portas SMTP (25, 465, 587).
+ * Resend usa API HTTP que funciona em qualquer ambiente.
  */
 
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 import { env } from '../config/env.js';
 
 // ==========================================
-// CONFIGURAÇÃO DO TRANSPORTER
+// CONFIGURAÇÃO DO RESEND
 // ==========================================
 
-/**
- * Cria transporter sob demanda para garantir que env já foi carregada
- */
-function criarTransporter() {
-  console.log('📧 Criando transporter SMTP...');
-  console.log(`   Host: smtp.zoho.com`);
-  console.log(`   User: ${env.SMTP_USER || '(não configurado)'}`);
-  console.log(`   Pass: ${env.SMTP_PASS ? '****' : '(não configurado)'}`);
+function getResendClient(): Resend | null {
+  const apiKey = env.RESEND_API_KEY;
   
-  if (!env.SMTP_USER || !env.SMTP_PASS) {
-    console.warn('⚠️ SMTP não configurado (SMTP_USER ou SMTP_PASS ausente)');
+  if (!apiKey) {
+    console.warn('⚠️ RESEND_API_KEY não configurada');
     return null;
   }
   
-  // Usar porta 587 com STARTTLS (mais compatível com Render)
-  return nodemailer.createTransport({
-    host: 'smtp.zoho.com',
-    port: 587,
-    secure: false, // STARTTLS
-    auth: {
-      user: env.SMTP_USER,
-      pass: env.SMTP_PASS,
-    },
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 15000,
-    tls: {
-      rejectUnauthorized: false
-    }
-  });
+  return new Resend(apiKey);
 }
 
 // ==========================================
@@ -171,9 +153,9 @@ export async function enviarEmailRecuperacao(
   nome: string,
   codigo: string
 ): Promise<boolean> {
-  const transporter = criarTransporter();
+  const resend = getResendClient();
   
-  if (!transporter) {
+  if (!resend) {
     console.log(`📧 [DEV] Código de recuperação para ${email}: ${codigo}`);
     return false;
   }
@@ -181,15 +163,20 @@ export async function enviarEmailRecuperacao(
   try {
     const template = getPasswordResetTemplate(codigo, nome);
     
-    await transporter.sendMail({
-      from: `"SpeedRota" <${env.SMTP_USER}>`,
+    const { data, error } = await resend.emails.send({
+      from: 'SpeedRota <noreply@speedrota.com.br>',
       to: email,
       subject: template.subject,
       html: template.html,
       text: template.text,
     });
     
-    console.log(`✅ Email de recuperação enviado para ${email}`);
+    if (error) {
+      console.error(`❌ Erro Resend para ${email}:`, error);
+      return false;
+    }
+    
+    console.log(`✅ Email de recuperação enviado para ${email} (ID: ${data?.id})`);
     return true;
   } catch (error) {
     console.error(`❌ Erro ao enviar email para ${email}:`, error);
@@ -204,25 +191,30 @@ export async function enviarEmailBoasVindas(
   email: string,
   nome: string
 ): Promise<boolean> {
-  const transporter = criarTransporter();
+  const resend = getResendClient();
   
-  if (!transporter) {
-    console.log(`📧 [DEV] Email de boas-vindas seria enviado para ${email}`);
+  if (!resend) {
+    console.log(`📧 [DEV] Email de boas-vindas para ${email}`);
     return false;
   }
   
   try {
     const template = getWelcomeTemplate(nome);
     
-    await transporter.sendMail({
-      from: `"SpeedRota" <${env.SMTP_USER}>`,
+    const { data, error } = await resend.emails.send({
+      from: 'SpeedRota <noreply@speedrota.com.br>',
       to: email,
       subject: template.subject,
       html: template.html,
       text: template.text,
     });
     
-    console.log(`✅ Email de boas-vindas enviado para ${email}`);
+    if (error) {
+      console.error(`❌ Erro Resend boas-vindas:`, error);
+      return false;
+    }
+    
+    console.log(`✅ Email de boas-vindas enviado para ${email} (ID: ${data?.id})`);
     return true;
   } catch (error) {
     console.error(`❌ Erro ao enviar email de boas-vindas:`, error);
@@ -231,22 +223,8 @@ export async function enviarEmailBoasVindas(
 }
 
 /**
- * Verifica se o transporter está configurado corretamente
+ * Verifica se o serviço está configurado
  */
-export async function verificarConfiguracao(): Promise<boolean> {
-  const transporter = criarTransporter();
-  
-  if (!transporter) {
-    console.warn('⚠️ SMTP não configurado - verificação ignorada');
-    return false;
-  }
-  
-  try {
-    await transporter.verify();
-    console.log('✅ SMTP configurado corretamente');
-    return true;
-  } catch (error) {
-    console.error('❌ Erro na configuração SMTP:', error);
-    return false;
-  }
+export function emailConfigurado(): boolean {
+  return !!env.RESEND_API_KEY;
 }
