@@ -90,13 +90,14 @@ fun PlanosScreen(
             PlanoCard(
                 nome = "Pro",
                 emoji = "⭐",
-                preco = "R$ 19,90",
+                preco = "R$ 29,90",
                 periodo = "/mês",
                 features = listOf(
-                    "10 rotas por dia",
-                    "Até 20 destinos por rota",
-                    "OCR aprimorado",
-                    "Histórico de rotas",
+                    "Rotas ilimitadas",
+                    "Até 30 paradas por rota",
+                    "3 fornecedores",
+                    "Upload de PDF",
+                    "Histórico de 30 dias",
                     "Suporte prioritário"
                 ),
                 isDestaque = true,
@@ -111,15 +112,15 @@ fun PlanosScreen(
             PlanoCard(
                 nome = "Full",
                 emoji = "💎",
-                preco = "R$ 39,90",
+                preco = "R$ 59,90",
                 periodo = "/mês",
                 features = listOf(
-                    "Rotas ilimitadas",
-                    "Até 50 destinos por rota",
-                    "OCR premium com IA",
-                    "Relatórios detalhados",
-                    "API de integração",
-                    "Suporte 24/7"
+                    "Tudo do Pro",
+                    "Até 100 paradas por rota",
+                    "Fornecedores ilimitados",
+                    "Histórico de 1 ano",
+                    "Acesso à API",
+                    "Relatórios avançados"
                 ),
                 isDestaque = false,
                 buttonText = "Assinar Full",

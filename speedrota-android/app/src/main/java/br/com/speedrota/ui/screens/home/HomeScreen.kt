@@ -239,7 +239,7 @@ fun HomeScreen(
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    text = "Planos a partir de R\$ 19,90/mês",
+                                    text = "Planos a partir de R\$ 29,90/mês",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )

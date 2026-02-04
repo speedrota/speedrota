@@ -69,8 +69,8 @@ class PagamentoViewModel @Inject constructor(
 
     private fun getValorPlano(plano: String): Double {
         return when (plano.uppercase()) {
-            "PRO" -> 19.90
-            "FULL" -> 39.90
+            "PRO" -> 29.90
+            "FULL" -> 59.90
             else -> 0.0
         }
     }
