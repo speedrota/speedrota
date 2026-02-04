@@ -16,17 +16,20 @@ import javax.inject.Inject
 
 data class PagamentoUiState(
     val valor: Double = 0.0,
+    val valorFormatado: String = "",
     val qrCodeBase64: String = "",
     val codigoCopiaCola: String = "",
-    val pagamentoId: String = "",
+    val paymentId: String = "",
     val statusPagamento: String = "pending",
-    val isLoading: Boolean = true,
+    val isLoading: Boolean = false,
     val isCopied: Boolean = false,
     val isPagamentoConfirmado: Boolean = false,
     val error: String? = null,
-    // Novos campos para Mercado Pago
+    // Campos para checkout
     val checkoutUrl: String = "",
-    val preferenceId: String = ""
+    val preferenceId: String = "",
+    // Campos para cartão
+    val publicKey: String = ""
 )
 
 @HiltViewModel
@@ -39,10 +42,61 @@ class PagamentoViewModel @Inject constructor(
     val uiState: StateFlow<PagamentoUiState> = _uiState.asStateFlow()
     
     private var pollingJob: Job? = null
+    
+    init {
+        // Carregar public key do Mercado Pago
+        carregarPublicKey()
+    }
+    
+    private fun carregarPublicKey() {
+        viewModelScope.launch {
+            pagamentoRepository.obterPublicKey()
+                .onSuccess { publicKey ->
+                    _uiState.value = _uiState.value.copy(publicKey = publicKey)
+                }
+        }
+    }
 
     /**
+     * Gera PIX direto com QR Code
+     * Este é o método principal para pagamento via PIX
+     */
+    fun gerarPix(plano: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                isLoading = true, 
+                error = null,
+                qrCodeBase64 = "",
+                codigoCopiaCola = ""
+            )
+            
+            pagamentoRepository.criarPix(plano)
+                .onSuccess { pixData ->
+                    _uiState.value = _uiState.value.copy(
+                        valor = pixData.valor,
+                        valorFormatado = pixData.valorFormatado,
+                        qrCodeBase64 = pixData.qrCodeBase64,
+                        codigoCopiaCola = pixData.qrCode,
+                        paymentId = pixData.paymentId,
+                        statusPagamento = pixData.status,
+                        isLoading = false
+                    )
+                    
+                    // Iniciar polling do status
+                    startPolling(pixData.paymentId)
+                }
+                .onFailure { error ->
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = error.message ?: "Erro ao gerar PIX"
+                    )
+                }
+        }
+    }
+    
+    /**
      * Cria preferência de pagamento e retorna URL do checkout
-     * Este é o método principal para iniciar um pagamento
+     * Usado como fallback ou para métodos não implementados
      */
     fun iniciarPagamento(plano: String) {
         viewModelScope.launch {
@@ -64,14 +118,6 @@ class PagamentoViewModel @Inject constructor(
                     )
                 }
         }
-    }
-    
-    /**
-     * Método legado - agora redireciona para iniciarPagamento
-     * O PIX é oferecido pelo próprio Mercado Pago no checkout
-     */
-    fun gerarPix(plano: String) {
-        iniciarPagamento(plano)
     }
 
     /**
@@ -113,6 +159,7 @@ class PagamentoViewModel @Inject constructor(
                         _uiState.value = _uiState.value.copy(
                             isPagamentoConfirmado = true
                         )
+                        pollingJob?.cancel()
                     }
                 }
         }
@@ -129,7 +176,7 @@ class PagamentoViewModel @Inject constructor(
     private fun startPolling(paymentId: String) {
         pollingJob?.cancel()
         pollingJob = viewModelScope.launch {
-            repeat(60) { // Verifica por até 5 minutos (60 * 5s)
+            repeat(120) { // Verifica por até 10 minutos (120 * 5s)
                 delay(5000) // 5 segundos
                 
                 pagamentoRepository.verificarStatus(paymentId)
@@ -157,6 +204,11 @@ class PagamentoViewModel @Inject constructor(
             delay(2000)
             _uiState.value = _uiState.value.copy(isCopied = false)
         }
+    }
+    
+    fun resetState() {
+        pollingJob?.cancel()
+        _uiState.value = PagamentoUiState(publicKey = _uiState.value.publicKey)
     }
 
     override fun onCleared() {

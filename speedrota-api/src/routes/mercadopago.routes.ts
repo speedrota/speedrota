@@ -430,6 +430,221 @@ export async function mercadoPagoRoutes(app: FastifyInstance) {
       },
     };
   });
+
+  // ----------------------------------------
+  // CRIAR PAGAMENTO PIX DIRETO
+  // ----------------------------------------
+  
+  app.post('/create-pix', {
+    preHandler: [authenticate],
+  }, async (request, reply) => {
+    const { plano } = createPreferenceSchema.parse(request.body);
+    const userId = request.user.userId;
+    
+    // Buscar usuário
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+    
+    if (!user) {
+      return reply.status(404).send({
+        success: false,
+        error: 'Usuário não encontrado',
+      });
+    }
+    
+    // Verificar se já tem o plano
+    if (user.plano === plano) {
+      return reply.status(400).send({
+        success: false,
+        error: 'Você já possui este plano',
+      });
+    }
+    
+    const valorCentavos = PRECOS_PLANOS[plano];
+    const valor = valorCentavos / 100;
+    const nomeDoPlano = plano === 'PRO' ? 'SpeedRota Pro' : 'SpeedRota Full';
+    
+    try {
+      // Criar pagamento PIX direto no Mercado Pago
+      const payment = await paymentClient.create({
+        body: {
+          transaction_amount: valor,
+          description: `Assinatura ${nomeDoPlano}`,
+          payment_method_id: 'pix',
+          payer: {
+            email: user.email,
+            first_name: user.nome?.split(' ')[0] || 'Usuario',
+            last_name: user.nome?.split(' ').slice(1).join(' ') || 'SpeedRota',
+          },
+          external_reference: JSON.stringify({
+            userId: user.id,
+            plano,
+            email: user.email,
+          }),
+        },
+      });
+      
+      // Extrair dados do PIX
+      const pixData = payment.point_of_interaction?.transaction_data;
+      
+      if (!pixData?.qr_code || !pixData?.qr_code_base64) {
+        throw new Error('QR Code PIX não gerado');
+      }
+      
+      // Registrar pagamento pendente
+      await prisma.pagamento.create({
+        data: {
+          userId: user.id,
+          plano,
+          valorCentavos,
+          moeda: 'BRL',
+          status: 'PENDENTE',
+          mpPaymentId: payment.id?.toString(),
+        },
+      });
+      
+      console.log('✅ PIX criado:', {
+        paymentId: payment.id,
+        status: payment.status,
+        plano,
+      });
+      
+      return {
+        success: true,
+        data: {
+          paymentId: payment.id?.toString(),
+          qrCode: pixData.qr_code, // Código copia e cola
+          qrCodeBase64: pixData.qr_code_base64, // Imagem base64
+          valor,
+          valorFormatado: `R$ ${valor.toFixed(2).replace('.', ',')}`,
+          expiracao: payment.date_of_expiration,
+          status: payment.status,
+        },
+      };
+    } catch (error: any) {
+      console.error('❌ Erro ao criar PIX:', error);
+      return reply.status(500).send({
+        success: false,
+        error: 'Erro ao gerar PIX',
+        details: error.message,
+      });
+    }
+  });
+
+  // ----------------------------------------
+  // PROCESSAR PAGAMENTO COM CARTÃO
+  // ----------------------------------------
+  
+  app.post('/process-card-payment', {
+    preHandler: [authenticate],
+  }, async (request, reply) => {
+    const cardPaymentSchema = z.object({
+      plano: z.enum(['PRO', 'FULL']),
+      token: z.string(), // Token do cartão gerado pelo SDK
+      paymentMethodId: z.string(), // ex: visa, mastercard
+      installments: z.number().min(1).max(12).default(1),
+      email: z.string().email(),
+      identificationType: z.string().optional(), // CPF
+      identificationNumber: z.string().optional(),
+    });
+    
+    const body = cardPaymentSchema.parse(request.body);
+    const userId = request.user.userId;
+    
+    // Buscar usuário
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+    
+    if (!user) {
+      return reply.status(404).send({
+        success: false,
+        error: 'Usuário não encontrado',
+      });
+    }
+    
+    const valorCentavos = PRECOS_PLANOS[body.plano];
+    const valor = valorCentavos / 100;
+    const nomeDoPlano = body.plano === 'PRO' ? 'SpeedRota Pro' : 'SpeedRota Full';
+    
+    try {
+      // Processar pagamento com cartão
+      const payment = await paymentClient.create({
+        body: {
+          transaction_amount: valor,
+          token: body.token,
+          description: `Assinatura ${nomeDoPlano}`,
+          installments: body.installments,
+          payment_method_id: body.paymentMethodId,
+          payer: {
+            email: body.email,
+            identification: body.identificationType && body.identificationNumber ? {
+              type: body.identificationType,
+              number: body.identificationNumber,
+            } : undefined,
+          },
+          external_reference: JSON.stringify({
+            userId: user.id,
+            plano: body.plano,
+            email: user.email,
+          }),
+        },
+      });
+      
+      // Se aprovado, atualizar plano imediatamente
+      if (payment.status === 'approved') {
+        await prisma.user.update({
+          where: { id: userId },
+          data: {
+            plano: body.plano,
+            planoExpiraEm: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          },
+        });
+        
+        await prisma.pagamento.create({
+          data: {
+            userId: user.id,
+            plano: body.plano,
+            valorCentavos,
+            moeda: 'BRL',
+            status: 'PAGO',
+            mpPaymentId: payment.id?.toString(),
+            pagoEm: new Date(),
+          },
+        });
+      } else {
+        // Registrar como pendente/rejeitado
+        await prisma.pagamento.create({
+          data: {
+            userId: user.id,
+            plano: body.plano,
+            valorCentavos,
+            moeda: 'BRL',
+            status: payment.status === 'rejected' ? 'REJEITADO' : 'PENDENTE',
+            mpPaymentId: payment.id?.toString(),
+          },
+        });
+      }
+      
+      return {
+        success: payment.status === 'approved',
+        data: {
+          paymentId: payment.id?.toString(),
+          status: payment.status,
+          statusDetail: payment.status_detail,
+          approved: payment.status === 'approved',
+        },
+      };
+    } catch (error: any) {
+      console.error('❌ Erro ao processar cartão:', error);
+      return reply.status(500).send({
+        success: false,
+        error: 'Erro ao processar pagamento',
+        details: error.message,
+      });
+    }
+  });
 }
 
 export default mercadoPagoRoutes;

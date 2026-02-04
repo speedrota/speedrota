@@ -42,6 +42,12 @@ interface SpeedRotaApi {
     @POST("pagamentos/create-preference")
     suspend fun criarPreferencia(@Body request: PreferenceRequest): PreferenceResponse
     
+    @POST("pagamentos/create-pix")
+    suspend fun criarPix(@Body request: PreferenceRequest): PixDirectResponse
+    
+    @POST("pagamentos/process-card-payment")
+    suspend fun processarCartao(@Body request: CardPaymentRequest): CardPaymentResponse
+    
     @POST("pagamentos/confirm-upgrade")
     suspend fun confirmarUpgrade(@Body request: ConfirmUpgradeRequest): ConfirmUpgradeResponse
     

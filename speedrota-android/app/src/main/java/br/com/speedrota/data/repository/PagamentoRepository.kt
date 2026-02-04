@@ -8,7 +8,7 @@ import javax.inject.Singleton
 /**
  * Repositório de pagamentos
  * 
- * @description Gerencia pagamentos via Mercado Pago
+ * @description Gerencia pagamentos via Mercado Pago (PIX, Cartão, Checkout)
  * @pre Usuário autenticado
  * @post Pagamento processado, plano atualizado
  */
@@ -46,6 +46,58 @@ class PagamentoRepository @Inject constructor(
                 Result.success(response.data)
             } else {
                 Result.failure(Exception(response.error ?: "Erro ao criar preferência"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Cria pagamento PIX direto
+     * @pre Plano válido (PRO ou FULL)
+     * @post QR Code PIX retornado para pagamento
+     */
+    suspend fun criarPix(plano: String): Result<PixDirectData> {
+        return try {
+            val response = api.criarPix(PreferenceRequest(plano))
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(Exception(response.error ?: "Erro ao gerar PIX"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Processa pagamento com cartão
+     * @pre Token do cartão válido
+     * @post Pagamento processado
+     */
+    suspend fun processarCartao(
+        plano: String,
+        token: String,
+        paymentMethodId: String,
+        installments: Int,
+        email: String,
+        cpf: String? = null
+    ): Result<CardPaymentData> {
+        return try {
+            val request = CardPaymentRequest(
+                plano = plano,
+                token = token,
+                paymentMethodId = paymentMethodId,
+                installments = installments,
+                email = email,
+                identificationType = if (cpf != null) "CPF" else null,
+                identificationNumber = cpf
+            )
+            val response = api.processarCartao(request)
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(Exception(response.error ?: "Erro ao processar cartão"))
             }
         } catch (e: Exception) {
             Result.failure(e)

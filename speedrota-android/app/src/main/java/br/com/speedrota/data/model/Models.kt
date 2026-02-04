@@ -232,6 +232,57 @@ data class PublicKeyData(
     val publicKey: String
 )
 
+// ==================== PIX DIRETO ====================
+
+// Response do PIX direto (novo endpoint)
+@Serializable
+data class PixDirectResponse(
+    val success: Boolean,
+    val data: PixDirectData? = null,
+    val error: String? = null
+)
+
+@Serializable
+data class PixDirectData(
+    val paymentId: String,
+    val qrCode: String, // Código copia e cola
+    val qrCodeBase64: String, // Imagem base64 do QR Code
+    val valor: Double,
+    val valorFormatado: String,
+    val expiracao: String? = null,
+    val status: String
+)
+
+// ==================== CARTÃO ====================
+
+// Request para pagamento com cartão
+@Serializable
+data class CardPaymentRequest(
+    val plano: String, // "PRO" ou "FULL"
+    val token: String, // Token do cartão gerado pelo SDK
+    val paymentMethodId: String, // visa, mastercard, etc
+    val installments: Int = 1,
+    val email: String,
+    val identificationType: String? = null, // CPF
+    val identificationNumber: String? = null
+)
+
+// Response do pagamento com cartão
+@Serializable
+data class CardPaymentResponse(
+    val success: Boolean,
+    val data: CardPaymentData? = null,
+    val error: String? = null
+)
+
+@Serializable
+data class CardPaymentData(
+    val paymentId: String,
+    val status: String, // approved, rejected, pending
+    val statusDetail: String? = null,
+    val approved: Boolean
+)
+
 // ==================== LEGACY (mantido para compatibilidade) ====================
 
 @Serializable

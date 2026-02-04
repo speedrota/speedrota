@@ -2,6 +2,7 @@ package br.com.speedrota.ui.screens.pagamento
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -18,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
@@ -336,153 +338,251 @@ fun TelaPagamentoPix(
     onCopiar: () -> Unit
 ) {
     val context = LocalContext.current
-
-    // Usar URL do checkout retornada pela API, ou fallback
-    val checkoutUrl = uiState.checkoutUrl.ifEmpty {
-        "https://speedrota.vercel.app/planos"
+    
+    // Gerar PIX automaticamente na primeira vez
+    LaunchedEffect(Unit) {
+        if (uiState.qrCodeBase64.isEmpty() && !uiState.isLoading && uiState.error == null) {
+            onGerarPix()
+        }
     }
 
     if (uiState.isLoading) {
+        // Loading
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(300.dp),
+                .height(400.dp),
             contentAlignment = Alignment.Center
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                CircularProgressIndicator(color = Primary)
+                CircularProgressIndicator(color = Primary, modifier = Modifier.size(48.dp))
                 Spacer(modifier = Modifier.height(16.dp))
-                Text("Preparando pagamento...")
+                Text(
+                    text = "Gerando QR Code PIX...",
+                    style = MaterialTheme.typography.bodyLarge
+                )
             }
         }
-    } else if (uiState.checkoutUrl.isNotEmpty()) {
-        // Sucesso - mostra opção de abrir checkout Mercado Pago
+    } else if (uiState.qrCodeBase64.isNotEmpty()) {
+        // Sucesso - mostra QR Code real
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(8.dp)
         ) {
-            Icon(
-                Icons.Default.Payment,
-                contentDescription = null,
-                tint = Primary,
-                modifier = Modifier.size(80.dp)
-            )
-            Spacer(modifier = Modifier.height(24.dp))
+            // QR Code Image
+            Card(
+                modifier = Modifier.size(220.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(4.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    // Decodificar e mostrar a imagem base64
+                    val bitmap = remember(uiState.qrCodeBase64) {
+                        try {
+                            val decodedBytes = android.util.Base64.decode(
+                                uiState.qrCodeBase64,
+                                android.util.Base64.DEFAULT
+                            )
+                            android.graphics.BitmapFactory.decodeByteArray(
+                                decodedBytes, 0, decodedBytes.size
+                            )
+                        } catch (e: Exception) {
+                            null
+                        }
+                    }
+                    
+                    if (bitmap != null) {
+                        androidx.compose.foundation.Image(
+                            bitmap = bitmap.asImageBitmap(),
+                            contentDescription = "QR Code PIX",
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else {
+                        // Fallback se não conseguir decodificar
+                        Icon(
+                            Icons.Default.QrCode2,
+                            contentDescription = null,
+                            modifier = Modifier.size(150.dp),
+                            tint = Color.Black
+                        )
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Valor
             Text(
-                text = "Tudo pronto!",
-                style = MaterialTheme.typography.headlineSmall,
+                text = uiState.valorFormatado.ifEmpty { "R$ ${String.format("%.2f", uiState.valor)}" },
+                style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center
+                color = Primary
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Código copia e cola
             Text(
-                text = "Clique abaixo para completar seu pagamento de forma segura pelo Mercado Pago",
+                text = "ou copie o código PIX:",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            
             Spacer(modifier = Modifier.height(8.dp))
+            
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = if (uiState.codigoCopiaCola.length > 30)
+                            uiState.codigoCopiaCola.take(30) + "..."
+                        else
+                            uiState.codigoCopiaCola,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.weight(1f),
+                        maxLines = 1
+                    )
+
+                    IconButton(
+                        onClick = {
+                            clipboardManager.setText(AnnotatedString(uiState.codigoCopiaCola))
+                            onCopiar()
+                        }
+                    ) {
+                        Icon(
+                            if (uiState.isCopied) Icons.Default.Check else Icons.Default.ContentCopy,
+                            contentDescription = "Copiar",
+                            tint = if (uiState.isCopied) Success else Primary
+                        )
+                    }
+                }
+            }
+            
+            if (uiState.isCopied) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "✓ Código copiado!",
+                    color = Success,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(20.dp))
+            
+            // Status do pagamento
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = when (uiState.statusPagamento) {
+                        "approved" -> Success.copy(alpha = 0.1f)
+                        "rejected" -> Error.copy(alpha = 0.1f)
+                        else -> Warning.copy(alpha = 0.1f)
+                    }
+                )
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (uiState.statusPagamento == "approved") {
+                        Icon(
+                            Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = Success
+                        )
+                    } else {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            strokeWidth = 2.dp,
+                            color = Warning
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = when (uiState.statusPagamento) {
+                                "approved" -> "Pagamento confirmado!"
+                                "rejected" -> "Pagamento recusado"
+                                else -> "Aguardando pagamento..."
+                            },
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                        if (uiState.statusPagamento == "pending") {
+                            Text(
+                                text = "Verificando a cada 5 segundos",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Instruções
             Text(
-                text = "Você pode pagar via PIX, cartão de crédito ou boleto",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center
+                text = "Como pagar:",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold
             )
             
-            Spacer(modifier = Modifier.height(32.dp))
-
-            Button(
-                onClick = {
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(checkoutUrl))
-                    context.startActivity(intent)
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Primary
-                )
-            ) {
-                Icon(Icons.Default.OpenInBrowser, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Ir para Pagamento",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp
-                )
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             
-            // Métodos de pagamento disponíveis
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        Icons.Default.QrCode2,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(24.dp)
-                    )
+            val instrucoes = listOf(
+                "Abra o app do seu banco",
+                "Escolha pagar via PIX",
+                "Escaneie o QR Code ou cole o código",
+                "Confirme o pagamento"
+            )
+            
+            instrucoes.forEachIndexed { index, instrucao ->
+                Row(
+                    modifier = Modifier.padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(24.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Primary),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "${index + 1}",
+                            color = Color.White,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
                     Text(
-                        text = "PIX",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = instrucao,
+                        style = MaterialTheme.typography.bodyMedium
                     )
                 }
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        Icons.Default.CreditCard,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Text(
-                        text = "Cartão",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        Icons.Default.Receipt,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Text(
-                        text = "Boleto",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Informações de segurança
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
-            ) {
-                Icon(
-                    Icons.Default.Lock,
-                    contentDescription = null,
-                    modifier = Modifier.size(14.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    text = "Pagamento 100% seguro via Mercado Pago",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
         }
     } else if (uiState.error != null) {
-        // Erro - mostra mensagem e botão de retry
+        // Erro
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -501,20 +601,20 @@ fun TelaPagamentoPix(
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "Ops! Algo deu errado",
+                    text = "Erro ao gerar PIX",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = uiState.error ?: "Erro desconhecido",
+                    text = uiState.error,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
                 )
                 Spacer(modifier = Modifier.height(24.dp))
-
+                
                 Button(
                     onClick = onGerarPix,
                     modifier = Modifier
@@ -531,7 +631,7 @@ fun TelaPagamentoPix(
             }
         }
     } else {
-        // Estado inicial - não deveria chegar aqui
+        // Estado inicial
         Box(
             modifier = Modifier
                 .fillMaxWidth()
