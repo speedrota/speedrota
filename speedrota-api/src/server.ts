@@ -130,6 +130,21 @@ app.addHook('onRequest', async (request) => {
 // ROTAS
 // ==========================================
 
+// Health check na raiz (para Render/monitoramento)
+app.get('/health', async () => ({
+  status: 'ok',
+  timestamp: new Date().toISOString(),
+  version: '1.0.0',
+}));
+
+// Rota raiz
+app.get('/', async () => ({
+  name: 'SpeedRota API',
+  version: '1.0.0',
+  docs: '/docs',
+  health: '/health',
+}));
+
 // Prefixo /api/v1
 app.register(healthRoutes, { prefix: '/api/v1' });
 app.register(authRoutes, { prefix: '/api/v1/auth' });
