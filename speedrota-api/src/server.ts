@@ -42,11 +42,41 @@ const app = Fastify({
 // PLUGINS
 // ==========================================
 
-// CORS
+// CORS - Configuração para Web e Android
 await app.register(cors, {
-  origin: [env.FRONTEND_URL, 'http://localhost:3000'],
+  origin: (origin, callback) => {
+    // Origens permitidas
+    const allowedOrigins = [
+      env.FRONTEND_URL,
+      'http://localhost:3000',
+      'http://localhost:8081', // Expo Dev
+      'http://localhost:19006', // Expo Web
+      'https://speedrota.com.br',
+      'https://www.speedrota.com.br',
+      'https://speedrota.vercel.app',
+    ];
+    
+    // Permitir requisições sem origin (apps mobile, Postman, etc)
+    if (!origin) {
+      return callback(null, true);
+    }
+    
+    // Verificar se origem está na lista ou é um app mobile
+    if (allowedOrigins.includes(origin) || 
+        origin.startsWith('capacitor://') || 
+        origin.startsWith('ionic://') ||
+        origin.startsWith('http://192.168.') || // Dev local network
+        origin.startsWith('http://10.')) { // Dev local network
+      return callback(null, true);
+    }
+    
+    // Bloquear outras origens
+    console.warn(`[CORS] Origem bloqueada: ${origin}`);
+    return callback(new Error('Not allowed by CORS'), false);
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
 });
 
 // JWT
