@@ -1,10 +1,7 @@
 package br.com.speedrota.ui.screens.origem
 
-import android.Manifest
 import android.content.Context
 import android.location.Geocoder
-import android.location.Location
-import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.android.gms.location.FusedLocationProviderClient

@@ -10,6 +10,7 @@ plugins {
 android {
     namespace = "br.com.speedrota"
     compileSdk = 35
+    buildToolsVersion = "35.0.0"
 
     defaultConfig {
         applicationId = "br.com.speedrota"
@@ -87,6 +88,9 @@ dependencies {
 
     // Kotlin Serialization
     implementation(libs.kotlinx.serialization.json)
+
+    // Coroutines Play Services (para usar .await() em Tasks)
+    implementation(libs.kotlinx.coroutines.play.services)
 
     // DataStore
     implementation(libs.androidx.datastore)
