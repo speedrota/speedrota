@@ -17,7 +17,7 @@ export function TelaPlanos({ onClose }: TelaplanosProps) {
   const [processando, setProcessando] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   
-  const { user, loadUser } = useAuthStore();
+  const { user } = useAuthStore();
   
   useEffect(() => {
     carregarPlanos();

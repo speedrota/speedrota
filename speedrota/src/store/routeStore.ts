@@ -471,6 +471,7 @@ export const useRouteStore = create<RouteStore>((set, get) => ({
         lng: rota.origemLng,
         endereco: rota.origemEndereco,
         fonte: rota.origemFonte,
+        timestamp: new Date(),
       };
       
       const destinos: Destino[] = rota.paradas.map((p) => ({

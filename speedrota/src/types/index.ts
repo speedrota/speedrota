@@ -132,7 +132,7 @@ export interface Destino {
   /** Fornecedor/Marketplace de origem */
   fornecedor: Fornecedor;
   /** Fonte do dado */
-  fonte: 'ocr' | 'manual';
+  fonte: 'ocr' | 'manual' | 'pdf';
   /** Confiança do geocoding (0-1) */
   confianca: number;
 }

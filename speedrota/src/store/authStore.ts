@@ -8,7 +8,7 @@
 
 import { create } from 'zustand';
 import { authService, type User, type UserStats } from '../services/auth';
-import type { Plano, PLANOS_CONFIG } from '../types';
+import type { Plano } from '../types';
 
 // ==========================================
 // INTERFACE DO STORE
