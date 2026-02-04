@@ -16,9 +16,9 @@ import { env } from '../config/env.js';
 // ==========================================
 
 const ZEPTOMAIL_API_URL = 'https://api.zeptomail.com/v1.1/email';
-const FROM_EMAIL = 'sac@speedrota.com.br';
+const FROM_EMAIL = 'noreply@speedrota.com.br';
 const FROM_NAME = 'SpeedRota';
-const BOUNCE_ADDRESS = 'bounce-zem@speedrota.com.br';
+const BOUNCE_ADDRESS = 'noreply@bounce-zem.speedrota.com.br';
 
 // ==========================================
 // TEMPLATES DE EMAIL
