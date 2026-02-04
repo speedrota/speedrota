@@ -145,6 +145,19 @@ app.get('/', async () => ({
   health: '/health',
 }));
 
+// Rota /api/v1 (info)
+app.get('/api/v1', async () => ({
+  name: 'SpeedRota API',
+  version: '1.0.0',
+  status: 'online',
+  endpoints: {
+    auth: '/api/v1/auth',
+    users: '/api/v1/users',
+    rotas: '/api/v1/rotas',
+    pagamentos: '/api/v1/pagamentos',
+  },
+}));
+
 // Prefixo /api/v1
 app.register(healthRoutes, { prefix: '/api/v1' });
 app.register(authRoutes, { prefix: '/api/v1/auth' });
