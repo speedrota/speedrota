@@ -18,7 +18,7 @@ object GooglePayUtil {
     private const val GATEWAY = "mercadopago"
     
     // Ambiente (TEST para desenvolvimento, PRODUCTION para produção)
-    private val PAYMENTS_ENVIRONMENT = WalletConstants.ENVIRONMENT_TEST
+    private val PAYMENTS_ENVIRONMENT = WalletConstants.ENVIRONMENT_PRODUCTION
     
     /**
      * Cria cliente do Google Pay
