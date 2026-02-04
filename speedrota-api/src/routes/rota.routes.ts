@@ -12,7 +12,6 @@ import { z } from 'zod';
 import { prisma } from '../lib/prisma.js';
 import { authenticate } from '../middlewares/auth.middleware.js';
 import { LIMITES_PLANOS, CONSTANTES } from '../config/env.js';
-import { otimizarRotaCompleta, haversineCorrigido } from '../services/otimizacao.js';
 
 // ==========================================
 // SCHEMAS
@@ -41,6 +40,71 @@ const addParadaSchema = z.object({
   fonte: z.enum(['ocr', 'manual', 'pdf']).default('manual'),
   confianca: z.number().min(0).max(1).default(1),
 });
+
+// ==========================================
+// FUNÇÕES DE CÁLCULO
+// ==========================================
+
+/**
+ * Haversine com correção urbana
+ */
+function haversineCorrigido(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  
+  const a = Math.sin(dLat / 2) ** 2 +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLng / 2) ** 2;
+  
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  
+  return R * c * CONSTANTES.FATOR_CORRECAO_URBANA;
+}
+
+/**
+ * Algoritmo Nearest Neighbor para TSP
+ */
+function nearestNeighbor(
+  origem: { lat: number; lng: number },
+  paradas: Array<{ id: string; lat: number; lng: number }>,
+  incluirRetorno: boolean
+): Array<{ id: string; ordem: number; distanciaAnterior: number }> {
+  if (paradas.length === 0) return [];
+  
+  const resultado: Array<{ id: string; ordem: number; distanciaAnterior: number }> = [];
+  const visitados = new Set<string>();
+  let atual = origem;
+  let ordem = 1;
+  
+  while (visitados.size < paradas.length) {
+    let menorDist = Infinity;
+    let proxima: typeof paradas[0] | null = null;
+    
+    for (const parada of paradas) {
+      if (visitados.has(parada.id)) continue;
+      
+      const dist = haversineCorrigido(atual.lat, atual.lng, parada.lat, parada.lng);
+      if (dist < menorDist) {
+        menorDist = dist;
+        proxima = parada;
+      }
+    }
+    
+    if (proxima) {
+      visitados.add(proxima.id);
+      resultado.push({
+        id: proxima.id,
+        ordem,
+        distanciaAnterior: menorDist,
+      });
+      atual = proxima;
+      ordem++;
+    }
+  }
+  
+  return resultado;
+}
 
 // ==========================================
 // ROTAS
@@ -303,7 +367,7 @@ export async function rotaRoutes(app: FastifyInstance) {
 
   /**
    * POST /rotas/:id/calcular
-   * Calcular rota otimizada usando OSRM + 2-opt
+   * Calcular rota otimizada
    */
   app.post('/:id/calcular', async (request, reply) => {
     const { userId } = request.user;
@@ -331,40 +395,56 @@ export async function rotaRoutes(app: FastifyInstance) {
       });
     }
     
-    // Preparar dados para otimização
-    const origem = { id: 'origem', lat: rota.origemLat, lng: rota.origemLng };
+    // Calcular ordem otimizada
+    const origem = { lat: rota.origemLat, lng: rota.origemLng };
     const paradasParaOtimizar = rota.paradas.map(p => ({
       id: p.id,
       lat: p.lat,
       lng: p.lng,
     }));
     
-    // Otimizar usando OSRM + Nearest Neighbor + 2-opt
-    const resultado = await otimizarRotaCompleta(origem, paradasParaOtimizar, rota.incluirRetorno);
+    const ordemOtimizada = nearestNeighbor(origem, paradasParaOtimizar, rota.incluirRetorno);
     
     // Atualizar paradas com ordem e distâncias
-    for (const item of resultado.paradas) {
+    let distanciaTotal = 0;
+    let tempoTotal = 0;
+    
+    for (const item of ordemOtimizada) {
+      distanciaTotal += item.distanciaAnterior;
+      const tempoAnterior = (item.distanciaAnterior / CONSTANTES.VELOCIDADE_URBANA_KMH) * 60;
+      tempoTotal += tempoAnterior;
+      
       await prisma.parada.update({
         where: { id: item.id },
         data: {
           ordem: item.ordem,
           distanciaAnterior: item.distanciaAnterior,
-          tempoAnterior: item.tempoAnterior,
+          tempoAnterior,
         },
       });
     }
     
+    // Adicionar retorno à origem se necessário
+    if (rota.incluirRetorno && ordemOtimizada.length > 0) {
+      const ultimaParada = rota.paradas.find(p => p.id === ordemOtimizada[ordemOtimizada.length - 1].id);
+      if (ultimaParada) {
+        const distRetorno = haversineCorrigido(ultimaParada.lat, ultimaParada.lng, origem.lat, origem.lng);
+        distanciaTotal += distRetorno;
+        tempoTotal += (distRetorno / CONSTANTES.VELOCIDADE_URBANA_KMH) * 60;
+      }
+    }
+    
     // Calcular métricas
     const tempoEntregas = rota.paradas.length * CONSTANTES.TEMPO_POR_ENTREGA_MIN;
-    const combustivel = resultado.distanciaTotal / CONSTANTES.CONSUMO_MEDIO_KML;
+    const combustivel = distanciaTotal / CONSTANTES.CONSUMO_MEDIO_KML;
     const custo = combustivel * CONSTANTES.PRECO_COMBUSTIVEL;
     
     // Atualizar rota
     const rotaAtualizada = await prisma.rota.update({
       where: { id },
       data: {
-        distanciaTotalKm: resultado.distanciaTotal,
-        tempoViagemMin: resultado.tempoTotal,
+        distanciaTotalKm: distanciaTotal,
+        tempoViagemMin: tempoTotal,
         tempoEntregasMin: tempoEntregas,
         combustivelL: combustivel,
         custoR: custo,
@@ -381,10 +461,6 @@ export async function rotaRoutes(app: FastifyInstance) {
     return {
       success: true,
       data: rotaAtualizada,
-      otimizacao: {
-        algoritmo: resultado.algoritmo,
-        melhoriaPercentual: resultado.melhoriaPercentual,
-      },
     };
   });
 
