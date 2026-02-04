@@ -14,15 +14,25 @@ import { env } from '../config/env.js';
 // CONFIGURAÇÃO DO TRANSPORTER
 // ==========================================
 
-const transporter = nodemailer.createTransport({
-  host: env.SMTP_HOST || 'smtp.zoho.com',
-  port: env.SMTP_PORT || 465,
-  secure: true,
-  auth: {
-    user: env.SMTP_USER || 'noreply@speedrota.com.br',
-    pass: env.SMTP_PASS || '',
-  },
-});
+/**
+ * Cria transporter sob demanda para garantir que env já foi carregada
+ */
+function criarTransporter() {
+  if (!env.SMTP_USER || !env.SMTP_PASS) {
+    console.warn('⚠️ SMTP não configurado (SMTP_USER ou SMTP_PASS ausente)');
+    return null;
+  }
+  
+  return nodemailer.createTransport({
+    host: 'smtp.zoho.com',
+    port: 465,
+    secure: true,
+    auth: {
+      user: env.SMTP_USER,
+      pass: env.SMTP_PASS,
+    },
+  });
+}
 
 // ==========================================
 // TEMPLATES DE EMAIL
@@ -149,11 +159,18 @@ export async function enviarEmailRecuperacao(
   nome: string,
   codigo: string
 ): Promise<boolean> {
+  const transporter = criarTransporter();
+  
+  if (!transporter) {
+    console.log(`📧 [DEV] Código de recuperação para ${email}: ${codigo}`);
+    return false;
+  }
+  
   try {
     const template = getPasswordResetTemplate(codigo, nome);
     
     await transporter.sendMail({
-      from: `"SpeedRota" <${env.SMTP_USER || 'noreply@speedrota.com.br'}>`,
+      from: `"SpeedRota" <${env.SMTP_USER}>`,
       to: email,
       subject: template.subject,
       html: template.html,
@@ -175,11 +192,18 @@ export async function enviarEmailBoasVindas(
   email: string,
   nome: string
 ): Promise<boolean> {
+  const transporter = criarTransporter();
+  
+  if (!transporter) {
+    console.log(`📧 [DEV] Email de boas-vindas seria enviado para ${email}`);
+    return false;
+  }
+  
   try {
     const template = getWelcomeTemplate(nome);
     
     await transporter.sendMail({
-      from: `"SpeedRota" <${env.SMTP_USER || 'noreply@speedrota.com.br'}>`,
+      from: `"SpeedRota" <${env.SMTP_USER}>`,
       to: email,
       subject: template.subject,
       html: template.html,
@@ -198,6 +222,13 @@ export async function enviarEmailBoasVindas(
  * Verifica se o transporter está configurado corretamente
  */
 export async function verificarConfiguracao(): Promise<boolean> {
+  const transporter = criarTransporter();
+  
+  if (!transporter) {
+    console.warn('⚠️ SMTP não configurado - verificação ignorada');
+    return false;
+  }
+  
   try {
     await transporter.verify();
     console.log('✅ SMTP configurado corretamente');
