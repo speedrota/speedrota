@@ -35,7 +35,10 @@ interface SpeedRotaApi {
     // ==================== ROTAS ====================
     
     @GET("rotas")
-    suspend fun getRotas(): List<RotaResponse>
+    suspend fun getRotas(): ListaRotasResponse
+    
+    @GET("rotas/{id}")
+    suspend fun getRotaPorId(@Path("id") id: String): RotaDetalheResponse
     
     @POST("rotas")
     suspend fun createRota(@Body request: CreateRotaRequest): RotaResponse

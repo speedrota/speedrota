@@ -13,6 +13,7 @@ import br.com.speedrota.ui.screens.auth.LoginScreen
 import br.com.speedrota.ui.screens.auth.RegisterScreen
 import br.com.speedrota.ui.screens.auth.ForgotPasswordScreen
 import br.com.speedrota.ui.screens.home.HomeScreen
+import br.com.speedrota.ui.screens.historico.HistoricoScreen
 import br.com.speedrota.ui.screens.origem.OrigemScreen
 import br.com.speedrota.ui.screens.destinos.DestinosScreen
 import br.com.speedrota.ui.screens.rota.RotaScreen
@@ -79,6 +80,9 @@ fun SpeedRotaNavHost() {
                 onNovaRota = {
                     navController.navigate(Screen.Origem.route)
                 },
+                onHistorico = {
+                    navController.navigate(Screen.Historico.route)
+                },
                 onVerPlanos = {
                     navController.navigate(Screen.Planos.route)
                 },
@@ -86,6 +90,17 @@ fun SpeedRotaNavHost() {
                     navController.navigate(Screen.Login.route) {
                         popUpTo(0) { inclusive = true }
                     }
+                }
+            )
+        }
+        
+        composable(Screen.Historico.route) {
+            HistoricoScreen(
+                onVoltar = {
+                    navController.popBackStack()
+                },
+                onRotaSelecionada = { rotaId ->
+                    navController.navigate(Screen.Rota.createRoute(rotaId))
                 }
             )
         }
@@ -104,7 +119,7 @@ fun SpeedRotaNavHost() {
         composable(Screen.Destinos.route) {
             DestinosScreen(
                 onCalcularRota = {
-                    navController.navigate(Screen.Rota.route)
+                    navController.navigate(Screen.Rota.createRoute())
                 },
                 onBack = {
                     navController.popBackStack()
@@ -112,8 +127,17 @@ fun SpeedRotaNavHost() {
             )
         }
         
-        composable(Screen.Rota.route) {
+        composable(
+            route = Screen.Rota.route,
+            arguments = listOf(navArgument("rotaId") { 
+                type = NavType.StringType
+                nullable = true
+                defaultValue = null
+            })
+        ) { backStackEntry ->
+            val rotaId = backStackEntry.arguments?.getString("rotaId")
             RotaScreen(
+                rotaId = rotaId,
                 onNovaRota = {
                     navController.navigate(Screen.Home.route) {
                         popUpTo(Screen.Home.route) { inclusive = true }

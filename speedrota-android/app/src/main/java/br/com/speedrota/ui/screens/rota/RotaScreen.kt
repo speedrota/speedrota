@@ -25,12 +25,18 @@ import br.com.speedrota.ui.theme.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RotaScreen(
+    rotaId: String? = null,
     viewModel: RotaViewModel = hiltViewModel(),
     onNovaRota: () -> Unit,
     onBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val uriHandler = LocalUriHandler.current
+    
+    // Carregar rota do histórico se rotaId foi fornecido
+    LaunchedEffect(rotaId) {
+        rotaId?.let { viewModel.carregarRotaPorId(it) }
+    }
 
     Scaffold(
         topBar = {

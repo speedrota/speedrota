@@ -128,6 +128,51 @@ data class RotaResponse(
 )
 
 @Serializable
+data class ListaRotasResponse(
+    val rotas: List<RotaListItem>,
+    val total: Int,
+    val pagina: Int,
+    val porPagina: Int,
+    val totalPaginas: Int
+)
+
+@Serializable
+data class RotaDetalheResponse(
+    val success: Boolean,
+    val data: RotaListItem? = null,
+    val error: String? = null
+)
+
+@Serializable
+data class RotaListItem(
+    val id: String,
+    val nome: String,
+    val criadoEm: String,
+    val fornecedor: String? = null,
+    val totalParadas: Int,
+    val distanciaTotal: Double? = null,
+    val tempoEstimado: Int? = null,
+    val origemEndereco: String? = null,
+    val origemLat: Double? = null,
+    val origemLng: Double? = null,
+    val paradas: List<ParadaItem>? = null
+)
+
+@Serializable
+data class ParadaItem(
+    val id: String,
+    val rotaId: String,
+    val endereco: String,
+    val lat: Double,
+    val lng: Double,
+    val ordem: Int,
+    val status: String? = null,
+    val fornecedor: String? = null,
+    val nomeDestinatario: String? = null,
+    val createdAt: String? = null
+)
+
+@Serializable
 data class RotaData(
     val id: String,
     val nome: String? = null,

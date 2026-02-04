@@ -142,9 +142,35 @@ export async function rotaRoutes(app: FastifyInstance) {
       take: 50,
     });
     
+    // Transformar para formato esperado pelo frontend/mobile
+    const rotasFormatadas = rotas.map(rota => ({
+      id: rota.id,
+      nome: `Rota de ${new Date(rota.createdAt).toLocaleDateString('pt-BR')}`,
+      criadoEm: rota.createdAt.toISOString(),
+      fornecedor: rota.paradas[0]?.fornecedor || null,
+      totalParadas: rota.paradas.length,
+      distanciaTotal: rota.distanciaTotalKm ? rota.distanciaTotalKm * 1000 : null, // km para metros
+      tempoEstimado: rota.tempoViagemMin ? Math.round(rota.tempoViagemMin * 60) : null, // min para segundos
+      origemEndereco: rota.origemEndereco,
+      origemLat: rota.origemLat,
+      origemLng: rota.origemLng,
+      paradas: rota.paradas.map(p => ({
+        id: p.id,
+        rotaId: p.rotaId,
+        endereco: p.endereco,
+        lat: p.lat,
+        lng: p.lng,
+        ordem: p.ordem ?? 0,
+        status: p.statusEntrega,
+        fornecedor: p.fornecedor,
+        nomeDestinatario: p.nome,
+        createdAt: p.createdAt?.toISOString(),
+      })),
+    }));
+    
     // Retornar no formato esperado pelo frontend
     return {
-      rotas: rotas,
+      rotas: rotasFormatadas,
       total: rotas.length,
       pagina: 1,
       porPagina: 50,
@@ -176,9 +202,35 @@ export async function rotaRoutes(app: FastifyInstance) {
       });
     }
     
+    // Transformar para formato esperado pelo mobile
+    const rotaFormatada = {
+      id: rota.id,
+      nome: `Rota de ${new Date(rota.createdAt).toLocaleDateString('pt-BR')}`,
+      criadoEm: rota.createdAt.toISOString(),
+      fornecedor: rota.paradas[0]?.fornecedor || null,
+      totalParadas: rota.paradas.length,
+      distanciaTotal: rota.distanciaTotalKm ? rota.distanciaTotalKm * 1000 : null,
+      tempoEstimado: rota.tempoViagemMin ? Math.round(rota.tempoViagemMin * 60) : null,
+      origemEndereco: rota.origemEndereco,
+      origemLat: rota.origemLat,
+      origemLng: rota.origemLng,
+      paradas: rota.paradas.map(p => ({
+        id: p.id,
+        rotaId: p.rotaId,
+        endereco: p.endereco,
+        lat: p.lat,
+        lng: p.lng,
+        ordem: p.ordem ?? 0,
+        status: p.statusEntrega,
+        fornecedor: p.fornecedor,
+        nomeDestinatario: p.nome,
+        createdAt: p.createdAt?.toISOString(),
+      })),
+    };
+    
     return {
       success: true,
-      data: rota,
+      data: rotaFormatada,
     };
   });
 

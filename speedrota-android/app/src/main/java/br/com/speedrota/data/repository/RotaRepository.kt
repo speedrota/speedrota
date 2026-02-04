@@ -22,10 +22,28 @@ class RotaRepository @Inject constructor(
      * @pre Token válido
      * @post Lista de rotas ordenada por data
      */
-    suspend fun getRotas(): Result<List<RotaResponse>> {
+    suspend fun getRotas(): Result<ListaRotasResponse> {
         return try {
-            val rotas = api.getRotas()
-            Result.success(rotas)
+            val response = api.getRotas()
+            Result.success(response)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Busca uma rota por ID
+     * @pre Token válido, ID existente
+     * @post Rota com detalhes completos
+     */
+    suspend fun getRotaPorId(id: String): Result<RotaListItem> {
+        return try {
+            val response = api.getRotaPorId(id)
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(Exception(response.error ?: "Rota não encontrada"))
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }

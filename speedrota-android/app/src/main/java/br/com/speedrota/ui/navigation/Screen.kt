@@ -13,7 +13,9 @@ sealed class Screen(val route: String) {
     data object Home : Screen("home")
     data object Origem : Screen("origem")
     data object Destinos : Screen("destinos")
-    data object Rota : Screen("rota")
+    data object Rota : Screen("rota?rotaId={rotaId}") {
+        fun createRoute(rotaId: String? = null) = if (rotaId != null) "rota?rotaId=$rotaId" else "rota"
+    }
     data object Camera : Screen("camera")
     
     // Outros

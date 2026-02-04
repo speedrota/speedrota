@@ -100,4 +100,43 @@ class RotaViewModel @Inject constructor(
                 }
         }
     }
+    
+    /**
+     * Carrega uma rota do histórico pelo ID
+     * @pre ID válido, rota existe
+     * @post UI atualizada com dados da rota
+     */
+    fun carregarRotaPorId(id: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            
+            rotaRepository.getRotaPorId(id)
+                .onSuccess { rota ->
+                    // Converter paradas para Destino
+                    val destinos = rota.paradas?.map { parada ->
+                        Destino(
+                            endereco = parada.endereco,
+                            coordenadas = Coordenada(parada.lat, parada.lng),
+                            fornecedor = parada.fornecedor,
+                            ordem = parada.ordem
+                        )
+                    } ?: emptyList()
+                    
+                    _uiState.value = _uiState.value.copy(
+                        destinosOtimizados = destinos,
+                        distanciaTotal = (rota.distanciaTotal ?: 0.0) / 1000, // metros para km
+                        tempoEstimado = (rota.tempoEstimado ?: 0) / 60, // segundos para minutos
+                        custoEstimado = 0.0, // Calcular se necessário
+                        economiaPercentual = 0.0,
+                        isLoading = false
+                    )
+                }
+                .onFailure { error ->
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = error.message ?: "Erro ao carregar rota"
+                    )
+                }
+        }
+    }
 }

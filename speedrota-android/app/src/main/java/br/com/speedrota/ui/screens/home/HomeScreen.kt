@@ -25,6 +25,7 @@ import br.com.speedrota.ui.theme.Primary
 fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
     onNovaRota: () -> Unit,
+    onHistorico: () -> Unit,
     onVerPlanos: () -> Unit,
     onLogout: () -> Unit
 ) {
@@ -145,6 +146,28 @@ fun HomeScreen(
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
+            }
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            // Botão Histórico
+            OutlinedButton(
+                onClick = onHistorico,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(
+                    Icons.Default.History,
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Histórico de Rotas",
+                    style = MaterialTheme.typography.titleMedium
+                )
             }
             
             Spacer(modifier = Modifier.height(24.dp))
