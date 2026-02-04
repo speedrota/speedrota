@@ -41,8 +41,11 @@ const envSchema = z.object({
   SMTP_USER: z.string().optional().default(''),
   SMTP_PASS: z.string().optional().default(''),
   
-  // Resend (Email API - recomendado para Render)
+  // Resend (Email API - alternativa)
   RESEND_API_KEY: z.string().optional().default(''),
+  
+  // ZeptoMail (Zoho - recomendado)
+  ZEPTOMAIL_TOKEN: z.string().optional().default(''),
 });
 
 // Parse e valida

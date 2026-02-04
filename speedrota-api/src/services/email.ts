@@ -1,32 +1,24 @@
 /**
- * @fileoverview Serviço de Email usando Resend API
+ * @fileoverview Serviço de Email usando ZeptoMail API (Zoho)
  * 
  * DESIGN POR CONTRATO:
- * @pre RESEND_API_KEY configurada no ambiente
+ * @pre ZEPTOMAIL_TOKEN configurado no ambiente
  * @post Email enviado com sucesso via API HTTP
  * @throws Erro se API falhar
  * 
- * NOTA: Render bloqueia portas SMTP (25, 465, 587).
- * Resend usa API HTTP que funciona em qualquer ambiente.
+ * NOTA: Render bloqueia portas SMTP. ZeptoMail usa API HTTP.
  */
 
-import { Resend } from 'resend';
 import { env } from '../config/env.js';
 
 // ==========================================
-// CONFIGURAÇÃO DO RESEND
+// CONFIGURAÇÃO ZEPTOMAIL
 // ==========================================
 
-function getResendClient(): Resend | null {
-  const apiKey = env.RESEND_API_KEY;
-  
-  if (!apiKey) {
-    console.warn('⚠️ RESEND_API_KEY não configurada');
-    return null;
-  }
-  
-  return new Resend(apiKey);
-}
+const ZEPTOMAIL_API_URL = 'https://api.zeptomail.com/v1.1/email';
+const FROM_EMAIL = 'noreply@speedrota.com.br';
+const FROM_NAME = 'SpeedRota';
+const BOUNCE_ADDRESS = 'bounce-zem@speedrota.com.br';
 
 // ==========================================
 // TEMPLATES DE EMAIL
@@ -35,7 +27,7 @@ function getResendClient(): Resend | null {
 function getPasswordResetTemplate(code: string, nome: string) {
   return {
     subject: '🔐 SpeedRota - Código de Recuperação de Senha',
-    html: `
+    htmlbody: `
 <!DOCTYPE html>
 <html>
 <head>
@@ -88,14 +80,14 @@ function getPasswordResetTemplate(code: string, nome: string) {
 </body>
 </html>
     `,
-    text: `SpeedRota - Recuperação de Senha\n\nOlá, ${nome}!\n\nSeu código de recuperação: ${code}\n\nEste código expira em 15 minutos.\n\n---\nSpeedRota - https://speedrota.com.br`,
+    textbody: `SpeedRota - Recuperação de Senha\n\nOlá, ${nome}!\n\nSeu código de recuperação: ${code}\n\nEste código expira em 15 minutos.\n\n---\nSpeedRota - https://speedrota.com.br`,
   };
 }
 
 function getWelcomeTemplate(nome: string) {
   return {
     subject: '🎉 Bem-vindo ao SpeedRota!',
-    html: `
+    htmlbody: `
 <!DOCTYPE html>
 <html>
 <head>
@@ -137,12 +129,75 @@ function getWelcomeTemplate(nome: string) {
 </body>
 </html>
     `,
-    text: `Bem-vindo ao SpeedRota, ${nome}! Sua conta foi criada com sucesso.`,
+    textbody: `Bem-vindo ao SpeedRota, ${nome}! Sua conta foi criada com sucesso.`,
   };
 }
 
 // ==========================================
-// FUNÇÕES DE ENVIO
+// FUNÇÃO DE ENVIO VIA ZEPTOMAIL API
+// ==========================================
+
+async function sendZeptoEmail(
+  toEmail: string,
+  toName: string,
+  subject: string,
+  htmlbody: string,
+  textbody: string
+): Promise<boolean> {
+  const token = env.ZEPTOMAIL_TOKEN;
+  
+  if (!token) {
+    console.warn('⚠️ ZEPTOMAIL_TOKEN não configurado');
+    return false;
+  }
+  
+  const payload = {
+    bounce_address: BOUNCE_ADDRESS,
+    from: {
+      address: FROM_EMAIL,
+      name: FROM_NAME,
+    },
+    to: [
+      {
+        email_address: {
+          address: toEmail,
+          name: toName,
+        },
+      },
+    ],
+    subject,
+    htmlbody,
+    textbody,
+  };
+  
+  try {
+    const response = await fetch(ZEPTOMAIL_API_URL, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': token,
+      },
+      body: JSON.stringify(payload),
+    });
+    
+    const data = await response.json();
+    
+    if (!response.ok) {
+      console.error(`❌ ZeptoMail erro (${response.status}):`, data);
+      return false;
+    }
+    
+    console.log(`✅ Email enviado via ZeptoMail para ${toEmail}:`, data);
+    return true;
+  } catch (error) {
+    console.error(`❌ Erro ao enviar email via ZeptoMail:`, error);
+    return false;
+  }
+}
+
+// ==========================================
+// FUNÇÕES EXPORTADAS
 // ==========================================
 
 /**
@@ -153,35 +208,13 @@ export async function enviarEmailRecuperacao(
   nome: string,
   codigo: string
 ): Promise<boolean> {
-  const resend = getResendClient();
-  
-  if (!resend) {
+  if (!env.ZEPTOMAIL_TOKEN) {
     console.log(`📧 [DEV] Código de recuperação para ${email}: ${codigo}`);
     return false;
   }
   
-  try {
-    const template = getPasswordResetTemplate(codigo, nome);
-    
-    const { data, error } = await resend.emails.send({
-      from: 'SpeedRota <noreply@speedrota.com.br>',
-      to: email,
-      subject: template.subject,
-      html: template.html,
-      text: template.text,
-    });
-    
-    if (error) {
-      console.error(`❌ Erro Resend para ${email}:`, error);
-      return false;
-    }
-    
-    console.log(`✅ Email de recuperação enviado para ${email} (ID: ${data?.id})`);
-    return true;
-  } catch (error) {
-    console.error(`❌ Erro ao enviar email para ${email}:`, error);
-    return false;
-  }
+  const template = getPasswordResetTemplate(codigo, nome);
+  return sendZeptoEmail(email, nome, template.subject, template.htmlbody, template.textbody);
 }
 
 /**
@@ -191,40 +224,18 @@ export async function enviarEmailBoasVindas(
   email: string,
   nome: string
 ): Promise<boolean> {
-  const resend = getResendClient();
-  
-  if (!resend) {
+  if (!env.ZEPTOMAIL_TOKEN) {
     console.log(`📧 [DEV] Email de boas-vindas para ${email}`);
     return false;
   }
   
-  try {
-    const template = getWelcomeTemplate(nome);
-    
-    const { data, error } = await resend.emails.send({
-      from: 'SpeedRota <noreply@speedrota.com.br>',
-      to: email,
-      subject: template.subject,
-      html: template.html,
-      text: template.text,
-    });
-    
-    if (error) {
-      console.error(`❌ Erro Resend boas-vindas:`, error);
-      return false;
-    }
-    
-    console.log(`✅ Email de boas-vindas enviado para ${email} (ID: ${data?.id})`);
-    return true;
-  } catch (error) {
-    console.error(`❌ Erro ao enviar email de boas-vindas:`, error);
-    return false;
-  }
+  const template = getWelcomeTemplate(nome);
+  return sendZeptoEmail(email, nome, template.subject, template.htmlbody, template.textbody);
 }
 
 /**
  * Verifica se o serviço está configurado
  */
 export function emailConfigurado(): boolean {
-  return !!env.RESEND_API_KEY;
+  return !!env.ZEPTOMAIL_TOKEN;
 }
