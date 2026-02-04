@@ -226,22 +226,40 @@ fun PagamentoScreen(
                 }
 
                 MetodoPagamento.GOOGLE_PAY -> {
-                    // Google Pay - redireciona para checkout Mercado Pago
-                    TelaGooglePay(
+                    // Google Pay nativo integrado com Mercado Pago
+                    GooglePayButton(
                         valor = valorPlano,
                         plano = plano,
-                        checkoutUrl = uiState.checkoutUrl,
-                        onIniciarPagamento = { viewModel.iniciarPagamento(plano) }
+                        email = uiState.userEmail,
+                        merchantId = uiState.publicKey, // Usar public key como merchant ID
+                        isAvailable = uiState.isGooglePayAvailable,
+                        isLoading = uiState.isGooglePayLoading,
+                        onGooglePayResult = { token, email ->
+                            viewModel.processarGooglePay(plano, token, email)
+                        },
+                        onError = { error ->
+                            // Tratar erro - poderia mostrar um Snackbar
+                        },
+                        onAvailabilityChecked = { available ->
+                            viewModel.setGooglePayAvailable(available)
+                        }
                     )
                 }
 
                 MetodoPagamento.CARTAO -> {
-                    // Cartão de Crédito - redireciona para checkout Mercado Pago
-                    TelaCartaoCredito(
+                    // Formulário de cartão nativo com tokenização
+                    CardPaymentForm(
+                        uiState = uiState,
                         valor = valorPlano,
                         plano = plano,
-                        checkoutUrl = uiState.checkoutUrl,
-                        onIniciarPagamento = { viewModel.iniciarPagamento(plano) }
+                        email = uiState.userEmail,
+                        onCardNumberChange = { viewModel.updateCardNumber(it) },
+                        onCardholderNameChange = { viewModel.updateCardholderName(it) },
+                        onExpirationChange = { viewModel.updateExpirationDate(it) },
+                        onSecurityCodeChange = { viewModel.updateSecurityCode(it) },
+                        onCpfChange = { viewModel.updateCpf(it) },
+                        onInstallmentsChange = { viewModel.updateInstallments(it) },
+                        onProcessPayment = { viewModel.processarCartao(plano, uiState.userEmail) }
                     )
                 }
             }

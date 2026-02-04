@@ -23,6 +23,9 @@ android {
 
         // API Base URL
         buildConfigField("String", "API_BASE_URL", "\"https://speedrota.onrender.com/api/v1/\"")
+        
+        // Mercado Pago Public Key (será carregada da API em runtime)
+        buildConfigField("String", "MP_PUBLIC_KEY", "\"\"")
 
         // Google Maps API Key (adicionar no local.properties)
         manifestPlaceholders["MAPS_API_KEY"] = project.findProperty("MAPS_API_KEY") ?: ""
@@ -119,4 +122,7 @@ dependencies {
 
     // Accompanist (Permissions)
     implementation(libs.accompanist.permissions)
+
+    // Google Pay
+    implementation(libs.play.services.wallet)
 }
