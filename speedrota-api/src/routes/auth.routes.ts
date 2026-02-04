@@ -13,6 +13,7 @@ import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { prisma } from '../lib/prisma.js';
+import { enviarEmailRecuperacao, enviarEmailBoasVindas } from '../services/email.js';
 
 // ==========================================
 // SCHEMAS DE VALIDAÇÃO
@@ -300,8 +301,16 @@ export async function authRoutes(app: FastifyInstance) {
     
     console.log(`📧 Código de recuperação para ${email}: ${resetCode}`);
     
-    // TODO: Em produção, enviar por email usando serviço como SendGrid/Resend
-    // Por enquanto, retornamos o código diretamente (para desenvolvimento)
+    // Enviar email com código de recuperação
+    const emailEnviado = await enviarEmailRecuperacao(
+      user.email,
+      user.nome,
+      resetCode
+    );
+    
+    if (!emailEnviado) {
+      console.warn(`⚠️ Falha ao enviar email para ${email}, mas código foi gerado`);
+    }
     
     return {
       success: true,
