@@ -144,12 +144,18 @@ async function sendZeptoEmail(
   htmlbody: string,
   textbody: string
 ): Promise<boolean> {
-  const token = env.ZEPTOMAIL_TOKEN;
+  let token = env.ZEPTOMAIL_TOKEN;
   
   if (!token) {
     console.warn('⚠️ ZEPTOMAIL_TOKEN não configurado');
     return false;
   }
+  
+  // Garantir formato correto do token (remover espaços extras)
+  token = token.trim();
+  
+  // Log para debug (primeiros 20 chars)
+  console.log(`📧 ZeptoMail token (início): ${token.substring(0, 30)}...`);
   
   const payload = {
     bounce_address: BOUNCE_ADDRESS,
@@ -169,6 +175,8 @@ async function sendZeptoEmail(
     htmlbody,
     textbody,
   };
+  
+  console.log(`📧 Enviando para: ${toEmail}, From: ${FROM_EMAIL}`);
   
   try {
     const response = await fetch(ZEPTOMAIL_API_URL, {
