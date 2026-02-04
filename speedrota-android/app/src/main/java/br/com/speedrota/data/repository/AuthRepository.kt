@@ -33,16 +33,16 @@ class AuthRepository @Inject constructor(
     ): Result<UserData> {
         return try {
             val response = api.register(RegisterRequest(nome, email, senha, telefone))
-            
-            if (response.success && response.token != null && response.usuario != null) {
-                preferences.saveToken(response.token)
+
+            if (response.success && response.data?.token != null && response.data.user != null) {
+                preferences.saveToken(response.data.token)
                 preferences.saveUserData(
-                    id = response.usuario.id,
-                    nome = response.usuario.nome,
-                    email = response.usuario.email,
-                    plano = response.usuario.plano
+                    id = response.data.user.id,
+                    nome = response.data.user.nome,
+                    email = response.data.user.email,
+                    plano = response.data.user.plano
                 )
-                Result.success(response.usuario)
+                Result.success(response.data.user)
             } else {
                 Result.failure(Exception(response.error ?: "Erro ao registrar"))
             }
@@ -59,21 +59,29 @@ class AuthRepository @Inject constructor(
     suspend fun login(email: String, senha: String): Result<UserData> {
         return try {
             val response = api.login(LoginRequest(email, senha))
-            
-            if (response.success && response.token != null && response.usuario != null) {
-                preferences.saveToken(response.token)
+
+            if (response.success && response.data?.token != null && response.data.user != null) {
+                preferences.saveToken(response.data.token)
                 preferences.saveUserData(
-                    id = response.usuario.id,
-                    nome = response.usuario.nome,
-                    email = response.usuario.email,
-                    plano = response.usuario.plano
+                    id = response.data.user.id,
+                    nome = response.data.user.nome,
+                    email = response.data.user.email,
+                    plano = response.data.user.plano
                 )
-                Result.success(response.usuario)
+                Result.success(response.data.user)
             } else {
-                Result.failure(Exception(response.error ?: "Email ou senha inválidos"))
+                val errorMsg = response.error ?: response.message ?: "Email ou senha inválidos"
+                Result.failure(Exception(errorMsg))
             }
+        } catch (e: retrofit2.HttpException) {
+            val errorBody = e.response()?.errorBody()?.string()
+            Result.failure(Exception("HTTP ${e.code()}: ${errorBody ?: e.message()}"))
+        } catch (e: java.net.SocketTimeoutException) {
+            Result.failure(Exception("Servidor demorou para responder. Tente novamente."))
+        } catch (e: java.net.UnknownHostException) {
+            Result.failure(Exception("Sem conexão com a internet"))
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.failure(Exception("Erro: ${e.message}"))
         }
     }
     

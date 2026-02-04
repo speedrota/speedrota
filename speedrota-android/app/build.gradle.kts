@@ -23,7 +23,7 @@ android {
 
         // API Base URL
         buildConfigField("String", "API_BASE_URL", "\"https://speedrota.onrender.com/api/v1/\"")
-        
+
         // Google Maps API Key (adicionar no local.properties)
         manifestPlaceholders["MAPS_API_KEY"] = project.findProperty("MAPS_API_KEY") ?: ""
     }

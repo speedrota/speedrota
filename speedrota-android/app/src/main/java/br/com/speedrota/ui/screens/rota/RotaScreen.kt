@@ -145,6 +145,7 @@ fun RotaScreen(
                                     modifier = Modifier.padding(12.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
+                                    @Suppress("DEPRECATION")
                                     Icon(
                                         Icons.Default.TrendingDown,
                                         contentDescription = null,

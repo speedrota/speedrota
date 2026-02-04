@@ -270,6 +270,7 @@ fun OrigemScreen(
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.width(8.dp))
+                @Suppress("DEPRECATION")
                 Icon(Icons.Default.ArrowForward, contentDescription = null)
             }
         }

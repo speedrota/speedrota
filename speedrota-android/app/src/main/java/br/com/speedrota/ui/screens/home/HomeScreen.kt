@@ -102,6 +102,7 @@ fun HomeScreen(
                     if (uiState.userPlano == "FREE") {
                         TextButton(onClick = onVerPlanos) {
                             Text("Upgrade")
+                            @Suppress("DEPRECATION")
                             Icon(
                                 Icons.Default.ArrowForward,
                                 contentDescription = null,

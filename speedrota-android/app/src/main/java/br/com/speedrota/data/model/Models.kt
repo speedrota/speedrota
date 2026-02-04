@@ -20,10 +20,16 @@ data class LoginRequest(
 
 @Serializable
 data class AuthResponse(
-    val success: Boolean,
-    val token: String? = null,
-    val usuario: UserData? = null,
-    val error: String? = null
+    val success: Boolean = false,
+    val data: AuthData? = null,
+    val error: String? = null,
+    val message: String? = null
+)
+
+@Serializable
+data class AuthData(
+    val user: UserData? = null,
+    val token: String? = null
 )
 
 @Serializable
