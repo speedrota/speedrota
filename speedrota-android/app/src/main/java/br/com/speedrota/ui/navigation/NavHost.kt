@@ -1,0 +1,141 @@
+package br.com.speedrota.ui.navigation
+
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavType
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import br.com.speedrota.ui.screens.auth.LoginScreen
+import br.com.speedrota.ui.screens.auth.RegisterScreen
+import br.com.speedrota.ui.screens.home.HomeScreen
+import br.com.speedrota.ui.screens.origem.OrigemScreen
+import br.com.speedrota.ui.screens.destinos.DestinosScreen
+import br.com.speedrota.ui.screens.rota.RotaScreen
+import br.com.speedrota.ui.screens.planos.PlanosScreen
+import br.com.speedrota.ui.screens.pagamento.PagamentoScreen
+
+/**
+ * NavHost principal do SpeedRota
+ */
+@Composable
+fun SpeedRotaNavHost() {
+    val navController = rememberNavController()
+    
+    NavHost(
+        navController = navController,
+        startDestination = Screen.Login.route
+    ) {
+        // Auth
+        composable(Screen.Login.route) {
+            LoginScreen(
+                onNavigateToRegister = {
+                    navController.navigate(Screen.Register.route)
+                },
+                onLoginSuccess = {
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(Screen.Login.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+        
+        composable(Screen.Register.route) {
+            RegisterScreen(
+                onNavigateToLogin = {
+                    navController.popBackStack()
+                },
+                onRegisterSuccess = {
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(Screen.Login.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+        
+        // Main Flow
+        composable(Screen.Home.route) {
+            HomeScreen(
+                onNovaRota = {
+                    navController.navigate(Screen.Origem.route)
+                },
+                onVerPlanos = {
+                    navController.navigate(Screen.Planos.route)
+                },
+                onLogout = {
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            )
+        }
+        
+        composable(Screen.Origem.route) {
+            OrigemScreen(
+                onOrigemConfirmada = {
+                    navController.navigate(Screen.Destinos.route)
+                },
+                onBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+        
+        composable(Screen.Destinos.route) {
+            DestinosScreen(
+                onCalcularRota = {
+                    navController.navigate(Screen.Rota.route)
+                },
+                onBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+        
+        composable(Screen.Rota.route) {
+            RotaScreen(
+                onNovaRota = {
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(Screen.Home.route) { inclusive = true }
+                    }
+                },
+                onBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+        
+        // Planos e Pagamento
+        composable(Screen.Planos.route) {
+            PlanosScreen(
+                onSelecionarPlano = { plano ->
+                    navController.navigate(Screen.Pagamento.createRoute(plano))
+                },
+                onBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+        
+        composable(
+            route = Screen.Pagamento.route,
+            arguments = listOf(navArgument("plano") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val plano = backStackEntry.arguments?.getString("plano") ?: "PRO"
+            PagamentoScreen(
+                plano = plano,
+                onPagamentoConfirmado = {
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(Screen.Home.route) { inclusive = true }
+                    }
+                },
+                onBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+    }
+}

@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SpeedRota</string>
+    
+    <!-- Auth -->
+    <string name="login">Entrar</string>
+    <string name="register">Cadastrar</string>
+    <string name="email">Email</string>
+    <string name="password">Senha</string>
+    <string name="confirm_password">Confirmar senha</string>
+    <string name="name">Nome</string>
+    <string name="phone">Telefone</string>
+    <string name="logout">Sair</string>
+    
+    <!-- Home -->
+    <string name="nova_rota">Nova Rota</string>
+    <string name="otimize_entregas">Otimize suas entregas</string>
+    <string name="ver_planos">Ver Planos</string>
+    
+    <!-- Origem -->
+    <string name="definir_origem">Definir Origem</string>
+    <string name="usar_localizacao">Usar minha localização atual</string>
+    <string name="digite_endereco">Digite o endereço de origem</string>
+    
+    <!-- Destinos -->
+    <string name="destinos">Destinos</string>
+    <string name="adicionar_destino">Adicionar Destino</string>
+    <string name="escanear_nfe">Escanear NF-e</string>
+    <string name="calcular_rota">Calcular Rota Otimizada</string>
+    
+    <!-- Rota -->
+    <string name="rota_otimizada">Rota Otimizada</string>
+    <string name="distancia">Distância</string>
+    <string name="tempo">Tempo</string>
+    <string name="combustivel">Combustível</string>
+    <string name="iniciar_navegacao">Iniciar Navegação</string>
+    
+    <!-- Planos -->
+    <string name="escolher_plano">Escolha seu Plano</string>
+    <string name="plano_gratis">Grátis</string>
+    <string name="plano_pro">Pro</string>
+    <string name="plano_full">Full</string>
+    
+    <!-- Pagamento -->
+    <string name="pagamento_pix">Pagamento via PIX</string>
+    <string name="aguardando_pagamento">Aguardando pagamento...</string>
+    <string name="pagamento_confirmado">Pagamento confirmado!</string>
+    <string name="copiar_codigo">Copiar código</string>
+    <string name="codigo_copiado">Código copiado!</string>
+    
+    <!-- Erros -->
+    <string name="erro_conexao">Erro de conexão. Verifique sua internet.</string>
+    <string name="erro_login">Email ou senha inválidos</string>
+    <string name="erro_localizacao">Não foi possível obter sua localização</string>
+    
+    <!-- Permissões -->
+    <string name="permission_location_title">Permissão de Localização</string>
+    <string name="permission_location_message">Precisamos da sua localização para calcular a melhor rota.</string>
+    <string name="permission_camera_title">Permissão de Câmera</string>
+    <string name="permission_camera_message">Precisamos da câmera para escanear notas fiscais.</string>
+</resources>
