@@ -1,0 +1,65 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Background circle removido - será transparente -->
+    
+    <!-- Pin shape (marcador de mapa) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,20
+                         C40.745,20 30,30.745 30,44
+                         C30,57.255 54,88 54,88
+                         C54,88 78,57.255 78,44
+                         C78,30.745 67.255,20 54,20Z"/>
+    
+    <!-- S shape inside -->
+    <path
+        android:fillColor="#2563EB"
+        android:pathData="M54,28
+                         C44.059,28 36,36.059 36,46
+                         C36,55.941 54,78 54,78
+                         C54,78 72,55.941 72,46
+                         C72,36.059 63.941,28 54,28Z
+                         M60,52
+                         C60,54.209 58.209,56 56,56
+                         L50,56
+                         C47.791,56 46,54.209 46,52
+                         L46,50
+                         L50,50
+                         L50,51
+                         C50,51.552 50.448,52 51,52
+                         L55,52
+                         C55.552,52 56,51.552 56,51
+                         L56,49
+                         C56,48.448 55.552,48 55,48
+                         L51,48
+                         C48.791,48 47,46.209 47,44
+                         L47,42
+                         C47,39.791 48.791,38 51,38
+                         L57,38
+                         C59.209,38 61,39.791 61,42
+                         L61,44
+                         L57,44
+                         L57,43
+                         C57,42.448 56.552,42 56,42
+                         L52,42
+                         C51.448,42 51,42.448 51,43
+                         L51,45
+                         C51,45.552 51.448,46 52,46
+                         L56,46
+                         C58.209,46 60,47.791 60,50
+                         L60,52Z"/>
+    
+    <!-- Swoosh/road under the pin -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M28,70
+                         Q40,65 54,68
+                         Q68,71 80,66
+                         L80,70
+                         Q68,75 54,72
+                         Q40,69 28,74
+                         Z"/>
+</vector>
