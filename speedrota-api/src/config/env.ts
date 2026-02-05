@@ -46,6 +46,10 @@ const envSchema = z.object({
   
   // ZeptoMail (Zoho - recomendado)
   ZEPTOMAIL_TOKEN: z.string().optional().default(''),
+  
+  // Web Push (VAPID keys)
+  VAPID_PUBLIC_KEY: z.string().optional().default(''),
+  VAPID_PRIVATE_KEY: z.string().optional().default(''),
 });
 
 // Parse e valida

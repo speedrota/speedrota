@@ -8,6 +8,8 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.VIBRATE" />
     
     <!-- Features -->
     <uses-feature android:name="android.hardware.camera" android:required="false" />
@@ -44,6 +46,29 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        
+        <!-- Firebase Cloud Messaging Service -->
+        <service
+            android:name=".data.util.SpeedRotaFCMService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+        
+        <!-- Receiver para ações de notificação -->
+        <receiver
+            android:name=".data.util.NotificationActionReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="ACTION_REOTIMIZAR" />
+                <action android:name="ACTION_VER_ROTA" />
+                <action android:name="ACTION_NAVEGAR" />
+                <action android:name="ACTION_ACEITAR" />
+                <action android:name="ACTION_RECUSAR" />
+                <action android:name="ACTION_IGNORAR" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>

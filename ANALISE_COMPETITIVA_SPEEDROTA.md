@@ -354,7 +354,7 @@ MÊS 7-12: ESCALA B2B
 [x] Analytics básico (entregas/km/custo) ✅ FEITO 05/02
 [x] Tráfego Real-time (fatores horário pico) ✅ FEITO 05/02
 [x] Re-otimização dinâmica (7 cenários) ✅ FEITO 05/02
-[ ] Notificações push
+[x] Notificações push (API + Web Push + Android FCM) ✅ FEITO 05/02
 ```
 
 ### Sprint 5-6 (Abril 2026)
@@ -430,8 +430,9 @@ MÊS 7-12: ESCALA B2B
 3. ~~**AGORA**: POD básico + Analytics~~ ✅ FEITO
 4. ~~**AGORA**: Tráfego inteligente (fatores de horário)~~ ✅ FEITO
 5. ~~**AGORA**: Re-otimização dinâmica (7 cenários)~~ ✅ FEITO
-6. **PRÓXIMO**: Notificações push + Status tempo real
-7. **FUTURO**: Multi-motorista + API Pública
+6. ~~**AGORA**: Notificações push (API + Web + Android)~~ ✅ FEITO
+7. **PRÓXIMO**: Status tempo real + Multi-motorista básico
+8. **FUTURO**: API Pública + Dashboard web
 
 ---
 
@@ -440,6 +441,18 @@ MÊS 7-12: ESCALA B2B
 ---
 
 ## 📝 CHANGELOG
+
+### 05/02/2026 - Notificações Push Implementadas
+- ✅ **API Notificações**: Serviço completo com 8 tipos (tráfego, cancelamento, janela expirando, novo pedido, entrega confirmada, atraso, re-otimização, sistema)
+- ✅ **Web Push**: Service Worker + VAPID authentication
+- ✅ **API Endpoints**: subscribe, unsubscribe, listar, marcar lida, contar não-lidas
+- ✅ **Prisma Models**: TokenPush (web/android) + Notificacao (histórico)
+- ✅ **Web Components**: BadgeNotificacoes, CentralNotificacoes, ItemNotificacao, ToggleNotificacoes
+- ✅ **React Hook**: useNotificacoes para gerenciamento de estado
+- ✅ **Android FCM**: SpeedRotaFCMService + NotificacoesService
+- ✅ **Android Canais**: 3 níveis (urgente/normal/silencioso) com vibração
+- ✅ **Ações Interativas**: Recalcular rota, Ver rota, Navegar, Aceitar/Recusar
+- 🎯 **Custo Zero**: Web Push API + FCM gratuito
 
 ### 05/02/2026 - Tráfego Real-time Implementado
 - ✅ **API Tráfego**: Serviço com fatores de horário de pico (rush manhã/tarde/almoço/madrugada)
