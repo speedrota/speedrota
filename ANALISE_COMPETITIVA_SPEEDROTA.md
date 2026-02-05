@@ -41,7 +41,7 @@
 |-----|---------|--------------|--------|
 | ~~Tráfego Real-time~~ | ~~ALTO - Rotas imprecisas~~ | ~~Média~~ | ✅ FEITO |
 | ~~Janelas de Tempo~~ | ~~ALTO - Entregas agendadas~~ | ~~Baixa~~ | ✅ FEITO |
-| **POD (Proof of Delivery)** | ALTO - Comprovação | Média | ✅ FEITO |
+| ~~POD (Proof of Delivery)~~ | ~~ALTO - Comprovação~~ | ~~Média~~ | ✅ FEITO |
 | ~~Re-otimização Dinâmica~~ | ~~MÉDIO - Mudanças em rota~~ | ~~Alta~~ | ✅ FEITO (7 cenários) |
 | ~~Multi-driver/Frota~~ | ~~ALTO - Escalar clientes~~ | ~~Alta~~ | ✅ FEITO |
 
@@ -367,17 +367,25 @@ MÊS 7-12: ESCALA B2B
 ### Sprint 5-6 (Abril 2026) ✅ CONCLUÍDO
 ```
 [x] Status de entrega em tempo real ✅ FEITO 05/02
-[x] Histórico detalhado com filtros ✅ FEITO 06/02
-[x] Export PDF/Excel ✅ FEITO 06/02
-[x] Multi-driver completo ✅ FEITO 06/02
+[x] Histórico detalhado com filtros ✅ FEITO 05/02
+[x] Export PDF/Excel ✅ FEITO 05/02
+[x] Multi-driver completo ✅ FEITO 05/02
 ```
 
-### Sprint 7-8 (Maio 2026)
+### Sprint 7-8 (Maio 2026) ✅ CONCLUÍDO
 ```
-[x] Dashboard web para gestores ✅ FEITO 06/02
-[x] Multi-motorista completo ✅ FEITO 06/02
-[ ] API pública v1
-[ ] Integração Bling
+[x] Dashboard web para gestores ✅ FEITO 05/02
+[x] Multi-motorista completo ✅ FEITO 05/02
+[x] API pública v1 ✅ FEITO 05/02
+[x] Integração Bling/Tiny ✅ FEITO 05/02
+```
+
+### Sprint 9-10 (Junho 2026) 📋 PLANEJADO
+```
+[ ] Capacidade de Veículo (peso/volume máx por tipo)
+[ ] Geofencing (alertas entrada/saída de zonas)
+[ ] Integração SEFAZ para consulta NF-e automática
+[ ] App iOS (React Native ou Flutter)
 ```
 
 ---
@@ -441,30 +449,18 @@ MÊS 7-12: ESCALA B2B
 7. ~~**AGORA**: Status tempo real (SSE + tracking)~~ ✅ FEITO
 8. ~~**AGORA**: Multi-motorista completo (Gestão de Frota)~~ ✅ FEITO
 9. ~~**AGORA**: Histórico com filtros + Export PDF/Excel~~ ✅ FEITO
-10. **PRÓXIMO**: API Pública v1 + Integração Bling
+10. ~~**AGORA**: API Pública v1 + Integração Bling~~ ✅ FEITO
+11. **PRÓXIMO**: Geofencing + Capacidade de Veículo
 
 ---
 
-*Documento atualizado em 06/02/2026 - SpeedRota Team*
+*Documento atualizado em 05/02/2026 - SpeedRota Team*
 
 ---
 
 ## 📝 CHANGELOG
 
-### 06/02/2026 - Histórico com Filtros + Export PDF/Excel
-- ✅ **API Histórico**: 5 endpoints REST (GET /, /resumo, /export/pdf, /export/excel, /fornecedores)
-- ✅ **Service historico.ts**: Design por Contrato com pre/post conditions documentadas
-- ✅ **Filtros Avançados**: Por período (dataInicio/dataFim), fornecedor, status, paginação
-- ✅ **Export PDF**: pdfkit com layout A4, tabelas formatadas, resumo estatístico
-- ✅ **Export Excel**: exceljs com 4 worksheets (Resumo, Rotas, Por Dia, Fornecedores)
-- ✅ **Web TelaHistorico**: Filtros interativos, cards de resumo, botões export PDF/Excel
-- ✅ **Android Models**: 14 data classes (RotaHistoricoItem, ResumoHistorico, PaginacaoHistorico, etc.)
-- ✅ **Android API**: 3 endpoints Retrofit (getHistoricoRotas, getHistoricoResumo, getHistoricoFornecedores)
-- ✅ **Android ViewModel**: FiltrosHistorico state, paginação, formatação tempo
-- ✅ **Android Screen**: FiltrosSection, ResumoCard, PaginacaoBar, RotaHistoricoCard
-- 🎯 **Sprint 5-6 Completa**: Todas as features do sprint implementadas
-
-### 06/02/2026 - Multi-motorista / Gestão de Frota Completa
+### 05/02/2026 - Multi-motorista / Gestão de Frota Completa
 - ✅ **Prisma Models**: 12 novos models (Empresa, Motorista, Veiculo, Equipe, ZonaAtuacao, etc.)
 - ✅ **Enums**: ModoDistribuicao (AUTO/MANUAL/HIBRIDO), StatusMotorista, StatusVeiculo, TipoVeiculo
 - ✅ **Algoritmo Distribuição**: Score-based inteligente (zona, distância, capacidade, performance, balanceamento)
