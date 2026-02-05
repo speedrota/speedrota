@@ -153,4 +153,88 @@ interface SpeedRotaApi {
     suspend fun verificarAtrasosRota(
         @Path("rotaId") rotaId: String
     ): VerificarAtrasosResponse
+
+    // ==================== STATUS TEMPO REAL ====================
+
+    /**
+     * Obtém status atual da rota
+     * @pre Token válido, rota existe
+     * @post Retorna status e métricas
+     */
+    @GET("status/{rotaId}")
+    suspend fun getStatusRota(
+        @Path("rotaId") rotaId: String
+    ): StatusRotaResponse
+
+    /**
+     * Inicia execução da rota
+     * @pre Rota planejada ou pausada
+     * @post Rota em andamento
+     */
+    @PATCH("status/{rotaId}/iniciar")
+    suspend fun iniciarRota(
+        @Path("rotaId") rotaId: String,
+        @Body posicao: PosicaoRequest? = null
+    ): StatusRotaResponse
+
+    /**
+     * Pausa execução da rota
+     * @pre Rota em andamento
+     * @post Rota pausada
+     */
+    @PATCH("status/{rotaId}/pausar")
+    suspend fun pausarRota(
+        @Path("rotaId") rotaId: String
+    ): StatusRotaResponse
+
+    /**
+     * Finaliza execução da rota
+     * @pre Rota em andamento ou pausada
+     * @post Rota concluída
+     */
+    @PATCH("status/{rotaId}/finalizar")
+    suspend fun finalizarRota(
+        @Path("rotaId") rotaId: String
+    ): StatusRotaResponse
+
+    /**
+     * Atualiza status de uma parada
+     * @pre Parada existe, status válido
+     * @post Status atualizado
+     */
+    @PATCH("status/parada/{paradaId}")
+    suspend fun atualizarStatusParada(
+        @Path("paradaId") paradaId: String,
+        @Body request: AtualizarStatusParadaRequest
+    ): StatusParadaResponse
+
+    /**
+     * Atualiza posição do entregador
+     * @pre Rota em andamento
+     * @post Posição registrada
+     */
+    @POST("status/{rotaId}/posicao")
+    suspend fun atualizarPosicao(
+        @Path("rotaId") rotaId: String,
+        @Body request: PosicaoRequest
+    ): PosicaoResponse
+
+    /**
+     * Histórico de status de uma parada
+     */
+    @GET("status/{rotaId}/historico")
+    suspend fun getHistoricoStatus(
+        @Path("rotaId") rotaId: String,
+        @Query("paradaId") paradaId: String? = null
+    ): HistoricoStatusResponse
+
+    /**
+     * Histórico de posições do entregador
+     */
+    @GET("status/{rotaId}/posicoes")
+    suspend fun getHistoricoPosicoes(
+        @Path("rotaId") rotaId: String,
+        @Query("limit") limit: Int? = null,
+        @Query("offsetMinutos") offsetMinutos: Int? = null
+    ): HistoricoPosicaoResponse
 }

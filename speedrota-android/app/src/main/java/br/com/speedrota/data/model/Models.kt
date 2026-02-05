@@ -684,3 +684,195 @@ data class VerificarAtrasosResponse(
     val paradasEmRisco: Int,
     val sugestao: String
 )
+
+// ==================== STATUS TEMPO REAL ====================
+
+/**
+ * Status de uma parada
+ */
+enum class StatusParada {
+    PENDENTE,
+    EM_TRANSITO,
+    CHEGOU,
+    ENTREGUE,
+    FALHA,
+    CANCELADO,
+    PULADO
+}
+
+/**
+ * Status da rota
+ */
+enum class StatusRotaEnum {
+    PLANEJADA,
+    EM_ANDAMENTO,
+    PAUSADA,
+    CONCLUIDA,
+    CANCELADA
+}
+
+/**
+ * Motivo de falha na entrega
+ */
+enum class MotivoFalha {
+    CLIENTE_AUSENTE,
+    ENDERECO_NAO_ENCONTRADO,
+    RECUSADO,
+    AVARIADO,
+    OUTRO
+}
+
+/**
+ * Request para atualizar posição
+ */
+@Serializable
+data class PosicaoRequest(
+    val lat: Double,
+    val lng: Double,
+    val heading: Float? = null,
+    val velocidade: Float? = null,
+    val precisao: Float? = null
+)
+
+/**
+ * Request para atualizar status de parada
+ */
+@Serializable
+data class AtualizarStatusParadaRequest(
+    val status: String, // PENDENTE, EM_TRANSITO, CHEGOU, ENTREGUE, FALHA, CANCELADO, PULADO
+    val motivoFalha: String? = null, // CLIENTE_AUSENTE, ENDERECO_NAO_ENCONTRADO, RECUSADO, AVARIADO, OUTRO
+    val observacao: String? = null,
+    val posicao: PosicaoRequest? = null
+)
+
+/**
+ * Métricas em tempo real
+ */
+@Serializable
+data class MetricasTempoRealDto(
+    val totalParadas: Int,
+    val entregues: Int,
+    val pendentes: Int,
+    val falhas: Int,
+    val progresso: Int, // 0-100
+    val tempoDecorrido: Int, // minutos
+    val tempoEstimadoRestante: Int, // minutos
+    val kmPercorridos: Double,
+    val kmRestantes: Double,
+    val velocidadeMedia: Double // km/h
+)
+
+/**
+ * Próxima parada
+ */
+@Serializable
+data class ProximaParadaDto(
+    val id: String,
+    val endereco: String,
+    val etaMinutos: Int
+)
+
+/**
+ * Dados de status da rota
+ */
+@Serializable
+data class StatusRotaData(
+    val rotaId: String,
+    val status: String, // PLANEJADA, EM_ANDAMENTO, PAUSADA, CONCLUIDA, CANCELADA
+    val iniciadaEm: String? = null,
+    val pausadaEm: String? = null,
+    val finalizadaEm: String? = null,
+    val metricas: MetricasTempoRealDto? = null,
+    val proximaParada: ProximaParadaDto? = null
+)
+
+/**
+ * Response de status da rota
+ */
+@Serializable
+data class StatusRotaResponse(
+    val success: Boolean,
+    val data: StatusRotaData? = null,
+    val error: String? = null
+)
+
+/**
+ * Dados de status de uma parada
+ */
+@Serializable
+data class StatusParadaData(
+    val paradaId: String,
+    val status: String,
+    val motivoFalha: String? = null,
+    val observacao: String? = null,
+    val atualizadoEm: String? = null
+)
+
+/**
+ * Response de status de parada
+ */
+@Serializable
+data class StatusParadaResponse(
+    val success: Boolean,
+    val data: StatusParadaData? = null,
+    val error: String? = null
+)
+
+/**
+ * Response de posição
+ */
+@Serializable
+data class PosicaoResponse(
+    val success: Boolean,
+    val registradoEm: String? = null,
+    val error: String? = null
+)
+
+/**
+ * Item de histórico de status
+ */
+@Serializable
+data class HistoricoStatusItem(
+    val id: String,
+    val paradaId: String,
+    val status: String,
+    val motivoFalha: String? = null,
+    val observacao: String? = null,
+    val criadoEm: String
+)
+
+/**
+ * Response de histórico de status
+ */
+@Serializable
+data class HistoricoStatusResponse(
+    val success: Boolean,
+    val historico: List<HistoricoStatusItem> = emptyList(),
+    val error: String? = null
+)
+
+/**
+ * Item de histórico de posição
+ */
+@Serializable
+data class HistoricoPosicaoItem(
+    val id: String,
+    val rotaId: String,
+    val lat: Double,
+    val lng: Double,
+    val heading: Float? = null,
+    val velocidade: Float? = null,
+    val precisao: Float? = null,
+    val criadoEm: String
+)
+
+/**
+ * Response de histórico de posições
+ */
+@Serializable
+data class HistoricoPosicaoResponse(
+    val success: Boolean,
+    val posicoes: List<HistoricoPosicaoItem> = emptyList(),
+    val total: Int = 0,
+    val error: String? = null
+)
