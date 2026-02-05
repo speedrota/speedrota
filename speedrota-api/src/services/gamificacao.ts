@@ -1013,14 +1013,35 @@ export function verificarBonusSazonal(): {
 
 // Funções auxiliares para persistência de desafios
 async function desafioJaRecompensado(userId: string, desafioId: string): Promise<boolean> {
-  // Verificar no perfil ou tabela separada
-  // Por ora, retorna false (sempre pode completar)
-  // TODO: Implementar persistência de desafios completados
-  return false;
+  // NOTA: Persistência completa requer campo 'desafiosCompletados' no PerfilGamificacao
+  // Por ora, verifica se badge correspondente já foi desbloqueado (proxy)
+  // Sprint futura: adicionar tabela DesafioCompletado
+  try {
+    const perfil = await prisma.perfilGamificacao.findUnique({
+      where: { usuarioId: userId },
+      select: { badgesDesbloqueados: true },
+    });
+    // Usa badge como proxy de desafio completado
+    const badges = perfil?.badgesDesbloqueados as string[] || [];
+    return badges.includes(`desafio_${desafioId}`);
+  } catch {
+    return false;
+  }
 }
 
 async function marcarDesafioRecompensado(userId: string, desafioId: string): Promise<void> {
-  // Salvar desafio como completado
-  // TODO: Implementar persistência
-  console.log(`Desafio ${desafioId} completado pelo usuário ${userId}`);
+  // Adiciona badge como marker de desafio completado
+  try {
+    await prisma.perfilGamificacao.update({
+      where: { usuarioId: userId },
+      data: {
+        badgesDesbloqueados: {
+          push: `desafio_${desafioId}`,
+        },
+      },
+    });
+    console.log(`[Gamificação] Desafio ${desafioId} completado pelo usuário ${userId}`);
+  } catch (error) {
+    console.error(`[Gamificação] Erro ao marcar desafio:`, error);
+  }
 }

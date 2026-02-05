@@ -198,9 +198,45 @@ function entregaNaZona(
     }
   }
 
-  // TODO: Verificar por polígono (GeoJSON)
+  // Verificar por polígono (GeoJSON)
+  if (zona.poligono) {
+    try {
+      const poligonoCoords = JSON.parse(zona.poligono) as [number, number][];
+      if (pontoNoPoligono(entrega.lat, entrega.lng, poligonoCoords)) {
+        return true;
+      }
+    } catch (err) {
+      console.warn(`[Distribuição] Polígono inválido para zona ${zona.nome}:`, err);
+    }
+  }
 
   return false;
+}
+
+/**
+ * Verifica se um ponto está dentro de um polígono
+ * Usa algoritmo ray-casting
+ * 
+ * @pre poligono é array de [lat, lng]
+ * @post retorna true se ponto estiver dentro
+ */
+function pontoNoPoligono(lat: number, lng: number, poligono: [number, number][]): boolean {
+  if (!poligono || poligono.length < 3) return false;
+  
+  let inside = false;
+  const n = poligono.length;
+  
+  for (let i = 0, j = n - 1; i < n; j = i++) {
+    const [latI, lngI] = poligono[i];
+    const [latJ, lngJ] = poligono[j];
+    
+    if (((lngI > lng) !== (lngJ > lng)) &&
+        (lat < (latJ - latI) * (lng - lngI) / (lngJ - lngI) + latI)) {
+      inside = !inside;
+    }
+  }
+  
+  return inside;
 }
 
 /**

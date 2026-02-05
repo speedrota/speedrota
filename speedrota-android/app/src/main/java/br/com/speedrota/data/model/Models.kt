@@ -8,7 +8,18 @@ import kotlinx.serialization.Serializable
  * Response genérica para endpoints que retornam apenas sucesso/erro
  */
 @Serializable
-data class ApiResponse(
+data class ApiResponse<T>(
+    val success: Boolean = false,
+    val data: T? = null,
+    val message: String? = null,
+    val error: String? = null
+)
+
+/**
+ * Response simples sem dados
+ */
+@Serializable
+data class SimpleApiResponse(
     val success: Boolean = false,
     val message: String? = null,
     val error: String? = null

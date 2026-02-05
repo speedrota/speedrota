@@ -256,9 +256,10 @@ enum Prioridade {
 
 enum StatusRota {
   RASCUNHO // Destinos sendo adicionados
-  CALCULADA // Rota otimizada
+  CALCULADA // Rota otimizada (também chamado PLANEJADA)
   EM_ANDAMENTO // Entregador está executando
-  FINALIZADA // Todas entregas feitas
+  PAUSADA // Rota temporariamente pausada
+  FINALIZADA // Todas entregas feitas (também chamado CONCLUIDA)
   CANCELADA
 }
 

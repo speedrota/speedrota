@@ -18,7 +18,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import useRotaStore from '../store/routeStore';
+import { useRouteStore } from '../store/routeStore';
 import './Ecommerce.css';
 
 // ==========================================

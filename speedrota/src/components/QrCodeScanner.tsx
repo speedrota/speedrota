@@ -12,7 +12,7 @@
  * @invariant Formato de chave sempre validado antes de consulta
  */
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouteStore } from '../store/routeStore';
 import './QrCodeScanner.css';
 
@@ -131,7 +131,7 @@ async function importarQrCode(conteudo: string, rotaId: string): Promise<{
 // ==========================================
 
 export function TelaQrCodeScanner() {
-  const { setEtapa, destinos, addDestino } = useRouteStore();
+  const { irPara, destinos, adicionarDestino } = useRouteStore();
   
   const [modo, setModo] = useState<ModoScanner>('manual');
   const [inputQrCode, setInputQrCode] = useState('');

@@ -340,7 +340,7 @@ interface SpeedRotaApi {
     suspend fun salvarConfiguracaoGeofence(
         @Path("zonaId") zonaId: String,
         @Body config: ConfiguracaoGeofence
-    ): ApiResponse
+    ): SimpleApiResponse
 
     // ==================== ML - PREVISÃO DE DEMANDA ====================
 

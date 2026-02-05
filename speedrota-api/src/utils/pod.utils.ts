@@ -8,6 +8,8 @@
  * - Funções puras quando possível
  */
 
+import sharp from 'sharp';
+
 // ==========================================
 // TIPOS
 // ==========================================
@@ -141,16 +143,66 @@ export async function comprimirImagem(
     return imagemBase64;
   }
 
-  // No servidor, usar sharp ou similar
-  // No cliente, usar canvas
-  // Por enquanto, retornar original (implementar compressão real depois)
-  
-  // TODO: Implementar compressão real
-  // - Server: sharp library
-  // - Client: canvas resizing
-  
-  console.warn('[POD] Compressão de imagem ainda não implementada');
-  return imagemBase64;
+  try {
+    // Extrair dados base64 (remover prefixo data:image/...)
+    const matches = imagemBase64.match(/^data:image\/([a-zA-Z+]+);base64,(.+)$/);
+    if (!matches) {
+      console.warn('[POD] Formato base64 inválido, retornando original');
+      return imagemBase64;
+    }
+
+    const imageBuffer = Buffer.from(matches[2], 'base64');
+    
+    // Calcular fator de redução baseado no tamanho alvo
+    const reductionFactor = Math.sqrt(maxSizeBytes / tamanhoAtualBytes);
+    
+    // Obter metadados da imagem original
+    const metadata = await sharp(imageBuffer).metadata();
+    const originalWidth = metadata.width || 1920;
+    const originalHeight = metadata.height || 1080;
+    
+    // Calcular novas dimensões (mínimo 800px no lado maior)
+    const newWidth = Math.max(800, Math.floor(originalWidth * reductionFactor));
+    const newHeight = Math.max(600, Math.floor(originalHeight * reductionFactor));
+    
+    // Comprimir progressivamente até atingir o tamanho alvo
+    let quality = 85;
+    let compressedBuffer: Buffer;
+    let attempts = 0;
+    const maxAttempts = 5;
+    
+    do {
+      compressedBuffer = await sharp(imageBuffer)
+        .resize(newWidth, newHeight, { 
+          fit: 'inside',
+          withoutEnlargement: true 
+        })
+        .jpeg({ 
+          quality,
+          mozjpeg: true // Melhor compressão
+        })
+        .toBuffer();
+      
+      quality -= 10;
+      attempts++;
+      
+      console.log(`[POD] Compressão tentativa ${attempts}: ${compressedBuffer.length} bytes (qualidade: ${quality + 10})`);
+      
+    } while (compressedBuffer.length > maxSizeBytes && quality > 20 && attempts < maxAttempts);
+    
+    // Converter de volta para base64
+    const compressedBase64 = `data:image/jpeg;base64,${compressedBuffer.toString('base64')}`;
+    
+    const tamanhoFinal = calcularTamanhoBase64(compressedBase64);
+    console.log(`[POD] Compressão concluída: ${tamanhoAtualBytes} -> ${tamanhoFinal} bytes (${Math.round((1 - tamanhoFinal/tamanhoAtualBytes) * 100)}% redução)`);
+    
+    return compressedBase64;
+    
+  } catch (error) {
+    console.error('[POD] Erro na compressão:', error);
+    // Em caso de erro, retornar original
+    return imagemBase64;
+  }
 }
 
 // ==========================================

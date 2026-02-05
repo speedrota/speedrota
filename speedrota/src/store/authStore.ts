@@ -17,6 +17,7 @@ import type { Plano } from '../types';
 interface AuthState {
   // Estado
   user: User | null;
+  token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
@@ -55,6 +56,7 @@ const LIMITES_PLANO: Record<Plano, { rotasPorMes: number; paradasPorRota: number
 export const useAuthStore = create<AuthState>((set, get) => ({
   // Estado inicial
   user: authService.getCachedUser(),
+  token: localStorage.getItem('speedrota_token'),
   isAuthenticated: authService.isLoggedIn(),
   isLoading: false,
   error: null,
@@ -70,7 +72,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const response = await authService.login({ email, senha });
       set({ 
-        user: response.user, 
+        user: response.user,
+        token: localStorage.getItem('speedrota_token'),
         isAuthenticated: true, 
         isLoading: false,
       });
@@ -94,7 +97,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const response = await authService.register(data);
       set({ 
-        user: response.user, 
+        user: response.user,
+        token: localStorage.getItem('speedrota_token'),
         isAuthenticated: true, 
         isLoading: false,
       });
@@ -115,7 +119,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   logout: () => {
     authService.logout();
     set({ 
-      user: null, 
+      user: null,
+      token: null,
       isAuthenticated: false, 
       stats: null,
       error: null,
@@ -136,11 +141,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     
     try {
       const user = await authService.me();
-      set({ user, isAuthenticated: true, isLoading: false });
+      set({ user, token: localStorage.getItem('speedrota_token'), isAuthenticated: true, isLoading: false });
     } catch {
       // Token inválido/expirado
       authService.logout();
-      set({ user: null, isAuthenticated: false, isLoading: false });
+      set({ user: null, token: null, isAuthenticated: false, isLoading: false });
     }
   },
   

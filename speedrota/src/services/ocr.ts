@@ -480,9 +480,16 @@ function extrairDadosNaturaAvon(texto: string): Partial<DadosExtraidos> {
   }
   
   // Se não encontrou, buscar AMERICANA diretamente no texto
+  // CUIDADO: Ignorar quando for "LOJAS AMERICANAS" ou "AMERICANAS S.A." (nome do fornecedor)
   if (!dados.cidade) {
-    if (textoUpper.includes('AMERICANA') || textoUpper.includes('AMERICANS') || 
-        textoUpper.includes('AMAR CANA') || textoUpper.includes('AMARCANA')) {
+    const isLojaAmericanas = textoUpper.includes('LOJAS AMERICANAS') || 
+                              textoUpper.includes('AMERICANAS S.A') || 
+                              textoUpper.includes('AMERICANAS SA') ||
+                              textoUpper.includes('AMERICANAS LTDA');
+    
+    if (!isLojaAmericanas && 
+        (textoUpper.includes('AMERICANA') || textoUpper.includes('AMERICANS') || 
+        textoUpper.includes('AMAR CANA') || textoUpper.includes('AMARCANA'))) {
       dados.cidade = 'AMERICANA';
       dados.uf = 'SP';
       console.log('[Parser] Cidade AMERICANA detectada no texto');
@@ -791,9 +798,18 @@ function extrairBairro(texto: string): string {
 }
 
 function extrairCidade(texto: string): string {
+  const textoUpper = texto.toUpperCase();
+  
+  // CUIDADO: Excluir caso de "LOJAS AMERICANAS" (fornecedor) antes de verificar cidade
+  const isLojaAmericanas = textoUpper.includes('LOJAS AMERICANAS') || 
+                            textoUpper.includes('AMERICANAS S.A') || 
+                            textoUpper.includes('AMERICANAS SA') ||
+                            textoUpper.includes('AMERICANAS LTDA');
+  
   // Cidades conhecidas (prioridade) - inclui variações com erros de OCR
   const cidadesConhecidas = [
-    'AMERICANA', 'AMER1CANA', 'AMERIC4NA',
+    // Americana só se não for "Lojas Americanas"
+    ...(isLojaAmericanas ? [] : ['AMERICANA', 'AMER1CANA', 'AMERIC4NA']),
     'CAMPINAS', 'CAMP1NAS',
     'SAO PAULO', 'SÃO PAULO', 'S4O PAULO', 'SAO P4ULO',
     'LIMEIRA', 'L1MEIRA',
@@ -827,8 +843,6 @@ function extrairCidade(texto: string): string {
     'ITATIBA', '1TATIBA',
     'CABREUVA', 'CABREÚVA'
   ];
-  
-  const textoUpper = texto.toUpperCase();
   
   // Buscar cidades conhecidas
   for (const cidade of cidadesConhecidas) {

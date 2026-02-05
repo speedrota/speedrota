@@ -11,7 +11,12 @@
 // CONFIGURAÇÃO
 // ==========================================
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1';
+export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1';
+
+// Helper para obter token (alias para compatibilidade)
+export const getToken = (): string | null => {
+  return localStorage.getItem('speedrota_token');
+};
 
 // ==========================================
 // TIPOS

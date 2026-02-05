@@ -37,13 +37,16 @@ export enum StatusParada {
 }
 
 /**
- * Status da rota
+ * Status da rota (sincronizado com Prisma schema)
  */
 export enum StatusRota {
-  PLANEJADA = 'PLANEJADA',
+  RASCUNHO = 'RASCUNHO',
+  PLANEJADA = 'CALCULADA',       // Alias - usar CALCULADA no DB
+  CALCULADA = 'CALCULADA',
   EM_ANDAMENTO = 'EM_ANDAMENTO',
   PAUSADA = 'PAUSADA',
-  CONCLUIDA = 'CONCLUIDA',
+  CONCLUIDA = 'FINALIZADA',      // Alias - usar FINALIZADA no DB
+  FINALIZADA = 'FINALIZADA',
   CANCELADA = 'CANCELADA',
 }
 
@@ -304,14 +307,16 @@ export async function iniciarRota(rotaId: string): Promise<any> {
     throw new Error(`Rota ${rotaId} não encontrada`);
   }
 
-  if (rota.status !== StatusRota.PLANEJADA && rota.status !== StatusRota.PAUSADA) {
+  // Comparar como string pois Prisma retorna string literal
+  const statusAtual = rota.status as string;
+  if (statusAtual !== 'CALCULADA' && statusAtual !== 'PAUSADA') {
     throw new Error(`Rota não pode ser iniciada. Status atual: ${rota.status}`);
   }
 
   const rotaAtualizada = await prisma.rota.update({
     where: { id: rotaId },
     data: {
-      status: StatusRota.EM_ANDAMENTO,
+      status: 'EM_ANDAMENTO',
       iniciadaEm: rota.iniciadaEm || new Date(),
     },
   });
@@ -338,7 +343,7 @@ export async function iniciarRota(rotaId: string): Promise<any> {
 export async function pausarRota(rotaId: string): Promise<any> {
   const rota = await prisma.rota.update({
     where: { id: rotaId },
-    data: { status: StatusRota.PAUSADA },
+    data: { status: 'PAUSADA' },
   });
 
   const evento: EventoStatus = {
@@ -363,7 +368,7 @@ export async function finalizarRota(rotaId: string): Promise<any> {
   const rota = await prisma.rota.update({
     where: { id: rotaId },
     data: {
-      status: StatusRota.CONCLUIDA,
+      status: 'FINALIZADA',
       finalizadaEm: new Date(),
       entregasRealizadas: metricas.entregues,
       entregasFalhas: metricas.falhas,

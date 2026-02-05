@@ -419,10 +419,34 @@ MÊS 7-12: ESCALA B2B
 
 ### Sprint 15-16 (Setembro 2026) 📋 PLANEJADO
 ```
-[ ] App iOS (React Native ou Flutter)
-[ ] Integração com marketplaces (Amazon, Magalu)
-[ ] ML: Auto-tune de parâmetros com feedback
+[ ] App iOS (React Native + Expo)
+[ ] Integração Amazon Seller Central
+[ ] Integração Magazine Luiza (Magalu)
+[ ] Integração Americanas Marketplace
+```
+
+### Sprint 17-18 (Outubro 2026) 📋 PLANEJADO
+```
+[ ] ML Auto-tune com feedback do usuário
 [ ] A/B Testing infrastructure
+[ ] Chat cliente via WhatsApp Business API
+[ ] Assinatura digital ICP-Brasil
+```
+
+### Sprint 19-20 (Novembro 2026) 📋 PLANEJADO
+```
+[ ] Billing/Subscription (Stripe + PagSeguro)
+[ ] Dashboard métricas negócio (LTV, CAC, Churn)
+[ ] White-label para transportadoras
+[ ] SSO/SAML para enterprise
+```
+
+### Sprint 21-22 (Dezembro 2026) 📋 PLANEJADO
+```
+[ ] Multi-idioma (Espanhol para LatAm)
+[ ] Integração Rappi/iFood
+[ ] Pagamentos internacionais
+[ ] Compliance LGPD/GDPR avançado
 ```
 
 ---
@@ -490,7 +514,196 @@ MÊS 7-12: ESCALA B2B
 11. ~~**AGORA**: Geofencing + Capacidade de Veículo + SEFAZ~~ ✅ FEITO
 12. ~~**AGORA**: ML Previsão de Demanda + Gamificação~~ ✅ FEITO
 13. ~~**AGORA**: VTEX/Shopify + SEFAZ QR Code + ML Dados Reais + Gamificação Sazonal~~ ✅ FEITO
-14. **PRÓXIMO**: App iOS + Marketplaces (Amazon, Magalu)
+14. **PRÓXIMO**: App iOS + Marketplaces (Amazon, Magalu, Americanas)
+15. **FUTURO**: ML Auto-tune + A/B Testing + WhatsApp Business API
+16. **ESCALA**: Billing + White-label B2B + Multi-idioma
+
+---
+
+## 🔴 9. GAPS CRÍTICOS RESTANTES (Fev/2026)
+
+### 9.1 Gaps de Alta Prioridade
+
+| Gap | Impacto | Complexidade | Sprint Alvo |
+|-----|---------|--------------|-------------|
+| **App iOS** | ALTO - 50% mercado | Alta | 15-16 |
+| **Amazon Seller** | ALTO - 40% e-commerce BR | Média | 15-16 |
+| **Magalu/Americanas** | ALTO - Top marketplaces | Média | 15-16 |
+| **Billing/Monetização** | CRÍTICO - Receita | Alta | 19-20 |
+
+### 9.2 Gaps de Média Prioridade
+
+| Gap | Impacto | Complexidade | Sprint Alvo |
+|-----|---------|--------------|-------------|
+| ML Auto-tune | MÉDIO - Precisão | Média | 17-18 |
+| A/B Testing | MÉDIO - Experimentação | Média | 17-18 |
+| WhatsApp Business API | MÉDIO - Comunicação | Média | 17-18 |
+| White-label B2B | ALTO - Enterprise | Alta | 19-20 |
+| Multi-idioma (ES) | MÉDIO - LatAm | Baixa | 21-22 |
+
+---
+
+## 🧪 10. PLANO DE TESTES (Quality Gate)
+
+### 10.1 Testes Críticos Pendentes
+
+| Área | O que Testar | Status | Prioridade |
+|------|--------------|--------|------------|
+| **OCR NF-e** | Notas de diferentes fornecedores (ML, Shopee, Amazon) | ⚠️ PENDENTE | P0 |
+| **OCR NF-e** | Notas com layouts variados (XML, PDF, imagem) | ⚠️ PENDENTE | P0 |
+| **QR Code** | Scanner câmera + input manual | ⚠️ PENDENTE | P0 |
+| **VTEX/Shopify** | OAuth flow + importação pedidos | ⚠️ PENDENTE | P1 |
+| **ML Otimização** | Rotas com histórico vs sem histórico | ⚠️ PENDENTE | P1 |
+| **Gamificação** | Eventos sazonais + badges | ⚠️ PENDENTE | P2 |
+| **Todas as Telas** | Navegação Web completa | ⚠️ PENDENTE | P0 |
+| **Todas as Telas** | Navegação Android completa | ⚠️ PENDENTE | P0 |
+
+### 10.2 Checklist de Testes por Funcionalidade
+
+```
+OCR/QR Code (P0):
+[ ] Nota Natura (já testado ✅)
+[ ] Nota Mercado Livre
+[ ] Nota Shopee
+[ ] Nota Amazon
+[ ] Nota genérica (e-commerce pequeno)
+[ ] QR Code NFC-e (padrão novo)
+[ ] QR Code DANFE (padrão antigo)
+[ ] Barcode 44 dígitos
+
+Páginas Web (P0):
+[ ] TelaHome - todos os botões funcionam
+[ ] TelaOrigem - GPS + input manual
+[ ] TelaDestinos - OCR + importação
+[ ] TelaRota - mapa + navegação
+[ ] QrCodeScanner - câmera + manual
+[ ] VtexShopifyIntegration - OAuth
+[ ] PrevisaoDemanda - mapa calor
+[ ] Gamificacao - badges + ranking
+[ ] TelaHistorico - filtros + export
+[ ] TelaFrota - gestão motoristas
+
+Android (P0):
+[ ] HomeScreen - navegação
+[ ] QrCodeScannerScreen - permissão câmera
+[ ] VtexShopifyScreen - OAuth
+[ ] PrevisaoScreen - dados
+[ ] GamificacaoScreen - badges
+[ ] HistoricoScreen - paginação
+[ ] FrotaMotoristaScreen - status
+
+API Endpoints (P1):
+[ ] POST /sefaz/qrcode/extrair
+[ ] POST /sefaz/qrcode/consultar
+[ ] POST /ml/otimizar-rota
+[ ] GET /gamificacao/eventos-sazonais
+[ ] GET /gamificacao/bonus-ativo
+```
+
+### 10.3 Sanity Checks (Validação Rápida)
+
+```typescript
+// OCR Quality Gate
+const OCR_QUALITY_GATE = {
+  confiancaMinima: 0.85,      // 85% accuracy
+  camposObrigatorios: ['destinatario', 'endereco', 'cidade', 'uf', 'cep'],
+  tempoMaximoMs: 10000,       // 10 segundos
+  tamanhoMaximoMb: 10         // 10MB por arquivo
+};
+
+// Rotas Quality Gate
+const ROTA_QUALITY_GATE = {
+  maximoParadas: 50,
+  tempoCalculoMaxMs: 5000,    // 5 segundos para calcular
+  economiaMinima: 15,         // 15% vs sequencial
+  geocodingSuccessRate: 0.9   // 90% endereços encontrados
+};
+```
+
+---
+
+## 🔬 11. RELATÓRIO DE TESTES (05/02/2026)
+
+### 11.1 Resultado dos Testes Automatizados
+
+| Projeto | Passando | Falhando | Total | Taxa |
+|---------|----------|----------|-------|------|
+| **speedrota-api** | 73 | 2 | 75 | 97.3% |
+| **speedrota (Web)** | 34 | 3 | 37 | 91.9% |
+| **TOTAL** | 107 | 5 | 112 | 95.5% |
+
+### 11.2 Falhas Identificadas
+
+**API (2 falhas - POD):**
+- [ ] `comprimirImagem` - Não reduz para 500KB
+- [ ] `validarPODRequest` - Não rejeita base64 > 5MB
+
+**Web (3 falhas - OCR):**
+- [ ] `parsearNFe` - Fallback extrai dados do lugar errado
+- [ ] `parsearNFe` - Texto com ruído não extrai endereço
+- [ ] `validarDadosExtraidos` - Confiança baixa não avisa
+
+### 11.3 Erros de Compilação Críticos
+
+| Arquivo | Problema | Prioridade |
+|---------|----------|------------|
+| `server.ts` | `status.routes.js` não existe | 🔴 CRÍTICO |
+| `statusTempoReal.ts` | Enums incompatíveis | 🔴 CRÍTICO |
+| `frota.routes.ts` | Tipo `user.id` vs `user.userId` | 🟡 ALTO |
+| `notificacoes.routes.ts` | Mesmo problema de tipos | 🟡 ALTO |
+| `usePOD.ts` | Arquivo `config` não existe | 🟢 MÉDIO |
+| `statusTempoReal.ts (web)` | Exports incorretos | 🟢 MÉDIO |
+
+### 11.4 Funcionalidades Sem Erros (OK para Teste)
+
+✅ **Novas Funcionalidades Sprint 13-14:**
+- `QrCodeScanner.tsx` - Funcional
+- `Ecommerce.tsx` (VTEX/Shopify) - Funcional
+- `sefaz.routes.ts` - Funcional
+- `ecommerce.routes.ts` - Funcional
+- `ml-route-optimizer.ts` - Funcional
+- `gamificacao.routes.ts` - Funcional
+- `previsao-demanda.ts` - Funcional
+
+### 11.5 Plano de Correção
+
+```
+PRIORIDADE IMEDIATA (Antes de Testar):
+1. [ ] Criar status.routes.ts ou remover import
+2. [ ] Corrigir enums StatusRota em statusTempoReal.ts
+3. [ ] Padronizar tipo user (userId vs id)
+
+PODE TESTAR (Funciona em Runtime):
+- QR Code Scanner
+- VTEX/Shopify Integration
+- ML Route Optimizer
+- Gamificação Sazonal
+- SEFAZ Consulta NF-e
+```
+
+### 11.6 Testes de OCR Pendentes
+
+```
+FORNECEDORES A TESTAR:
+[ ] Natura (testado ✅)
+[ ] Mercado Livre
+[ ] Shopee
+[ ] Amazon
+[ ] Americanas
+[ ] Magazine Luiza
+[ ] Shein
+[ ] AliExpress
+[ ] Outros (e-commerce genérico)
+
+FORMATOS A TESTAR:
+[ ] PDF direto
+[ ] Imagem JPG
+[ ] Imagem PNG
+[ ] PDF imagem (escaneado)
+[ ] QR Code NFC-e
+[ ] QR Code DANFE
+[ ] Barcode 44 dígitos
+```
 
 ---
 
