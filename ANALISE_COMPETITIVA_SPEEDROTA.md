@@ -24,7 +24,9 @@
 | **Dashboard Gestor Frota** | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **Distribuição Inteligente** | ✅ (Score-based) | ✅ | ✅ | ✅ | ✅ |
 | **Integração ERP/TMS** | ✅ (Bling/Tiny) | ✅ | ✅ | ✅ | ✅ |
-| **Geofencing** | ❌ | ✅ | ✅ | ❌ | ✅ |
+| **Geofencing** | ✅ | ✅ | ✅ | ❌ | ✅ |
+| **Consulta SEFAZ NF-e** | ✅ ÚNICO | ❌ | ❌ | ❌ | ❌ |
+| **Capacidade Veículo** | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **API Pública** | ✅ (v1) | ✅ | ✅ | ✅ | ✅ |
 | **Suporte PT-BR** | ✅ ÚNICO | ❌ | ❌ | ❌ | ❌ |
 | **Pagamento PIX/Boleto** | ✅ ÚNICO | ❌ | ❌ | ❌ | ❌ |
@@ -49,11 +51,11 @@
 
 | Gap | Impacto | Complexidade | Status |
 |-----|---------|--------------|--------|
-| **Capacidade Veículo** | MÉDIO | Baixa | ❌ P2 |
+| ~~Capacidade Veículo~~ | ~~MÉDIO~~ | ~~Baixa~~ | ✅ FEITO |
 | ~~Analytics/Relatórios~~ | ~~MÉDIO~~ | ~~Média~~ | ✅ FEITO |
 | ~~Integração WhatsApp~~ | ~~ALTO no Brasil~~ | ~~Média~~ | ✅ FEITO |
-| **API Pública** | ALTO para B2B | Alta | ✅ FEITO (v1 + Bling/Tiny) |
-| **Geofencing** | BAIXO | Média | ❌ P3 |
+| ~~API Pública~~ | ~~ALTO para B2B~~ | ~~Alta~~ | ✅ FEITO (v1 + Bling/Tiny) |
+| ~~Geofencing~~ | ~~BAIXO~~ | ~~Média~~ | ✅ FEITO (ray casting + alertas) |
 
 ---
 
@@ -380,12 +382,20 @@ MÊS 7-12: ESCALA B2B
 [x] Integração Bling/Tiny ✅ FEITO 05/02
 ```
 
-### Sprint 9-10 (Junho 2026) 📋 PLANEJADO
+### Sprint 9-10 (Junho 2026) ✅ CONCLUÍDO
 ```
-[ ] Capacidade de Veículo (peso/volume máx por tipo)
-[ ] Geofencing (alertas entrada/saída de zonas)
-[ ] Integração SEFAZ para consulta NF-e automática
+[x] Capacidade de Veículo (peso/volume máx por tipo) ✅ FEITO 05/02
+[x] Geofencing (alertas entrada/saída de zonas) ✅ FEITO 05/02
+[x] Integração SEFAZ para consulta NF-e automática ✅ FEITO 05/02
+[ ] App iOS (React Native ou Flutter) → Sprint 11-12
+```
+
+### Sprint 11-12 (Julho 2026) 📋 PLANEJADO
+```
 [ ] App iOS (React Native ou Flutter)
+[ ] Machine Learning: Previsão de demanda por zona
+[ ] Gamificação: Badges e ranking de entregadores
+[ ] Integração VTEX/Shopify Brasil
 ```
 
 ---
@@ -450,7 +460,8 @@ MÊS 7-12: ESCALA B2B
 8. ~~**AGORA**: Multi-motorista completo (Gestão de Frota)~~ ✅ FEITO
 9. ~~**AGORA**: Histórico com filtros + Export PDF/Excel~~ ✅ FEITO
 10. ~~**AGORA**: API Pública v1 + Integração Bling~~ ✅ FEITO
-11. **PRÓXIMO**: Geofencing + Capacidade de Veículo
+11. ~~**AGORA**: Geofencing + Capacidade de Veículo + SEFAZ~~ ✅ FEITO
+12. **PRÓXIMO**: App iOS + Machine Learning
 
 ---
 
@@ -459,6 +470,21 @@ MÊS 7-12: ESCALA B2B
 ---
 
 ## 📝 CHANGELOG
+
+### 05/02/2026 - Sprint 9-10: Capacidade, Geofencing, SEFAZ
+- ✅ **Capacidade de Veículo**: Validação de peso/volumes por tipo (MOTO 25kg, VAN 1200kg, CAMINHAO 8000kg)
+- ✅ **Alertas Sobrecarga**: Detecta quando carga excede capacidade ou limite legal
+- ✅ **Geofencing**: Detecção de entrada/saída de zonas com algoritmo Ray Casting
+- ✅ **Eventos Geofence**: ENTRADA, SAIDA, TEMPO_EXCEDIDO com debounce 30s
+- ✅ **Configuração por Zona**: Alertas, tolerância, webhooks configuráveis
+- ✅ **SEFAZ NF-e**: Consulta por chave de acesso 44 dígitos
+- ✅ **Validação Chave**: Módulo 11 + extração de UF, CNPJ, número, série
+- ✅ **Cache SEFAZ**: 24h TTL para economia de consultas
+- ✅ **Prisma Models**: EventoGeofence, ConfiguracaoGeofence, CacheSefaz, ConfiguracaoSefaz, CargaVeiculo
+- ✅ **Enums**: TipoEventoGeofence, StatusNfe, AmbienteSefaz
+- ✅ **API Endpoints**: /api/v1/capacidade, /api/v1/geofencing, /api/v1/sefaz
+- ✅ **Testes Unitários**: 49 testes passando (capacidade 14, geofencing 18, sefaz 17)
+- 🎯 **Metodologia**: PDCA + Design por Contrato + TDD Light
 
 ### 05/02/2026 - Multi-motorista / Gestão de Frota Completa
 - ✅ **Prisma Models**: 12 novos models (Empresa, Motorista, Veiculo, Equipe, ZonaAtuacao, etc.)
