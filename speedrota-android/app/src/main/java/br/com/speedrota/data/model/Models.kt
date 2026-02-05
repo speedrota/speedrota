@@ -1566,3 +1566,251 @@ data class LeaderboardData(
     val minhaPosicao: Int,
     val totalParticipantes: Int
 )
+
+// ==================== ECOMMERCE (VTEX + SHOPIFY) ====================
+
+/**
+ * Response de integrações
+ */
+@Serializable
+data class IntegracoesResponse(
+    val success: Boolean,
+    val data: List<Integracao>? = null,
+    val error: String? = null
+)
+
+@Serializable
+data class Integracao(
+    val id: String,
+    val fornecedor: String,
+    val nome: String? = null,
+    val ativo: Boolean = true,
+    val ultimaSincronizacao: String? = null,
+    val totalPedidosImportados: Int = 0
+)
+
+/**
+ * Request para criar integração
+ */
+@Serializable
+data class CriarIntegracaoRequest(
+    val fornecedor: String,
+    val nome: String,
+    val credentials: CredenciaisIntegracao
+)
+
+@Serializable
+data class CredenciaisIntegracao(
+    // VTEX
+    val accountName: String? = null,
+    val appKey: String? = null,
+    val appToken: String? = null,
+    // Shopify
+    val shopDomain: String? = null,
+    val accessToken: String? = null,
+    val apiVersion: String? = null,
+    // Comum
+    val ambiente: String = "sandbox"
+)
+
+/**
+ * Response de criar integração
+ */
+@Serializable
+data class CriarIntegracaoApiResponse(
+    val success: Boolean,
+    val data: CriarIntegracaoResponse? = null,
+    val error: String? = null
+)
+
+@Serializable
+data class CriarIntegracaoResponse(
+    val id: String,
+    val testado: Boolean = false,
+    val message: String? = null
+)
+
+/**
+ * Response de sincronização
+ */
+@Serializable
+data class SincronizacaoApiResponse(
+    val success: Boolean,
+    val data: SincronizacaoResponse? = null,
+    val error: String? = null
+)
+
+@Serializable
+data class SincronizacaoResponse(
+    val plataforma: String,
+    val totalEncontrados: Int,
+    val totalImportados: Int,
+    val totalDuplicados: Int,
+    val totalErros: Int,
+    val tempoMs: Int = 0,
+    val erros: List<ErroSincronizacao>? = null
+)
+
+@Serializable
+data class ErroSincronizacao(
+    val idExterno: String,
+    val erro: String
+)
+
+/**
+ * Response de pedidos importados
+ */
+@Serializable
+data class PedidosImportadosResponse(
+    val success: Boolean,
+    val data: List<PedidoImportado>? = null,
+    val error: String? = null
+)
+
+@Serializable
+data class PedidoImportado(
+    val id: String,
+    val idExterno: String,
+    val cliente: String,
+    val endereco: String,
+    val cidade: String,
+    val uf: String,
+    val cep: String? = null,
+    val valorTotal: Double? = null,
+    val selecionado: Boolean = false
+)
+
+/**
+ * Request para processar pedidos
+ */
+@Serializable
+data class ProcessarPedidosRequest(
+    val pedidoIds: List<String>,
+    val paradaId: String? = null
+)
+
+/**
+ * Response de processar pedidos
+ */
+@Serializable
+data class ProcessarPedidosApiResponse(
+    val success: Boolean,
+    val data: ProcessarPedidosResponse? = null,
+    val error: String? = null
+)
+
+@Serializable
+data class ProcessarPedidosResponse(
+    val processados: Int
+)
+
+// ==========================================
+// SEFAZ QR CODE MODELS
+// ==========================================
+
+/**
+ * Response de extração QR Code
+ */
+@Serializable
+data class QrCodeExtracaoResponse(
+    val success: Boolean,
+    val data: QrCodeExtracaoData? = null,
+    val error: String? = null
+)
+
+@Serializable
+data class QrCodeExtracaoData(
+    val tipo: String,
+    val chaveAcesso: String,
+    val urlOrigem: String? = null,
+    val parametrosExtras: Map<String, String>? = null,
+    val componentes: QrCodeComponentes? = null
+)
+
+@Serializable
+data class QrCodeComponentes(
+    val uf: String? = null,
+    val modelo: String? = null,
+    val cnpjEmitente: String? = null
+)
+
+/**
+ * Response de consulta QR Code (SEFAZ)
+ */
+@Serializable
+data class QrCodeConsultaResponse(
+    val success: Boolean,
+    val data: QrCodeConsultaData? = null,
+    val error: String? = null
+)
+
+@Serializable
+data class QrCodeConsultaData(
+    val nfe: NfeData? = null,
+    val chaveAcesso: String,
+    val tipoQrCode: String,
+    val enderecoFormatado: String? = null,
+    val cache: Boolean? = null,
+    val consultaEm: String? = null
+)
+
+@Serializable
+data class NfeData(
+    val numero: Int? = null,
+    val valor: Double? = null,
+    val dataEmissao: String? = null,
+    val emitente: NfeEmitente? = null,
+    val destinatario: NfeDestinatario? = null
+)
+
+@Serializable
+data class NfeEmitente(
+    val nome: String? = null,
+    val cnpj: String? = null
+)
+
+@Serializable
+data class NfeDestinatario(
+    val nome: String? = null,
+    val logradouro: String? = null,
+    val numero: String? = null,
+    val bairro: String? = null,
+    val cidade: String? = null,
+    val uf: String? = null,
+    val cep: String? = null
+)
+
+/**
+ * Response de importação QR Code
+ */
+@Serializable
+data class QrCodeImportacaoResponse(
+    val success: Boolean,
+    val data: QrCodeImportacaoData? = null,
+    val error: String? = null
+)
+
+@Serializable
+data class QrCodeImportacaoData(
+    val paradaId: String,
+    val chaveNfe: String,
+    val nomeDestinatario: String? = null,
+    val endereco: String? = null
+)
+
+/**
+ * Response de extração barcode
+ */
+@Serializable
+data class BarcodeExtracaoResponse(
+    val success: Boolean,
+    val data: BarcodeExtracaoData? = null,
+    val error: String? = null
+)
+
+@Serializable
+data class BarcodeExtracaoData(
+    val chaveAcesso: String,
+    val barcodeOriginal: String? = null,
+    val componentes: QrCodeComponentes? = null
+)

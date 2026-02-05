@@ -29,6 +29,8 @@ fun HomeScreen(
     onDashboard: () -> Unit,
     onPrevisao: () -> Unit = {},
     onGamificacao: () -> Unit = {},
+    onEcommerce: () -> Unit = {},
+    onQrCodeScanner: () -> Unit = {},
     onVerPlanos: () -> Unit,
     onLogout: () -> Unit
 ) {
@@ -242,6 +244,54 @@ fun HomeScreen(
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "Conquistas",
+                    style = MaterialTheme.typography.titleMedium
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            // Botão E-commerce (VTEX + Shopify)
+            OutlinedButton(
+                onClick = onEcommerce,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = androidx.compose.ui.graphics.Color(0xFFEC4899)
+                )
+            ) {
+                Text(
+                    text = "🛒",
+                    fontSize = 20.sp
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "E-commerce",
+                    style = MaterialTheme.typography.titleMedium
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            // Botão QR Code Scanner
+            OutlinedButton(
+                onClick = onQrCodeScanner,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = androidx.compose.ui.graphics.Color(0xFF06B6D4)
+                )
+            ) {
+                Text(
+                    text = "📱",
+                    fontSize = 20.sp
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "QR Code NF-e",
                     style = MaterialTheme.typography.titleMedium
                 )
             }

@@ -22,6 +22,8 @@ import br.com.speedrota.ui.screens.planos.PlanosScreen
 import br.com.speedrota.ui.screens.pagamento.PagamentoScreen
 import br.com.speedrota.ui.screens.previsao.PrevisaoScreen
 import br.com.speedrota.ui.screens.gamificacao.GamificacaoScreen
+import br.com.speedrota.ui.screens.ecommerce.EcommerceScreen
+import br.com.speedrota.ui.screens.qrcode.QrCodeScannerScreen
 
 /**
  * NavHost principal do SpeedRota
@@ -95,6 +97,12 @@ fun SpeedRotaNavHost() {
                 onGamificacao = {
                     navController.navigate(Screen.Gamificacao.route)
                 },
+                onEcommerce = {
+                    navController.navigate(Screen.Ecommerce.route)
+                },
+                onQrCodeScanner = {
+                    navController.navigate(Screen.QrCodeScanner.route)
+                },
                 onVerPlanos = {
                     navController.navigate(Screen.Planos.route)
                 },
@@ -143,6 +151,32 @@ fun SpeedRotaNavHost() {
             GamificacaoScreen(
                 onBack = {
                     navController.popBackStack()
+                }
+            )
+        }
+        
+        // E-commerce (VTEX + Shopify)
+        composable(Screen.Ecommerce.route) {
+            EcommerceScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onImportarDestinos = { pedidos ->
+                    // TODO: Importar pedidos para destinos
+                    navController.navigate(Screen.Destinos.route)
+                }
+            )
+        }
+        
+        // QR Code Scanner
+        composable(Screen.QrCodeScanner.route) {
+            QrCodeScannerScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onImportarParadas = { chaves ->
+                    // TODO: Importar NF-e como destinos
+                    navController.navigate(Screen.Destinos.route)
                 }
             )
         }

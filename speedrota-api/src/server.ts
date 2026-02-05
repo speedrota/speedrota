@@ -36,6 +36,7 @@ import { geofencingRoutes } from './routes/geofencing.routes.js';
 import { sefazRoutes } from './routes/sefaz.routes.js';
 import mlRoutes from './routes/ml.routes.js';
 import gamificacaoRoutes from './routes/gamificacao.routes.js';
+import ecommerceRoutes from './routes/ecommerce.routes.js';
 
 // ==========================================
 // CRIAR SERVIDOR FASTIFY
@@ -207,6 +208,9 @@ app.register(sefazRoutes, { prefix: '/api/v1/sefaz' });
 // Sprint 11-12: ML + Gamificação
 app.register(mlRoutes, { prefix: '/api/v1/ml' });
 app.register(gamificacaoRoutes, { prefix: '/api/v1/gamificacao' });
+
+// Sprint 13-14: E-commerce (VTEX + Shopify)
+app.register(ecommerceRoutes, { prefix: '/api/v1/ecommerce' });
 
 // API Pública (usa API Key ao invés de JWT)
 app.register(publicApiRoutes, { prefix: '/api/v1/public' });

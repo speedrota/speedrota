@@ -1,0 +1,617 @@
+/**
+ * @fileoverview Estilos do componente E-commerce
+ * 
+ * DESIGN POR CONTRATO:
+ * @pre CSS variables definidas em global.css
+ * @post Layout responsivo para desktop e mobile
+ * 
+ * @author SpeedRota Team
+ * @version 1.0.0
+ * @since Sprint 13-14
+ */
+
+/* ==========================================
+   CONTAINER PRINCIPAL
+   ========================================== */
+
+.tela-ecommerce {
+  min-height: 100vh;
+  background: var(--bg-gradient, linear-gradient(135deg, #667eea 0%, #764ba2 100%));
+  padding: 1rem;
+}
+
+.ecommerce-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.ecommerce-header h1 {
+  flex: 1;
+  margin: 0;
+  font-size: 1.5rem;
+  color: var(--text-primary, #333);
+}
+
+.btn-voltar {
+  background: transparent;
+  border: none;
+  font-size: 1rem;
+  color: var(--primary, #2563eb);
+  cursor: pointer;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.btn-voltar:hover {
+  background: rgba(37, 99, 235, 0.1);
+}
+
+/* ==========================================
+   MENSAGENS
+   ========================================== */
+
+.mensagem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border-radius: 8px;
+  animation: slideIn 0.3s ease;
+}
+
+.mensagem.erro {
+  background: #fee2e2;
+  color: #dc2626;
+  border: 1px solid #fca5a5;
+}
+
+.mensagem.sucesso {
+  background: #dcfce7;
+  color: #16a34a;
+  border: 1px solid #86efac;
+}
+
+.mensagem button {
+  background: transparent;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+.mensagem button:hover {
+  opacity: 1;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* ==========================================
+   ABAS
+   ========================================== */
+
+.abas {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  background: white;
+  padding: 0.5rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.aba {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--text-secondary, #666);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.aba.ativa {
+  background: var(--primary, #2563eb);
+  color: white;
+}
+
+.aba:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ==========================================
+   CONTEÚDO
+   ========================================== */
+
+.ecommerce-content {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  min-height: 60vh;
+}
+
+.loading {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-secondary, #666);
+}
+
+/* ==========================================
+   LISTA DE INTEGRAÇÕES
+   ========================================== */
+
+.lista-integracoes .lista-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.lista-integracoes .lista-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.btn-nova {
+  background: var(--primary, #2563eb);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.25rem;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-nova:hover {
+  background: var(--primary-dark, #1d4ed8);
+}
+
+.lista-vazia {
+  text-align: center;
+  padding: 3rem;
+  color: var(--text-secondary, #666);
+}
+
+.lista-vazia p:first-child {
+  font-size: 1.1rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.integracoes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+/* ==========================================
+   CARD INTEGRAÇÃO
+   ========================================== */
+
+.card-integracao {
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: white;
+}
+
+.card-integracao:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.card-integracao.selecionado {
+  border-width: 3px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.card-integracao .card-header {
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: white;
+}
+
+.card-integracao .emoji {
+  font-size: 1.25rem;
+}
+
+.card-integracao .fornecedor {
+  flex: 1;
+  font-weight: 600;
+}
+
+.card-integracao .status {
+  font-size: 0.9rem;
+}
+
+.card-integracao .card-body {
+  padding: 1rem;
+}
+
+.card-integracao h3 {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  color: var(--text-primary, #333);
+}
+
+.metricas {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.metrica {
+  text-align: center;
+}
+
+.metrica .valor {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary, #2563eb);
+}
+
+.metrica .label {
+  font-size: 0.8rem;
+  color: var(--text-secondary, #666);
+}
+
+.ultima-sync {
+  font-size: 0.8rem;
+  color: var(--text-secondary, #666);
+  margin: 0;
+}
+
+.card-integracao .card-actions {
+  padding: 0.75rem 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.btn-sync {
+  width: 100%;
+  padding: 0.5rem;
+  background: #f3f4f6;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-sync:hover {
+  background: #e5e7eb;
+}
+
+/* ==========================================
+   FORMULÁRIO INTEGRAÇÃO
+   ========================================== */
+
+.formulario-integracao {
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.formulario-integracao h2 {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.form-group {
+  margin-bottom: 1.25rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: var(--text-primary, #333);
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: var(--primary, #2563eb);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.form-group small {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary, #666);
+}
+
+.plataformas-selector {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.plataforma-btn {
+  flex: 1;
+  padding: 1rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  background: white;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.plataforma-btn:hover {
+  border-color: #d1d5db;
+}
+
+.plataforma-btn.ativo {
+  border-color: var(--primary, #2563eb);
+  background: rgba(37, 99, 235, 0.05);
+}
+
+.ambiente-selector {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.radio-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.radio-label input {
+  width: auto;
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.btn-cancelar {
+  flex: 1;
+  padding: 0.875rem;
+  background: #f3f4f6;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-cancelar:hover {
+  background: #e5e7eb;
+}
+
+.btn-salvar {
+  flex: 1;
+  padding: 0.875rem;
+  background: var(--primary, #2563eb);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-salvar:hover {
+  background: var(--primary-dark, #1d4ed8);
+}
+
+.btn-salvar:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* ==========================================
+   LISTA DE PEDIDOS
+   ========================================== */
+
+.lista-pedidos .lista-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.lista-pedidos .lista-header h2 {
+  margin: 0;
+}
+
+.header-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-importar {
+  background: var(--success, #16a34a);
+  color: white;
+  border: none;
+  padding: 0.625rem 1rem;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-importar:hover {
+  background: #15803d;
+}
+
+.btn-importar:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+.selecao-rapida {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background: #f3f4f6;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.selecao-rapida button {
+  background: transparent;
+  border: none;
+  color: var(--primary, #2563eb);
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.selecao-rapida span {
+  font-size: 0.9rem;
+  color: var(--text-secondary, #666);
+}
+
+.pedidos-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.pedido-item {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pedido-item:hover {
+  background: #f9fafb;
+}
+
+.pedido-item.selecionado {
+  border-color: var(--primary, #2563eb);
+  background: rgba(37, 99, 235, 0.05);
+}
+
+.pedido-item .checkbox {
+  font-size: 1.25rem;
+}
+
+.pedido-info {
+  flex: 1;
+}
+
+.pedido-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.25rem;
+}
+
+.pedido-id {
+  font-weight: 600;
+  color: var(--primary, #2563eb);
+}
+
+.pedido-valor {
+  font-weight: 600;
+  color: var(--success, #16a34a);
+}
+
+.pedido-cliente {
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.pedido-endereco {
+  font-size: 0.9rem;
+  color: var(--text-secondary, #666);
+}
+
+/* ==========================================
+   RESPONSIVO
+   ========================================== */
+
+@media (max-width: 768px) {
+  .tela-ecommerce {
+    padding: 0.5rem;
+  }
+
+  .ecommerce-header {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .ecommerce-header h1 {
+    font-size: 1.25rem;
+  }
+
+  .integracoes-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .formulario-integracao {
+    padding: 0 0.5rem;
+  }
+
+  .plataformas-selector {
+    flex-direction: column;
+  }
+
+  .ambiente-selector {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .form-actions {
+    flex-direction: column;
+  }
+
+  .lista-pedidos .lista-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .header-actions {
+    flex-direction: column;
+  }
+}

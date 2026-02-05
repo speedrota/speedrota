@@ -26,8 +26,12 @@
 | **Integração ERP/TMS** | ✅ (Bling/Tiny) | ✅ | ✅ | ✅ | ✅ |
 | **Geofencing** | ✅ | ✅ | ✅ | ❌ | ✅ |
 | **Consulta SEFAZ NF-e** | ✅ ÚNICO | ❌ | ❌ | ❌ | ❌ |
+| **SEFAZ QR Code Scanner** | ✅ ÚNICO | ❌ | ❌ | ❌ | ❌ |
 | **ML Previsão de Demanda** | ✅ ÚNICO | ❌ | ❌ | ❌ | ❌ |
+| **ML Otimização com Dados Reais** | ✅ ÚNICO | ❌ | ❌ | ❌ | ❌ |
 | **Gamificação/Badges** | ✅ ÚNICO | ❌ | ❌ | ❌ | ❌ |
+| **Eventos Sazonais (7)** | ✅ ÚNICO | ❌ | ❌ | ❌ | ❌ |
+| **Integração VTEX/Shopify** | ✅ | ✅ | ❌ | ✅ | ✅ |
 | **Capacidade Veículo** | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **API Pública** | ✅ (v1) | ✅ | ✅ | ✅ | ✅ |
 | **Suporte PT-BR** | ✅ ÚNICO | ❌ | ❌ | ❌ | ❌ |
@@ -68,12 +72,16 @@
 | Diferencial | Descrição | Valor para Cliente |
 |-------------|-----------|-------------------|
 | **🧾 OCR de NF-e** | Extração automática de endereços de notas fiscais | Economia de 15-30min por rota |
+| **� QR Code NF-e** | Scanner de QR Code/Barcode de NF-e | Zero digitação, 100% precisão |
 | **💰 Preço Brasil** | 10-50x mais barato que concorrentes | Acessível para MEI/autônomos |
 | **🇧🇷 100% Brasileiro** | Suporte PT-BR, PIX, Boleto, horários BR | Confiança e facilidade |
 | **📱 Foco Mobile-first** | Pensado para entregador no celular | UX otimizada para campo |
 | **🏍️ Multi-fornecedor** | Natura + ML + Shopee na mesma rota | Maximiza ganho por km |
 | **🔮 ML Previsão Demanda** | Saber onde e quando haverá mais entregas | Planejar dia com antecedência |
+| **🧠 ML Otimização Real** | Rotas otimizadas com dados históricos reais | 15-30% mais economia |
 | **🎮 Gamificação** | Badges, ranking, conquistar objetivos | Engajamento e motivação |
+| **🎄 Eventos Sazonais** | 7 eventos com multiplicadores (Black Friday 3x) | Ganhar mais em datas especiais |
+| **📦 VTEX/Shopify** | Integração direta com e-commerces BR | Importar pedidos automático |
 
 ### 3.2 Público-Alvo Único (Blue Ocean)
 
@@ -398,17 +406,23 @@ MÊS 7-12: ESCALA B2B
 ```
 [x] Machine Learning: Previsão de demanda por zona ✅ FEITO 05/02
 [x] Gamificação: Badges e ranking de entregadores ✅ FEITO 05/02
-[ ] App iOS (React Native ou Flutter) → Sprint 13-14
-[ ] Integração VTEX/Shopify Brasil → Sprint 13-14
+[ ] App iOS (React Native ou Flutter) → Sprint 15-16
 ```
 
-### Sprint 13-14 (Agosto 2026) 📋 PLANEJADO
+### Sprint 13-14 (Agosto 2026) ✅ CONCLUÍDO
+```
+[x] Integração VTEX/Shopify Brasil ✅ FEITO 06/02
+[x] SEFAZ: QR Code + Barcode Scanner ✅ FEITO 06/02
+[x] ML: Otimização de rotas com dados reais ✅ FEITO 06/02
+[x] Gamificação: Eventos sazonais (7 eventos) ✅ FEITO 06/02
+```
+
+### Sprint 15-16 (Setembro 2026) 📋 PLANEJADO
 ```
 [ ] App iOS (React Native ou Flutter)
-[ ] Integração VTEX/Shopify Brasil
-[ ] SEFAZ: QR Code + Barcode Scanner fallback para OCR
-[ ] ML: Otimização de previsão com dados reais
-[ ] Gamificação: Eventos especiais e badges sazonais
+[ ] Integração com marketplaces (Amazon, Magalu)
+[ ] ML: Auto-tune de parâmetros com feedback
+[ ] A/B Testing infrastructure
 ```
 
 ---
@@ -475,15 +489,39 @@ MÊS 7-12: ESCALA B2B
 10. ~~**AGORA**: API Pública v1 + Integração Bling~~ ✅ FEITO
 11. ~~**AGORA**: Geofencing + Capacidade de Veículo + SEFAZ~~ ✅ FEITO
 12. ~~**AGORA**: ML Previsão de Demanda + Gamificação~~ ✅ FEITO
-13. **PRÓXIMO**: App iOS + VTEX/Shopify + SEFAZ QR Code
+13. ~~**AGORA**: VTEX/Shopify + SEFAZ QR Code + ML Dados Reais + Gamificação Sazonal~~ ✅ FEITO
+14. **PRÓXIMO**: App iOS + Marketplaces (Amazon, Magalu)
 
 ---
 
-*Documento atualizado em 05/02/2026 - SpeedRota Team*
+*Documento atualizado em 06/02/2026 - SpeedRota Team*
 
 ---
 
 ## 📝 CHANGELOG
+
+### 06/02/2026 - Sprint 13-14: VTEX/Shopify + SEFAZ QR Code + ML + Gamificação Sazonal
+- ✅ **VTEX/Shopify Backend**: Service integracoes.ts com OAuth2, webhooks e sync de pedidos
+- ✅ **VTEX API**: Autenticação, listagem de lojas, importação de pedidos, webhooks
+- ✅ **Shopify API**: OAuth token exchange, store management, order import
+- ✅ **Web Components**: VtexShopifyIntegration.tsx com OAuth flow e gestão de lojas
+- ✅ **Android Screens**: VtexShopifyScreen.kt + VtexShopifyViewModel.kt com Compose UI
+- ✅ **SEFAZ QR Code Backend**: 5 novos endpoints (/qrcode/extrair, /consultar, /importar, /barcode/*)
+- ✅ **QR Code Patterns**: NFCE_URL (chNFe=), DANFE_URL (chave=), CHAVE_PURA (44 dígitos), NFCE_P (p=)
+- ✅ **Web QR Scanner**: QrCodeScanner.tsx com câmera e input manual
+- ✅ **Android QR Scanner**: QrCodeScannerScreen.kt com permissão de câmera e Compose UI
+- ✅ **ML Route Optimizer**: ml-route-optimizer.ts com otimização baseada em dados históricos
+- ✅ **Fatores de Tráfego ML**: Por hora (0.6-1.7x) e dia da semana (0.6-1.2x)
+- ✅ **ML Confidence Score**: Baseado em disponibilidade de histórico por zona
+- ✅ **ML Insights**: Sugestões automáticas (zonas lentas, horários ideais, economia)
+- ✅ **Gamificação Sazonal**: 7 eventos configurados (Carnaval, Páscoa, Dia das Mães, Namorados, Pais, Black Friday, Natal)
+- ✅ **Multiplicadores**: Carnaval 2x, Dia das Mães 2.5x, Black Friday 3x, Natal 2.5x
+- ✅ **Badges Sazonais**: 1 badge especial por evento ("Folião das Entregas", "Sobrevivente Black Friday", etc.)
+- ✅ **Desafios Sazonais**: 3-4 desafios por evento com metas específicas
+- ✅ **API Gamificação**: /eventos-sazonais, /desafios, /meus-desafios-sazonais, /bonus-ativo
+- ✅ **Navegação**: EtapaFluxo + Screen.kt atualizados com 'qrcode', 'vtexshopify'
+- ✅ **HomeScreen**: Botões 📦 VTEX/Shopify e 📱 QR Code NF-e
+- 🎯 **Metodologia**: Design by Contract + TDD Light + PDCA
 
 ### 05/02/2026 - Sprint 11-12: ML Previsão de Demanda + Gamificação
 - ✅ **Prisma Models**: AgregacaoDemanda, PrevisaoDemanda, InsightDemanda, Badge, UsuarioBadge, Ranking, Conquista

@@ -421,4 +421,181 @@ export default async function gamificacaoRoutes(fastify: FastifyInstance) {
       });
     }
   });
+
+  // ==========================================
+  // EVENTOS SAZONAIS
+  // ==========================================
+
+  /**
+   * GET /eventos-sazonais
+   * Lista eventos sazonais ativos e futuros
+   * 
+   * @pre Nenhuma
+   * @post Lista de eventos com multiplicadores e desafios
+   */
+  fastify.get('/eventos-sazonais', async (request, reply) => {
+    try {
+      const eventosAtivos = gamificacaoService.getEventosSazonais();
+      const todosEventos = gamificacaoService.getTodosEventosSazonais();
+      const bonus = gamificacaoService.verificarBonusSazonal();
+
+      return reply.send({
+        success: true,
+        data: {
+          eventosAtivos: eventosAtivos.map(e => ({
+            id: e.id,
+            nome: e.nome,
+            descricao: e.descricao,
+            icone: e.icone,
+            dataInicio: e.dataInicio.toISOString(),
+            dataFim: e.dataFim.toISOString(),
+            multiplicadorPontos: e.multiplicadorPontos,
+            multiplicadorXP: e.multiplicadorXP,
+            badgeEspecial: e.badgeEspecial,
+            totalDesafios: e.desafios.length,
+          })),
+          proximosEventos: todosEventos
+            .filter(e => e.dataInicio.getTime() > Date.now())
+            .slice(0, 5)
+            .map(e => ({
+              id: e.id,
+              nome: e.nome,
+              icone: e.icone,
+              dataInicio: e.dataInicio.toISOString(),
+              diasAteInicio: Math.ceil((e.dataInicio.getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
+            })),
+          bonusAtual: bonus,
+        },
+      });
+    } catch (error: any) {
+      fastify.log.error(error);
+      return reply.status(500).send({
+        success: false,
+        error: error.message,
+      });
+    }
+  });
+
+  /**
+   * GET /eventos-sazonais/:eventoId/desafios
+   * Lista desafios de um evento com progresso do usuário
+   * 
+   * @pre userId válido, eventoId válido
+   * @post Lista de desafios com progresso
+   */
+  fastify.get<{
+    Params: { eventoId: string }
+  }>('/eventos-sazonais/:eventoId/desafios', async (request: any, reply) => {
+    try {
+      const userId = request.user?.id;
+      if (!userId) {
+        return reply.status(401).send({ success: false, error: 'Não autenticado' });
+      }
+
+      const { eventoId } = request.params;
+      const desafios = await gamificacaoService.getDesafiosSazonais(userId, eventoId);
+
+      if (desafios.length === 0) {
+        return reply.status(404).send({
+          success: false,
+          error: 'Evento não encontrado ou sem desafios',
+        });
+      }
+
+      const completados = desafios.filter(d => d.completado).length;
+      const pontosGanhos = desafios.filter(d => d.completado).reduce((acc, d) => acc + d.premio, 0);
+      const pontosPossiveis = desafios.reduce((acc, d) => acc + d.premio, 0);
+
+      return reply.send({
+        success: true,
+        data: {
+          eventoId,
+          desafios,
+          resumo: {
+            total: desafios.length,
+            completados,
+            percentualCompleto: Math.round((completados / desafios.length) * 100),
+            pontosGanhos,
+            pontosPossiveis,
+          },
+        },
+      });
+    } catch (error: any) {
+      fastify.log.error(error);
+      return reply.status(500).send({
+        success: false,
+        error: error.message,
+      });
+    }
+  });
+
+  /**
+   * GET /meus-desafios-sazonais
+   * Lista todos os desafios ativos do usuário
+   * 
+   * @pre userId válido
+   * @post Lista de desafios de todos os eventos ativos
+   */
+  fastify.get('/meus-desafios-sazonais', async (request: any, reply) => {
+    try {
+      const userId = request.user?.id;
+      if (!userId) {
+        return reply.status(401).send({ success: false, error: 'Não autenticado' });
+      }
+
+      const desafios = await gamificacaoService.getDesafiosSazonais(userId);
+      const bonus = gamificacaoService.verificarBonusSazonal();
+
+      return reply.send({
+        success: true,
+        data: {
+          desafios,
+          bonus,
+          resumo: {
+            total: desafios.length,
+            completados: desafios.filter(d => d.completado).length,
+            emProgresso: desafios.filter(d => !d.completado && (d.progressoAtual || 0) > 0).length,
+          },
+        },
+      });
+    } catch (error: any) {
+      fastify.log.error(error);
+      return reply.status(500).send({
+        success: false,
+        error: error.message,
+      });
+    }
+  });
+
+  /**
+   * GET /bonus-ativo
+   * Verifica se há bônus de evento sazonal ativo
+   * 
+   * @pre Nenhuma
+   * @post Multiplicadores ativos ou 1.0
+   */
+  fastify.get('/bonus-ativo', async (request, reply) => {
+    try {
+      const bonus = gamificacaoService.verificarBonusSazonal();
+      const eventosAtivos = gamificacaoService.getEventosSazonais();
+
+      return reply.send({
+        success: true,
+        data: {
+          ...bonus,
+          temEventoAtivo: eventosAtivos.length > 0,
+          quantidadeEventos: eventosAtivos.length,
+          mensagem: bonus.eventoAtivo 
+            ? `🎉 ${bonus.eventoAtivo} ativo! ${bonus.multiplicadorPontos}x pontos!`
+            : 'Sem evento ativo no momento',
+        },
+      });
+    } catch (error: any) {
+      fastify.log.error(error);
+      return reply.status(500).send({
+        success: false,
+        error: error.message,
+      });
+    }
+  });
 }

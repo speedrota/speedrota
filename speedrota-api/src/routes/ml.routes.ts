@@ -18,6 +18,7 @@
 
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import previsaoDemandaService from '../services/previsao-demanda.js';
+import { otimizarRotaComML } from '../services/ml-route-optimizer.js';
 
 // ==========================================
 // SCHEMAS
@@ -386,5 +387,129 @@ export default async function mlRoutes(fastify: FastifyInstance) {
         error: error.message,
       });
     }
+  });
+
+  // ==========================================
+  // ML ROUTE OPTIMIZATION
+  // ==========================================
+
+  /**
+   * POST /otimizar-rota
+   * Otimiza rota usando ML e dados históricos
+   * 
+   * @pre origem e destinos válidos
+   * @post Rota otimizada com predições e insights
+   */
+  fastify.post<{
+    Body: {
+      origem: { lat: number; lng: number; endereco: string };
+      destinos: {
+        id: string;
+        endereco: string;
+        lat: number;
+        lng: number;
+        cep?: string;
+        fornecedor?: string;
+        prioridade?: number;
+      }[];
+      horaPartida?: number;
+      considerarTrafego?: boolean;
+      considerarHistorico?: boolean;
+      fornecedor?: string;
+    };
+  }>('/otimizar-rota', {
+    schema: {
+      body: {
+        type: 'object',
+        properties: {
+          origem: {
+            type: 'object',
+            properties: {
+              lat: { type: 'number' },
+              lng: { type: 'number' },
+              endereco: { type: 'string' },
+            },
+            required: ['lat', 'lng', 'endereco'],
+          },
+          destinos: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                endereco: { type: 'string' },
+                lat: { type: 'number' },
+                lng: { type: 'number' },
+                cep: { type: 'string' },
+                fornecedor: { type: 'string' },
+                prioridade: { type: 'number' },
+              },
+              required: ['id', 'lat', 'lng', 'endereco'],
+            },
+            minItems: 1,
+            maxItems: 100,
+          },
+          horaPartida: { type: 'integer', minimum: 0, maximum: 23 },
+          considerarTrafego: { type: 'boolean' },
+          considerarHistorico: { type: 'boolean' },
+          fornecedor: { type: 'string' },
+        },
+        required: ['origem', 'destinos'],
+      },
+    },
+  }, async (request, reply) => {
+    try {
+      const { origem, destinos, horaPartida, considerarTrafego, considerarHistorico, fornecedor } = request.body;
+
+      const resultado = await otimizarRotaComML({
+        origem,
+        destinos,
+        horaPartida,
+        considerarTrafego,
+        considerarHistorico,
+        fornecedor,
+      });
+
+      return reply.send({
+        success: true,
+        data: resultado,
+      });
+
+    } catch (error: any) {
+      fastify.log.error(error);
+      return reply.status(500).send({
+        success: false,
+        error: error.message || 'Erro ao otimizar rota com ML',
+      });
+    }
+  });
+
+  /**
+   * GET /status
+   * Status do serviço ML
+   */
+  fastify.get('/status', async (request, reply) => {
+    return reply.send({
+      success: true,
+      data: {
+        servico: 'ML Route Optimization',
+        versao: '1.1.0',
+        recursos: [
+          'Previsão de demanda por zona',
+          'Mapa de calor de demanda',
+          'Insights automáticos',
+          'Otimização de rota com ML',
+          'Aprendizado de padrões de tráfego',
+          'Ajuste de tempos baseado em histórico'
+        ],
+        endpoints: [
+          'GET /ml/previsao/:zona',
+          'GET /ml/mapa-calor',
+          'GET /ml/insights',
+          'POST /ml/otimizar-rota',
+          'GET /ml/metricas'
+        ],
+      },
+    });
   });
 }

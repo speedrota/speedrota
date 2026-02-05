@@ -23,7 +23,11 @@ import {
   importarLoteNfe,
   obterConfiguracaoEmpresa,
   salvarConfiguracaoSefaz,
-  obterUfDaChave
+  obterUfDaChave,
+  extrairDadosQrCode,
+  consultarNfePorQrCode,
+  extrairChaveDeBarcode,
+  importarQrCodeComoParada
 } from '../services/sefaz.js';
 
 // ==========================================
@@ -53,6 +57,22 @@ const ConfiguracaoSefazSchema = z.object({
   senhaCertificado: z.string().optional(),
   cnpjConsultante: z.string().regex(/^\d{14}$/, 'CNPJ deve ter 14 dígitos').optional(),
   rateLimitPorMinuto: z.number().int().min(1).max(60).optional()
+});
+
+// QR Code / Barcode Schemas
+const QrCodeSchema = z.object({
+  conteudo: z.string().min(10, 'Conteúdo QR Code muito curto'),
+  rotaId: z.string().uuid().optional()
+});
+
+const BarcodeSchema = z.object({
+  barcode: z.string().min(44, 'Código de barras deve ter pelo menos 44 caracteres'),
+  rotaId: z.string().uuid().optional()
+});
+
+const ImportarQrCodeSchema = z.object({
+  conteudo: z.string().min(10),
+  rotaId: z.string().uuid()
 });
 
 // ==========================================
@@ -279,6 +299,232 @@ export async function sefazRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // ==========================================
+  // QR CODE / BARCODE ROUTES
+  // ==========================================
+
+  /**
+   * POST /sefaz/qrcode/extrair
+   * Extrai dados de um QR Code de NF-e/NFC-e (sem consultar SEFAZ)
+   * 
+   * @pre conteudo é string com QR Code escaneado
+   * @post Retorna chave extraída e tipo de QR Code
+   */
+  fastify.post<{
+    Body: z.infer<typeof QrCodeSchema>
+  }>('/qrcode/extrair', async (request, reply) => {
+    try {
+      const { conteudo } = QrCodeSchema.parse(request.body);
+      const resultado = extrairDadosQrCode(conteudo);
+
+      if (!resultado) {
+        return reply.status(400).send({
+          success: false,
+          error: 'Formato de QR Code não reconhecido',
+          formatos_suportados: [
+            'URL NFC-e (chNFe=...)',
+            'URL DANFE (chave=...)',
+            'Chave pura (44 dígitos)',
+            'QR Code NFC-e compacto'
+          ]
+        });
+      }
+
+      return {
+        success: true,
+        data: {
+          tipo: resultado.tipo,
+          chaveAcesso: resultado.chave,
+          urlOrigem: resultado.urlOrigem || null,
+          parametrosExtras: resultado.parametros || null,
+          componentes: {
+            uf: obterUfDaChave(resultado.chave),
+            modelo: resultado.chave.substring(20, 22) === '55' ? 'NF-e' : 'NFC-e'
+          }
+        }
+      };
+    } catch (error) {
+      const mensagem = error instanceof Error ? error.message : 'Erro desconhecido';
+      return reply.status(400).send({
+        success: false,
+        error: mensagem
+      });
+    }
+  });
+
+  /**
+   * POST /sefaz/qrcode/consultar
+   * Extrai chave de QR Code e consulta NF-e no SEFAZ
+   * 
+   * @pre conteudo é QR Code válido com chave de acesso
+   * @post Retorna dados completos da NF-e
+   */
+  fastify.post<{
+    Body: z.infer<typeof QrCodeSchema>
+  }>('/qrcode/consultar', async (request, reply) => {
+    try {
+      const { conteudo } = QrCodeSchema.parse(request.body);
+      const resultado = await consultarNfePorQrCode(conteudo);
+
+      if (!resultado.sucesso) {
+        return reply.status(400).send({
+          success: false,
+          error: resultado.erro,
+          dica: 'Verifique se o QR Code é de uma NF-e/NFC-e válida'
+        });
+      }
+
+      return {
+        success: true,
+        data: {
+          nfe: resultado.dados,
+          chaveAcesso: resultado.chaveAcesso,
+          tipoQrCode: resultado.tipoQrCode,
+          enderecoFormatado: resultado.dados?.destinatario
+            ? formatarEnderecoParaGeocoding(resultado.dados.destinatario)
+            : null,
+          cache: resultado.cache,
+          consultaEm: resultado.consultaEm
+        }
+      };
+    } catch (error) {
+      const mensagem = error instanceof Error ? error.message : 'Erro desconhecido';
+      return reply.status(400).send({
+        success: false,
+        error: mensagem
+      });
+    }
+  });
+
+  /**
+   * POST /sefaz/qrcode/importar
+   * Extrai dados de QR Code, consulta SEFAZ e cria parada
+   * 
+   * @pre QR Code válido e rotaId existente
+   * @post Parada criada com endereço do destinatário
+   */
+  fastify.post<{
+    Body: z.infer<typeof ImportarQrCodeSchema>
+  }>('/qrcode/importar', async (request, reply) => {
+    try {
+      const { conteudo, rotaId } = ImportarQrCodeSchema.parse(request.body);
+      const resultado = await importarQrCodeComoParada(conteudo, rotaId);
+
+      if (!resultado.sucesso) {
+        return reply.status(400).send({
+          success: false,
+          error: resultado.erro
+        });
+      }
+
+      return {
+        success: true,
+        data: {
+          paradaId: resultado.paradaId,
+          chaveNfe: resultado.chaveNfe,
+          nomeDestinatario: resultado.nomeDestinatario,
+          endereco: resultado.endereco,
+          mensagem: 'QR Code importado com sucesso'
+        }
+      };
+    } catch (error) {
+      const mensagem = error instanceof Error ? error.message : 'Erro desconhecido';
+      return reply.status(400).send({
+        success: false,
+        error: mensagem
+      });
+    }
+  });
+
+  /**
+   * POST /sefaz/barcode/extrair
+   * Extrai chave de acesso de código de barras DANFE
+   * 
+   * @pre barcode com 44 dígitos (pode ter espaços/hífens)
+   * @post Retorna chave de acesso normalizada
+   */
+  fastify.post<{
+    Body: z.infer<typeof BarcodeSchema>
+  }>('/barcode/extrair', async (request, reply) => {
+    try {
+      const { barcode } = BarcodeSchema.parse(request.body);
+      const resultado = extrairChaveDeBarcode(barcode);
+
+      if (!resultado.sucesso) {
+        return reply.status(400).send({
+          success: false,
+          error: resultado.erro || 'Código de barras inválido',
+          dica: 'O código de barras do DANFE deve conter 44 dígitos'
+        });
+      }
+
+      return {
+        success: true,
+        data: {
+          chaveAcesso: resultado.chave,
+          barcodeOriginal: barcode.substring(0, 20) + '...',
+          componentes: resultado.chave ? {
+            uf: obterUfDaChave(resultado.chave),
+            modelo: resultado.chave.substring(20, 22) === '55' ? 'NF-e' : 'NFC-e',
+            cnpjEmitente: resultado.chave.substring(6, 20)
+          } : null
+        }
+      };
+    } catch (error) {
+      const mensagem = error instanceof Error ? error.message : 'Erro desconhecido';
+      return reply.status(400).send({
+        success: false,
+        error: mensagem
+      });
+    }
+  });
+
+  /**
+   * POST /sefaz/barcode/importar
+   * Extrai chave de barcode, consulta SEFAZ e cria parada
+   */
+  fastify.post<{
+    Body: { barcode: string; rotaId: string }
+  }>('/barcode/importar', async (request, reply) => {
+    try {
+      const { barcode, rotaId } = request.body;
+      
+      // Extrair e validar barcode
+      const extracao = extrairChaveDeBarcode(barcode);
+      if (!extracao.sucesso || !extracao.chave) {
+        return reply.status(400).send({
+          success: false,
+          error: 'Código de barras inválido'
+        });
+      }
+
+      // Importar usando a chave extraída
+      const resultado = await importarNfeComoParada(extracao.chave, rotaId);
+
+      if (!resultado.sucesso) {
+        return reply.status(400).send({
+          success: false,
+          error: resultado.erro
+        });
+      }
+
+      return {
+        success: true,
+        data: {
+          paradaId: resultado.paradaId,
+          chaveNfe: extracao.chave,
+          mensagem: 'Código de barras importado com sucesso'
+        }
+      };
+    } catch (error) {
+      const mensagem = error instanceof Error ? error.message : 'Erro desconhecido';
+      return reply.status(400).send({
+        success: false,
+        error: mensagem
+      });
+    }
+  });
+
   /**
    * GET /sefaz/status
    * Status da integração SEFAZ (para monitoramento)
@@ -288,13 +534,28 @@ export async function sefazRoutes(fastify: FastifyInstance) {
       success: true,
       data: {
         servico: 'SEFAZ Integration',
-        versao: '1.0.0',
+        versao: '1.1.0',
         ambientesSuportados: ['HOMOLOGACAO', 'PRODUCAO'],
         limitesConsulta: {
           porMinuto: 20,
           cacheTtlHoras: 24
         },
-        ufsSuportadas: ['SP', 'MG', 'RJ', 'PR', 'RS', 'SVRS (demais)']
+        ufsSuportadas: ['SP', 'MG', 'RJ', 'PR', 'RS', 'SVRS (demais)'],
+        qrCode: {
+          formatosSuportados: [
+            'URL NFC-e (chNFe=...)',
+            'URL DANFE (chave=...)',
+            'Chave pura (44 dígitos)',
+            'QR Code NFC-e compacto (p=...)'
+          ],
+          endpointsDisponiveis: [
+            'POST /sefaz/qrcode/extrair',
+            'POST /sefaz/qrcode/consultar',
+            'POST /sefaz/qrcode/importar',
+            'POST /sefaz/barcode/extrair',
+            'POST /sefaz/barcode/importar'
+          ]
+        }
       }
     };
   });

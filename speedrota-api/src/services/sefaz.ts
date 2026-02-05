@@ -604,3 +604,271 @@ export async function importarLoteNfe(
     detalhes
   };
 }
+
+// ==========================================
+// QR CODE - EXTRAÇÃO DE DADOS
+// ==========================================
+
+/**
+ * Tipos de QR Code suportados
+ */
+export type TipoQrCode = 'NFCE_CHAVE' | 'DANFE_URL' | 'NFE_CHAVE' | 'DESCONHECIDO';
+
+/**
+ * Resultado da extração do QR Code
+ */
+export interface QrCodeExtraido {
+  tipo: TipoQrCode;
+  chaveAcesso?: string;
+  url?: string;
+  dados?: Record<string, string>;
+}
+
+/**
+ * Padrões de QR Code conhecidos
+ * 
+ * NFC-e: URL com chNFe=CHAVE44DIGITOS
+ * Exemplo: https://www.fazenda.sp.gov.br/NFCE/qrcode?...&chNFe=35210412345678901234559001000000011234567890&...
+ * 
+ * DANFE: URL curta ou chave direta
+ * Exemplo: nfe.fazenda.gov.br/portal/consultaNFCe.aspx?chave=CHAVE44DIGITOS
+ */
+const QR_PATTERNS = {
+  // NFC-e com parâmetro chNFe
+  NFCE_URL: /chNFe=(\d{44})/i,
+  // Padrão URL SEFAZ com parâmetro chave
+  DANFE_URL: /chave=(\d{44})/i,
+  // QR Code com apenas a chave (44 dígitos)
+  CHAVE_PURA: /^(\d{44})$/,
+  // URL com p= (padrão alternativo)
+  NFCE_P: /[?&]p=(\d{44})/i
+};
+
+/**
+ * Extrair dados de QR Code de NF-e/NFC-e
+ * 
+ * @description Analisa conteúdo de QR Code e extrai chave de acesso
+ * @pre conteudo é string não vazia (escaneado de QR Code)
+ * @post Retorna chave de acesso extraída ou tipo DESCONHECIDO
+ * @invariant Chave extraída sempre tem 44 dígitos
+ * 
+ * @example
+ * // NFC-e URL
+ * extrairDadosQrCode("https://www.fazenda.sp.gov.br/NFCE/qrcode?chNFe=35210412345678000123559001000001231234567890")
+ * // => { tipo: 'NFCE_CHAVE', chaveAcesso: '35210412345678000123559001000001231234567890' }
+ * 
+ * @example
+ * // Chave pura
+ * extrairDadosQrCode("35210412345678000123559001000001231234567890")
+ * // => { tipo: 'NFE_CHAVE', chaveAcesso: '35210412345678000123559001000001231234567890' }
+ */
+export function extrairDadosQrCode(conteudo: string): QrCodeExtraido {
+  // Limpar conteúdo
+  const conteudoLimpo = conteudo.trim();
+  
+  if (!conteudoLimpo) {
+    return { tipo: 'DESCONHECIDO' };
+  }
+
+  // Tentar padrão chave pura (44 dígitos)
+  const matchChavePura = conteudoLimpo.match(QR_PATTERNS.CHAVE_PURA);
+  if (matchChavePura) {
+    return {
+      tipo: 'NFE_CHAVE',
+      chaveAcesso: matchChavePura[1]
+    };
+  }
+
+  // Tentar padrão NFC-e (chNFe=)
+  const matchNfce = conteudoLimpo.match(QR_PATTERNS.NFCE_URL);
+  if (matchNfce) {
+    return {
+      tipo: 'NFCE_CHAVE',
+      chaveAcesso: matchNfce[1],
+      url: conteudoLimpo
+    };
+  }
+
+  // Tentar padrão DANFE (chave=)
+  const matchDanfe = conteudoLimpo.match(QR_PATTERNS.DANFE_URL);
+  if (matchDanfe) {
+    return {
+      tipo: 'DANFE_URL',
+      chaveAcesso: matchDanfe[1],
+      url: conteudoLimpo
+    };
+  }
+
+  // Tentar padrão p=
+  const matchP = conteudoLimpo.match(QR_PATTERNS.NFCE_P);
+  if (matchP) {
+    return {
+      tipo: 'NFCE_CHAVE',
+      chaveAcesso: matchP[1],
+      url: conteudoLimpo
+    };
+  }
+
+  // Tentar extrair qualquer sequência de 44 dígitos
+  const match44Digitos = conteudoLimpo.match(/\d{44}/);
+  if (match44Digitos) {
+    return {
+      tipo: 'NFE_CHAVE',
+      chaveAcesso: match44Digitos[0],
+      dados: extrairParametrosUrl(conteudoLimpo)
+    };
+  }
+
+  // Não reconhecido - mas salvar URL para análise
+  if (conteudoLimpo.startsWith('http')) {
+    return {
+      tipo: 'DESCONHECIDO',
+      url: conteudoLimpo,
+      dados: extrairParametrosUrl(conteudoLimpo)
+    };
+  }
+
+  return { tipo: 'DESCONHECIDO' };
+}
+
+/**
+ * Extrai parâmetros de URL para análise
+ */
+function extrairParametrosUrl(url: string): Record<string, string> {
+  const params: Record<string, string> = {};
+  
+  try {
+    const urlObj = new URL(url);
+    urlObj.searchParams.forEach((value, key) => {
+      params[key] = value;
+    });
+  } catch {
+    // Se não for URL válida, tenta extrair manualmente
+    const query = url.split('?')[1];
+    if (query) {
+      query.split('&').forEach(pair => {
+        const [key, value] = pair.split('=');
+        if (key && value) {
+          params[key] = decodeURIComponent(value);
+        }
+      });
+    }
+  }
+  
+  return params;
+}
+
+/**
+ * Consultar NF-e a partir de QR Code
+ * 
+ * @description Fluxo completo: QR Code → Chave → Consulta SEFAZ → Dados NF-e
+ * @pre conteudoQrCode é string válida de QR Code
+ * @post DadosNfe ou erro específico
+ * 
+ * FLUXO:
+ * 1. Extrair chave do QR Code
+ * 2. Validar chave (44 dígitos + dígito verificador)
+ * 3. Consultar cache (24h)
+ * 4. Se não em cache, consultar SEFAZ
+ * 5. Retornar dados do destinatário para geocodificação
+ */
+export async function consultarNfePorQrCode(
+  conteudoQrCode: string
+): Promise<ResultadoConsulta> {
+  console.log('[SEFAZ QR] Processando QR Code...');
+
+  // 1. Extrair dados do QR Code
+  const dadosQr = extrairDadosQrCode(conteudoQrCode);
+  
+  if (dadosQr.tipo === 'DESCONHECIDO' || !dadosQr.chaveAcesso) {
+    return {
+      sucesso: false,
+      erro: 'QR Code não reconhecido. Formatos aceitos: NFC-e, DANFE, ou chave de 44 dígitos.',
+      cache: false,
+      consultaEm: new Date()
+    };
+  }
+
+  console.log(`[SEFAZ QR] Tipo: ${dadosQr.tipo}, Chave: ${dadosQr.chaveAcesso.substring(0, 10)}...`);
+
+  // 2. Validar chave
+  try {
+    validarChaveAcesso(dadosQr.chaveAcesso);
+  } catch (error) {
+    return {
+      sucesso: false,
+      erro: `Chave inválida: ${(error as Error).message}`,
+      cache: false,
+      consultaEm: new Date()
+    };
+  }
+
+  // 3. Consultar usando a função existente
+  return consultarNfe(dadosQr.chaveAcesso);
+}
+
+/**
+ * Barcode fallback - extrair chave de código de barras
+ * 
+ * @description Código de barras Code-128 da DANFE contém a chave de 44 dígitos
+ * @pre barcodeData é string de dígitos
+ * @post Chave de acesso ou null se inválido
+ * 
+ * NOTA: Alguns DANFEs usam código de barras em vez de QR Code
+ */
+export function extrairChaveDeBarcode(barcodeData: string): string | null {
+  // Limpar apenas dígitos
+  const digitos = barcodeData.replace(/\D/g, '');
+  
+  // Deve ter exatamente 44 dígitos
+  if (digitos.length !== 44) {
+    return null;
+  }
+  
+  // Validar dígito verificador
+  if (!validarDigitoVerificador(digitos)) {
+    return null;
+  }
+  
+  return digitos;
+}
+
+/**
+ * Importar NF-e via QR Code como parada de rota
+ * 
+ * @description Fluxo completo QR Code → NF-e → Parada
+ * @pre conteudoQrCode válido
+ * @pre rotaId existe
+ * @post Parada criada com dados do destinatário
+ */
+export async function importarQrCodeComoParada(
+  conteudoQrCode: string,
+  rotaId: string
+): Promise<{
+  sucesso: boolean;
+  paradaId?: string;
+  dadosQr?: QrCodeExtraido;
+  erro?: string;
+}> {
+  // 1. Extrair chave do QR Code
+  const dadosQr = extrairDadosQrCode(conteudoQrCode);
+  
+  if (!dadosQr.chaveAcesso) {
+    return {
+      sucesso: false,
+      dadosQr,
+      erro: 'Não foi possível extrair chave de acesso do QR Code'
+    };
+  }
+
+  // 2. Importar usando função existente
+  const resultado = await importarNfeComoParada(dadosQr.chaveAcesso, rotaId);
+  
+  return {
+    sucesso: resultado.sucesso,
+    paradaId: resultado.paradaId,
+    dadosQr,
+    erro: resultado.erro
+  };
+}
+

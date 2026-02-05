@@ -25,6 +25,12 @@ sealed class Screen(val route: String) {
     data object Previsao : Screen("previsao")
     data object Gamificacao : Screen("gamificacao")
     
+    // E-commerce
+    data object Ecommerce : Screen("ecommerce")
+    
+    // QR Code Scanner
+    data object QrCodeScanner : Screen("qrcode-scanner")
+    
     // Outros
     data object Planos : Screen("planos")
     data object Pagamento : Screen("pagamento/{plano}") {

@@ -42,6 +42,14 @@ export function TelaHome({ onAbrirHistorico }: TelaHomeProps) {
     irPara('gamificacao');
   };
 
+  const handleEcommerce = () => {
+    irPara('ecommerce');
+  };
+
+  const handleQrCode = () => {
+    irPara('qrcode');
+  };
+
   return (
     <div className="home-hero">
       <div className="home-brand">
@@ -109,6 +117,30 @@ export function TelaHome({ onAbrirHistorico }: TelaHomeProps) {
           }}
         >
           🎮 Conquistas
+        </button>
+
+        <button
+          className="btn btn-secondary"
+          onClick={handleEcommerce}
+          style={{
+            background: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)',
+            color: 'white',
+            border: 'none'
+          }}
+        >
+          🛒 E-commerce
+        </button>
+
+        <button
+          className="btn btn-secondary"
+          onClick={handleQrCode}
+          style={{
+            background: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
+            color: 'white',
+            border: 'none'
+          }}
+        >
+          📱 QR Code NF-e
         </button>
       </div>
 

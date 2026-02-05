@@ -17,6 +17,8 @@ import { TelaDashboard } from './components/Dashboard';
 import TelaFrota from './components/TelaFrota';
 import { TelaPrevisaoDemanda } from './components/PrevisaoDemanda';
 import { TelaGamificacao } from './components/Gamificacao';
+import TelaEcommerce from './components/Ecommerce';
+import { TelaQrCodeScanner } from './components/QrCodeScanner';
 import './styles/global.css';
 import './styles/frota.css';
 
@@ -30,6 +32,8 @@ const TITULOS: Record<string, string> = {
   frota: 'Gestão de Frota',
   previsao: 'Previsão de Demanda',
   gamificacao: 'Conquistas',
+  ecommerce: 'Integrações E-commerce',
+  qrcode: 'Scanner QR Code',
 };
 
 // Verificar se é página de retorno do pagamento
@@ -169,6 +173,8 @@ export default function App() {
         {etapaAtual === 'frota' && <TelaFrota />}
         {etapaAtual === 'previsao' && <TelaPrevisaoDemanda />}
         {etapaAtual === 'gamificacao' && <TelaGamificacao />}
+        {etapaAtual === 'ecommerce' && <TelaEcommerce />}
+        {etapaAtual === 'qrcode' && <TelaQrCodeScanner />}
       </main>
       
       {/* Footer com info da origem (se definida e não na home) */}

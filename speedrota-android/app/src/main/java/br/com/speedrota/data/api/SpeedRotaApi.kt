@@ -430,4 +430,96 @@ interface SpeedRotaApi {
         @Query("periodo") periodo: String? = null,
         @Query("limite") limite: Int? = null
     ): LeaderboardResponse
+
+    // ==================== ECOMMERCE (VTEX + SHOPIFY) ====================
+
+    /**
+     * Lista integrações do usuário
+     * @post Lista de integrações configuradas
+     */
+    @GET("ecommerce/integracoes")
+    suspend fun getIntegracoes(): IntegracoesResponse
+
+    /**
+     * Criar nova integração
+     * @pre Credenciais válidas
+     * @post Integração criada
+     */
+    @POST("ecommerce/integracoes")
+    suspend fun criarIntegracao(
+        @Body dados: CriarIntegracaoRequest
+    ): CriarIntegracaoApiResponse
+
+    /**
+     * Sincronizar pedidos de uma integração
+     * @pre Integração existe e está ativa
+     * @post Pedidos importados
+     */
+    @POST("ecommerce/integracoes/{id}/sync")
+    suspend fun sincronizarIntegracao(
+        @Path("id") integracaoId: String
+    ): SincronizacaoApiResponse
+
+    /**
+     * Listar pedidos de uma integração
+     * @pre Integração existe
+     * @post Lista de pedidos pendentes
+     */
+    @GET("ecommerce/integracoes/{id}/pedidos")
+    suspend fun getPedidosIntegracao(
+        @Path("id") integracaoId: String
+    ): PedidosImportadosResponse
+
+    /**
+     * Marcar pedidos como processados
+     * @pre Pedidos existem
+     * @post Pedidos marcados como processados
+     */
+    @POST("ecommerce/integracoes/{id}/processar")
+    suspend fun processarPedidos(
+        @Path("id") integracaoId: String,
+        @Body dados: ProcessarPedidosRequest
+    ): ProcessarPedidosApiResponse
+
+    // ==================== SEFAZ QR CODE ====================
+
+    /**
+     * Extrair dados de QR Code NF-e
+     * @pre conteudo é string não vazia
+     * @post Retorna chave extraída e tipo
+     */
+    @POST("sefaz/qrcode/extrair")
+    suspend fun extrairQrCode(
+        @Body dados: Map<String, String>
+    ): retrofit2.Response<QrCodeExtracaoResponse>
+
+    /**
+     * Consultar NF-e via QR Code no SEFAZ
+     * @pre QR Code válido
+     * @post Dados completos da NF-e
+     */
+    @POST("sefaz/qrcode/consultar")
+    suspend fun consultarQrCode(
+        @Body dados: Map<String, String>
+    ): retrofit2.Response<QrCodeConsultaResponse>
+
+    /**
+     * Importar QR Code como parada
+     * @pre QR Code válido e rotaId existente
+     * @post Parada criada
+     */
+    @POST("sefaz/qrcode/importar")
+    suspend fun importarQrCode(
+        @Body dados: Map<String, String>
+    ): retrofit2.Response<QrCodeImportacaoResponse>
+
+    /**
+     * Extrair chave de código de barras DANFE
+     * @pre barcode com 44 dígitos
+     * @post Chave de acesso normalizada
+     */
+    @POST("sefaz/barcode/extrair")
+    suspend fun extrairBarcode(
+        @Body dados: Map<String, String>
+    ): retrofit2.Response<BarcodeExtracaoResponse>
 }

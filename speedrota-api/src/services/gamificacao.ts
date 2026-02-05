@@ -627,4 +627,400 @@ export default {
   getBadgesUsuario,
   atualizarProgressoAposEntrega,
   getRankingSemanal,
+  getEventosSazonais,
+  getTodosEventosSazonais,
+  getDesafiosSazonais,
+  atualizarProgressoDesafio,
+  verificarBonusSazonal,
 };
+
+// ==========================================
+// EVENTOS SAZONAIS
+// ==========================================
+
+/**
+ * Configuração de eventos sazonais
+ * Cada evento tem multiplicadores e badges especiais
+ */
+interface EventoSazonal {
+  id: string;
+  nome: string;
+  descricao: string;
+  icone: string;
+  dataInicio: Date;
+  dataFim: Date;
+  multiplicadorPontos: number;
+  multiplicadorXP: number;
+  badgeEspecial?: {
+    codigo: string;
+    nome: string;
+    descricao: string;
+    icone: string;
+    requisito: number; // entregas durante o evento
+    pontos: number;
+  };
+  desafios: DesafioSazonal[];
+  ativo: boolean;
+}
+
+interface DesafioSazonal {
+  id: string;
+  nome: string;
+  descricao: string;
+  icone: string;
+  tipo: 'ENTREGAS' | 'DISTANCIA' | 'STREAK' | 'TEMPO';
+  requisito: number;
+  premio: number; // pontos
+  progressoAtual?: number;
+  completado?: boolean;
+}
+
+/**
+ * Calendário de eventos sazonais do ano
+ * @pre Datas em formato Date
+ * @post Lista de eventos configurados
+ */
+const EVENTOS_SAZONAIS: EventoSazonal[] = [
+  {
+    id: 'carnaval-2025',
+    nome: 'Maratona de Carnaval',
+    descricao: 'Entregue durante o Carnaval e ganhe pontos extras!',
+    icone: '🎭',
+    dataInicio: new Date('2025-02-28'),
+    dataFim: new Date('2025-03-05'),
+    multiplicadorPontos: 2.0,
+    multiplicadorXP: 1.5,
+    badgeEspecial: {
+      codigo: 'CARNAVAL_2025',
+      nome: 'Folião das Entregas',
+      descricao: '50 entregas durante o Carnaval 2025',
+      icone: '🎭',
+      requisito: 50,
+      pontos: 200,
+    },
+    desafios: [
+      { id: 'carnaval-10', nome: '10 Entregas de Carnaval', descricao: 'Complete 10 entregas', icone: '🎉', tipo: 'ENTREGAS', requisito: 10, premio: 50 },
+      { id: 'carnaval-50', nome: 'Maratonista do Carnaval', descricao: 'Complete 50 entregas', icone: '🏃', tipo: 'ENTREGAS', requisito: 50, premio: 200 },
+    ],
+    ativo: true,
+  },
+  {
+    id: 'pascoa-2025',
+    nome: 'Caça aos Ovos',
+    descricao: 'Entregue "ovos de Páscoa" e colecione prêmios!',
+    icone: '🐰',
+    dataInicio: new Date('2025-04-17'),
+    dataFim: new Date('2025-04-21'),
+    multiplicadorPontos: 1.8,
+    multiplicadorXP: 1.5,
+    badgeEspecial: {
+      codigo: 'PASCOA_2025',
+      nome: 'Coelho da Páscoa',
+      descricao: '30 entregas durante a Páscoa 2025',
+      icone: '🐰',
+      requisito: 30,
+      pontos: 150,
+    },
+    desafios: [
+      { id: 'pascoa-15', nome: 'Caçador de Ovos', descricao: '15 entregas = 15 ovos', icone: '🥚', tipo: 'ENTREGAS', requisito: 15, premio: 75 },
+      { id: 'pascoa-streak', nome: 'Coelho Persistente', descricao: '5 dias consecutivos', icone: '🐇', tipo: 'STREAK', requisito: 5, premio: 100 },
+    ],
+    ativo: true,
+  },
+  {
+    id: 'dia-maes-2025',
+    nome: 'Especial Dia das Mães',
+    descricao: 'O dia mais movimentado do ano - pontos em dobro!',
+    icone: '💐',
+    dataInicio: new Date('2025-05-08'),
+    dataFim: new Date('2025-05-12'),
+    multiplicadorPontos: 2.5,
+    multiplicadorXP: 2.0,
+    badgeEspecial: {
+      codigo: 'DIA_MAES_2025',
+      nome: 'Herói das Mães',
+      descricao: '100 entregas na semana do Dia das Mães',
+      icone: '💐',
+      requisito: 100,
+      pontos: 500,
+    },
+    desafios: [
+      { id: 'maes-50', nome: 'Entregador Dedicado', descricao: '50 entregas', icone: '📦', tipo: 'ENTREGAS', requisito: 50, premio: 150 },
+      { id: 'maes-100', nome: 'Super Entregador', descricao: '100 entregas', icone: '🦸', tipo: 'ENTREGAS', requisito: 100, premio: 350 },
+      { id: 'maes-rapido', nome: 'Presente a Tempo', descricao: '20 entregas sem atraso', icone: '⏰', tipo: 'TEMPO', requisito: 20, premio: 100 },
+    ],
+    ativo: true,
+  },
+  {
+    id: 'dia-namorados-2025',
+    nome: 'Entrega com Amor',
+    descricao: 'Dia dos Namorados - espalhe amor!',
+    icone: '💕',
+    dataInicio: new Date('2025-06-10'),
+    dataFim: new Date('2025-06-13'),
+    multiplicadorPontos: 1.8,
+    multiplicadorXP: 1.5,
+    badgeEspecial: {
+      codigo: 'DIA_NAMORADOS_2025',
+      nome: 'Cupido das Entregas',
+      descricao: '40 entregas no Dia dos Namorados',
+      icone: '💕',
+      requisito: 40,
+      pontos: 150,
+    },
+    desafios: [
+      { id: 'namorados-20', nome: 'Mensageiro do Amor', descricao: '20 entregas', icone: '💘', tipo: 'ENTREGAS', requisito: 20, premio: 80 },
+    ],
+    ativo: true,
+  },
+  {
+    id: 'dia-pais-2025',
+    nome: 'Especial Dia dos Pais',
+    descricao: 'Honre os pais com entregas rápidas!',
+    icone: '👔',
+    dataInicio: new Date('2025-08-07'),
+    dataFim: new Date('2025-08-11'),
+    multiplicadorPontos: 2.0,
+    multiplicadorXP: 1.8,
+    badgeEspecial: {
+      codigo: 'DIA_PAIS_2025',
+      nome: 'Orgulho do Pai',
+      descricao: '75 entregas no Dia dos Pais',
+      icone: '👔',
+      requisito: 75,
+      pontos: 300,
+    },
+    desafios: [
+      { id: 'pais-40', nome: 'Presente do Filho', descricao: '40 entregas', icone: '🎁', tipo: 'ENTREGAS', requisito: 40, premio: 120 },
+      { id: 'pais-75', nome: 'Super Filho', descricao: '75 entregas', icone: '💪', tipo: 'ENTREGAS', requisito: 75, premio: 250 },
+    ],
+    ativo: true,
+  },
+  {
+    id: 'black-friday-2025',
+    nome: 'Black Friday Marathon',
+    descricao: 'A maior maratona de entregas do ano!',
+    icone: '🖤',
+    dataInicio: new Date('2025-11-24'),
+    dataFim: new Date('2025-12-01'),
+    multiplicadorPontos: 3.0,
+    multiplicadorXP: 2.5,
+    badgeEspecial: {
+      codigo: 'BLACK_FRIDAY_2025',
+      nome: 'Sobrevivente Black Friday',
+      descricao: '200 entregas na Black Friday Week',
+      icone: '🖤',
+      requisito: 200,
+      pontos: 1000,
+    },
+    desafios: [
+      { id: 'bf-100', nome: 'Black Friday 100', descricao: 'Complete 100 entregas', icone: '💯', tipo: 'ENTREGAS', requisito: 100, premio: 300 },
+      { id: 'bf-200', nome: 'Black Friday Master', descricao: 'Complete 200 entregas', icone: '🏆', tipo: 'ENTREGAS', requisito: 200, premio: 750 },
+      { id: 'bf-streak', nome: 'Semana Perfeita BF', descricao: '7 dias consecutivos', icone: '🔥', tipo: 'STREAK', requisito: 7, premio: 200 },
+      { id: 'bf-km', nome: 'Maratonista BF', descricao: '500km rodados', icone: '🏃', tipo: 'DISTANCIA', requisito: 500, premio: 400 },
+    ],
+    ativo: true,
+  },
+  {
+    id: 'natal-2025',
+    nome: 'Natal Mágico',
+    descricao: 'Seja o Papai Noel das entregas!',
+    icone: '🎄',
+    dataInicio: new Date('2025-12-15'),
+    dataFim: new Date('2025-12-26'),
+    multiplicadorPontos: 2.5,
+    multiplicadorXP: 2.0,
+    badgeEspecial: {
+      codigo: 'NATAL_2025',
+      nome: 'Papai Noel 2025',
+      descricao: '150 entregas no período natalino',
+      icone: '🎅',
+      requisito: 150,
+      pontos: 600,
+    },
+    desafios: [
+      { id: 'natal-75', nome: 'Ajudante do Noel', descricao: '75 presentes entregues', icone: '🎁', tipo: 'ENTREGAS', requisito: 75, premio: 250 },
+      { id: 'natal-150', nome: 'Rena Oficial', descricao: '150 presentes entregues', icone: '🦌', tipo: 'ENTREGAS', requisito: 150, premio: 500 },
+      { id: 'natal-vespera', nome: 'Véspera Perfeita', descricao: '30 entregas em 24/12', icone: '✨', tipo: 'ENTREGAS', requisito: 30, premio: 300 },
+    ],
+    ativo: true,
+  },
+];
+
+/**
+ * Obtém eventos sazonais ativos
+ * 
+ * @pre Data atual disponível
+ * @post Lista de eventos em andamento
+ */
+export function getEventosSazonais(data: Date = new Date()): EventoSazonal[] {
+  return EVENTOS_SAZONAIS.filter(evento => {
+    const agora = data.getTime();
+    return evento.ativo && 
+           agora >= evento.dataInicio.getTime() && 
+           agora <= evento.dataFim.getTime();
+  });
+}
+
+/**
+ * Obtém todos os eventos do ano (ativos e futuros)
+ */
+export function getTodosEventosSazonais(): EventoSazonal[] {
+  const agora = new Date();
+  return EVENTOS_SAZONAIS.filter(evento => {
+    return evento.ativo && evento.dataFim.getTime() >= agora.getTime();
+  }).sort((a, b) => a.dataInicio.getTime() - b.dataInicio.getTime());
+}
+
+/**
+ * Obtém desafios sazonais com progresso do usuário
+ * 
+ * @pre userId válido, evento ativo
+ * @post Lista de desafios com progresso
+ */
+export async function getDesafiosSazonais(
+  userId: string,
+  eventoId?: string
+): Promise<DesafioSazonal[]> {
+  const eventosAtivos = eventoId 
+    ? EVENTOS_SAZONAIS.filter(e => e.id === eventoId)
+    : getEventosSazonais();
+  
+  const desafios: DesafioSazonal[] = [];
+  
+  for (const evento of eventosAtivos) {
+    // Buscar entregas do usuário durante o evento
+    const entregas = await prisma.parada.count({
+      where: {
+        rota: { userId },
+        status: 'ENTREGUE',
+        entregueEm: {
+          gte: evento.dataInicio,
+          lte: evento.dataFim,
+        },
+      },
+    });
+    
+    // Buscar km rodados
+    const kmRodados = await prisma.rota.aggregate({
+      where: {
+        userId,
+        status: 'FINALIZADA',
+        finalizadaEm: {
+          gte: evento.dataInicio,
+          lte: evento.dataFim,
+        },
+      },
+      _sum: { distanciaTotalKm: true },
+    });
+    
+    // Calcular streak durante o evento
+    // (simplificado - usa o streak atual)
+    const ranking = await prisma.ranking.findFirst({
+      where: { userId },
+      orderBy: { dataInicio: 'desc' },
+    });
+    
+    for (const desafio of evento.desafios) {
+      let progresso = 0;
+      
+      switch (desafio.tipo) {
+        case 'ENTREGAS':
+          progresso = entregas;
+          break;
+        case 'DISTANCIA':
+          progresso = Math.round(kmRodados._sum.distanciaTotalKm || 0);
+          break;
+        case 'STREAK':
+          progresso = ranking?.streakAtual || 0;
+          break;
+        case 'TEMPO':
+          // Entregas sem atraso é mais complexo, usar entregas por ora
+          progresso = Math.round(entregas * 0.9); // Assume 90% no tempo
+          break;
+      }
+      
+      desafios.push({
+        ...desafio,
+        progressoAtual: progresso,
+        completado: progresso >= desafio.requisito,
+      });
+    }
+  }
+  
+  return desafios;
+}
+
+/**
+ * Atualiza progresso de desafio sazonal
+ * (Chamado após cada entrega)
+ * 
+ * @pre userId e entrega válidos
+ * @post Desafios verificados e pontos creditados se completados
+ */
+export async function atualizarProgressoDesafio(
+  userId: string,
+  dadosEntrega: { kmPercorridos: number }
+): Promise<{ desafiosCompletados: DesafioSazonal[]; pontosGanhos: number }> {
+  const eventosAtivos = getEventosSazonais();
+  const desafiosCompletados: DesafioSazonal[] = [];
+  let pontosGanhos = 0;
+  
+  for (const evento of eventosAtivos) {
+    const desafiosComProgresso = await getDesafiosSazonais(userId, evento.id);
+    
+    for (const desafio of desafiosComProgresso) {
+      if (desafio.completado && !await desafioJaRecompensado(userId, desafio.id)) {
+        // Marcar como recompensado e creditar pontos
+        await marcarDesafioRecompensado(userId, desafio.id);
+        pontosGanhos += desafio.premio;
+        desafiosCompletados.push(desafio);
+      }
+    }
+  }
+  
+  return { desafiosCompletados, pontosGanhos };
+}
+
+/**
+ * Verifica se usuário tem bônus de evento sazonal ativo
+ * 
+ * @pre userId válido
+ * @post Multiplicador aplicável ou 1.0 se sem evento
+ */
+export function verificarBonusSazonal(): { 
+  multiplicadorPontos: number; 
+  multiplicadorXP: number;
+  eventoAtivo: string | null 
+} {
+  const eventosAtivos = getEventosSazonais();
+  
+  if (eventosAtivos.length === 0) {
+    return { multiplicadorPontos: 1.0, multiplicadorXP: 1.0, eventoAtivo: null };
+  }
+  
+  // Usar o maior multiplicador se houver múltiplos eventos
+  const maiorMultPontos = Math.max(...eventosAtivos.map(e => e.multiplicadorPontos));
+  const maiorMultXP = Math.max(...eventosAtivos.map(e => e.multiplicadorXP));
+  const eventoNome = eventosAtivos.find(e => e.multiplicadorPontos === maiorMultPontos)?.nome || null;
+  
+  return {
+    multiplicadorPontos: maiorMultPontos,
+    multiplicadorXP: maiorMultXP,
+    eventoAtivo: eventoNome,
+  };
+}
+
+// Funções auxiliares para persistência de desafios
+async function desafioJaRecompensado(userId: string, desafioId: string): Promise<boolean> {
+  // Verificar no perfil ou tabela separada
+  // Por ora, retorna false (sempre pode completar)
+  // TODO: Implementar persistência de desafios completados
+  return false;
+}
+
+async function marcarDesafioRecompensado(userId: string, desafioId: string): Promise<void> {
+  // Salvar desafio como completado
+  // TODO: Implementar persistência
+  console.log(`Desafio ${desafioId} completado pelo usuário ${userId}`);
+}
