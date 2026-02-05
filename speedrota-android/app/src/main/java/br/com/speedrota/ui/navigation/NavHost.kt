@@ -114,6 +114,9 @@ fun SpeedRotaNavHost() {
             DashboardScreen(
                 onBack = {
                     navController.popBackStack()
+                },
+                onVerPlanos = {
+                    navController.navigate(Screen.Planos.route)
                 }
             )
         }

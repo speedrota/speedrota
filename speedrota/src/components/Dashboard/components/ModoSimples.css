@@ -1,0 +1,369 @@
+/**
+ * Estilos do Modo Simples do Dashboard
+ * Foco em clareza, cores vibrantes e comunicação visual
+ */
+
+/* ==========================================
+   Card Economia Principal
+   ========================================== */
+.card-economia {
+  background: linear-gradient(135deg, #059669 0%, #10B981 100%);
+  border-radius: 20px;
+  padding: 2rem;
+  text-align: center;
+  color: white;
+  box-shadow: 0 4px 20px rgba(5, 150, 105, 0.3);
+}
+
+.card-economia-emoji {
+  font-size: 3rem;
+  margin-bottom: 0.5rem;
+}
+
+.card-economia-label {
+  font-size: 1rem;
+  opacity: 0.9;
+}
+
+.card-economia-valor {
+  font-size: 3rem;
+  font-weight: 800;
+  line-height: 1.2;
+  margin: 0.25rem 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.card-economia-sub {
+  font-size: 1rem;
+  opacity: 0.9;
+}
+
+/* ==========================================
+   Card Melhoria
+   ========================================== */
+.card-melhoria {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem;
+  border-radius: 16px;
+}
+
+.card-melhoria.positivo {
+  background: rgba(5, 150, 105, 0.1);
+}
+
+.card-melhoria.negativo {
+  background: rgba(220, 38, 38, 0.1);
+}
+
+.card-melhoria-emoji {
+  font-size: 2.5rem;
+}
+
+.card-melhoria-content {
+  flex: 1;
+}
+
+.card-melhoria-titulo {
+  font-weight: 700;
+  font-size: 1.125rem;
+}
+
+.card-melhoria.positivo .card-melhoria-titulo {
+  color: #059669;
+}
+
+.card-melhoria.negativo .card-melhoria-titulo {
+  color: #DC2626;
+}
+
+.card-melhoria-subtexto {
+  color: var(--gray-600);
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
+/* ==========================================
+   Card Entregas
+   ========================================== */
+.card-entregas {
+  background: var(--surface);
+  border-radius: 16px;
+  padding: 1.25rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.card-entregas-header {
+  font-weight: 700;
+  font-size: 1.125rem;
+  margin-bottom: 1rem;
+}
+
+.card-entregas-grid {
+  display: flex;
+  align-items: center;
+  justify-content: space-evenly;
+}
+
+.card-entregas-item {
+  text-align: center;
+}
+
+.card-entregas-valor {
+  font-size: 2.25rem;
+  font-weight: 800;
+}
+
+.card-entregas-label {
+  color: var(--gray-500);
+  font-size: 0.875rem;
+}
+
+.card-entregas-divider {
+  width: 1px;
+  height: 60px;
+  background: var(--gray-200);
+}
+
+.card-entregas-mensagem {
+  text-align: center;
+  color: #059669;
+  font-weight: 600;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--gray-100);
+}
+
+/* ==========================================
+   Card Ranking
+   ========================================== */
+.card-ranking {
+  background: var(--surface);
+  border-radius: 16px;
+  padding: 1.25rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.card-ranking-header {
+  margin-bottom: 1rem;
+}
+
+.card-ranking-titulo {
+  font-weight: 700;
+  font-size: 1.125rem;
+}
+
+.card-ranking-subtitulo {
+  color: var(--gray-500);
+  font-size: 0.875rem;
+}
+
+.card-ranking-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.card-ranking-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.card-ranking-item:last-child {
+  border-bottom: none;
+}
+
+.card-ranking-medal {
+  font-size: 1.75rem;
+}
+
+.card-ranking-emoji {
+  font-size: 1.5rem;
+}
+
+.card-ranking-info {
+  flex: 1;
+}
+
+.card-ranking-nome {
+  font-weight: 600;
+}
+
+.card-ranking-entregas {
+  font-size: 0.75rem;
+  color: var(--gray-500);
+}
+
+.card-ranking-valor {
+  text-align: right;
+}
+
+.card-ranking-rs {
+  font-weight: 700;
+  font-size: 1.125rem;
+  color: var(--primary);
+}
+
+.card-ranking-porentrega {
+  font-size: 0.75rem;
+  color: var(--gray-500);
+}
+
+/* ==========================================
+   Card Dica
+   ========================================== */
+.card-dica {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: #FEF3C7;
+  border-radius: 16px;
+}
+
+.card-dica-emoji {
+  font-size: 2rem;
+}
+
+.card-dica-content {
+  flex: 1;
+}
+
+.card-dica-titulo {
+  font-weight: 700;
+  color: #92400E;
+}
+
+.card-dica-texto {
+  color: #78350F;
+  font-size: 0.875rem;
+}
+
+/* ==========================================
+   Card Upgrade
+   ========================================== */
+.card-upgrade {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem;
+  background: rgba(37, 99, 235, 0.1);
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.card-upgrade:hover {
+  background: rgba(37, 99, 235, 0.15);
+  transform: translateX(4px);
+}
+
+.card-upgrade-emoji {
+  font-size: 2.5rem;
+}
+
+.card-upgrade-content {
+  flex: 1;
+}
+
+.card-upgrade-titulo {
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.card-upgrade-subtitulo {
+  color: var(--gray-600);
+  font-size: 0.875rem;
+}
+
+.card-upgrade-arrow {
+  font-size: 1.5rem;
+  color: var(--primary);
+  font-weight: 700;
+}
+
+/* ==========================================
+   Toggle Modo Simples/Pro
+   ========================================== */
+.toggle-modo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.toggle-modo-label {
+  font-size: 0.875rem;
+  color: var(--gray-500);
+  transition: color 0.2s;
+}
+
+.toggle-modo-label.ativo {
+  color: var(--gray-900);
+  font-weight: 600;
+}
+
+.toggle-modo-switch {
+  position: relative;
+  width: 48px;
+  height: 26px;
+  background: var(--gray-300);
+  border: none;
+  border-radius: 13px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.toggle-modo-switch.pro {
+  background: var(--primary);
+}
+
+.toggle-modo-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  background: white;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s;
+}
+
+.toggle-modo-switch.pro .toggle-modo-thumb {
+  transform: translateX(22px);
+}
+
+/* ==========================================
+   Container do Dashboard Simples
+   ========================================== */
+.dashboard-simples {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* ==========================================
+   Responsivo
+   ========================================== */
+@media (max-width: 480px) {
+  .card-economia-valor {
+    font-size: 2.5rem;
+  }
+
+  .card-ranking-item {
+    flex-wrap: wrap;
+  }
+
+  .card-ranking-info {
+    flex-basis: 100%;
+    order: 3;
+    margin-top: 0.5rem;
+  }
+}

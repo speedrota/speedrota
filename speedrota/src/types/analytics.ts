@@ -43,6 +43,10 @@ export interface KPIs {
   totalParadas: number;
   totalKm: number;
   taxaSucesso: number;
+  // Economia (Modo Simples)
+  economiaTotal?: number;
+  kmEconomizados?: number;
+  melhoriaPercentual?: number;
   // PRO+
   tempoTotalMin?: number;
   custoTotal?: number;
@@ -96,6 +100,9 @@ export interface DeliveriesTotais {
   podsRegistrados: number;
   alertasDistancia: number;
   taxaSucesso: number;
+  // Modo Simples
+  hoje?: number;
+  semana?: number;
 }
 
 export interface DeliveriesData {
@@ -157,6 +164,14 @@ export interface SupplierData {
   reagendadas: number;
   taxaSucesso: number;
   distanciaTotal: number;
+  // Modo Simples
+  valorMedio?: number;
+}
+
+export interface SupplierRanking {
+  nome: string;
+  valorMedio: number;
+  emoji?: string;
 }
 
 export interface BarChartDatum {
@@ -170,6 +185,8 @@ export interface SuppliersData {
   periodo: Periodo;
   fornecedores: SupplierData[];
   barChartData: BarChartDatum[];
+  // Modo Simples
+  ranking?: SupplierRanking[];
 }
 
 export interface SuppliersResponse {

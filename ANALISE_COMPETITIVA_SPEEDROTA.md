@@ -424,6 +424,16 @@ MÊS 7-12: ESCALA B2B
 
 ## 📝 CHANGELOG
 
+### 05/02/2026 - Dashboard Modo Simples (UX Diferenciada)
+- ✅ **Filosofia Dual Dashboard**: Modo Simples para entregadores + Modo Pro para profissionais
+- ✅ **Modo Simples Android**: Cards visuais (CardEconomiaPrincipal, CardMelhoria, CardRankingFornecedores)
+- ✅ **Modo Simples Web**: Componentes React (CardEconomia, CardMelhoria, CardEntregas, CardRanking, CardDica)
+- ✅ **Foco em R$**: Responde "Quanto eu economizei?" com valor em destaque
+- ✅ **Ranking Fornecedores**: Mostra qual paga melhor por entrega
+- ✅ **Toggle Simples/Pro**: Switch animado para alternar entre modos
+- ✅ **Dica do Dia**: Card contextual baseado nos dados do usuário
+- 🎯 **5 Whys Analysis**: Redesign baseado em análise de causa raiz
+
 ### 05/02/2026 - Analytics Dashboard + POD Implementados
 - ✅ **Dashboard Analytics Android**: Tela completa com KPIs, gráficos e filtros
 - ✅ **API Analytics**: Endpoints para overview, deliveries, trends, suppliers
