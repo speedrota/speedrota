@@ -291,3 +291,149 @@
     gap: 0.5rem;
   }
 }
+
+/* ==========================================
+ * NOVOS ESTILOS: Filtros Avançados e Export
+ * ========================================== */
+
+/* Filtros Expandidos */
+.filtros-linha {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.filtro-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+  min-width: 100px;
+}
+
+.filtro-grupo label {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.filtro-input {
+  padding: 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+}
+
+.filtros-acoes {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-color);
+}
+
+/* Botões de Exportação */
+.btn-export {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  transition: all 0.2s;
+}
+
+.btn-export:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-pdf {
+  background: #dc2626;
+  color: white;
+}
+
+.btn-pdf:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
+.btn-excel {
+  background: #16a34a;
+  color: white;
+}
+
+.btn-excel:hover:not(:disabled) {
+  background: #15803d;
+}
+
+/* Resumo do Período */
+.historico-resumo {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.resumo-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  min-width: 70px;
+}
+
+.resumo-card.destaque {
+  background: rgba(37, 99, 235, 0.1);
+  border: 1px solid var(--primary);
+}
+
+.resumo-icon {
+  font-size: 1rem;
+}
+
+.resumo-valor {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.resumo-label {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+/* Responsivo para filtros */
+@media (max-width: 640px) {
+  .filtros-linha {
+    gap: 0.5rem;
+  }
+  
+  .filtro-grupo {
+    min-width: calc(50% - 0.5rem);
+  }
+  
+  .filtros-acoes {
+    flex-wrap: wrap;
+  }
+  
+  .historico-resumo {
+    padding: 0.5rem 1rem;
+  }
+  
+  .resumo-card {
+    min-width: 60px;
+    padding: 0.4rem 0.5rem;
+  }
+}

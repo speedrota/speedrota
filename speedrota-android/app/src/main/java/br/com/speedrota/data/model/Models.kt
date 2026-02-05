@@ -876,3 +876,161 @@ data class HistoricoPosicaoResponse(
     val total: Int = 0,
     val error: String? = null
 )
+
+// ==================== HISTÓRICO DE ROTAS ====================
+
+/**
+ * Rota resumida para listagem de histórico
+ */
+@Serializable
+data class RotaHistoricoItem(
+    val id: String,
+    val data: String,
+    val origemEndereco: String,
+    val totalParadas: Int,
+    val entregasRealizadas: Int,
+    val entregasFalhas: Int,
+    val distanciaKm: Double,
+    val tempoMin: Double,
+    val custoR: Double,
+    val status: String,
+    val fornecedores: List<String> = emptyList()
+)
+
+/**
+ * Período do histórico
+ */
+@Serializable
+data class PeriodoHistorico(
+    val inicio: String,
+    val fim: String,
+    val dias: Int
+)
+
+/**
+ * Totais do histórico
+ */
+@Serializable
+data class TotaisHistorico(
+    val rotas: Int,
+    val paradas: Int,
+    val entregasRealizadas: Int,
+    val entregasFalhas: Int,
+    val taxaSucesso: Int
+)
+
+/**
+ * Distância agregada
+ */
+@Serializable
+data class DistanciaHistorico(
+    val totalKm: Double,
+    val mediaKm: Double
+)
+
+/**
+ * Tempo agregado
+ */
+@Serializable
+data class TempoHistorico(
+    val totalMin: Int,
+    val mediaMin: Int
+)
+
+/**
+ * Custo agregado
+ */
+@Serializable
+data class CustoHistorico(
+    val totalR: Double,
+    val mediaR: Double,
+    val combustivelL: Double
+)
+
+/**
+ * Dados por fornecedor
+ */
+@Serializable
+data class FornecedorHistorico(
+    val nome: String,
+    val entregas: Int,
+    val percentual: Int
+)
+
+/**
+ * Dados por dia
+ */
+@Serializable
+data class DiaHistorico(
+    val data: String,
+    val rotas: Int,
+    val entregas: Int,
+    val km: Double
+)
+
+/**
+ * Resumo completo do histórico
+ */
+@Serializable
+data class ResumoHistorico(
+    val periodo: PeriodoHistorico,
+    val totais: TotaisHistorico,
+    val distancia: DistanciaHistorico,
+    val tempo: TempoHistorico,
+    val custo: CustoHistorico,
+    val fornecedores: List<FornecedorHistorico> = emptyList(),
+    val porDia: List<DiaHistorico> = emptyList()
+)
+
+/**
+ * Paginação
+ */
+@Serializable
+data class PaginacaoHistorico(
+    val pagina: Int,
+    val limite: Int,
+    val total: Int,
+    val totalPaginas: Int
+)
+
+/**
+ * Response de histórico de rotas
+ */
+@Serializable
+data class HistoricoRotasResponse(
+    val success: Boolean,
+    val data: HistoricoRotasData? = null,
+    val error: String? = null
+)
+
+@Serializable
+data class HistoricoRotasData(
+    val rotas: List<RotaHistoricoItem> = emptyList(),
+    val resumo: ResumoHistorico? = null,
+    val paginacao: PaginacaoHistorico? = null
+)
+
+/**
+ * Response de resumo do histórico
+ */
+@Serializable
+data class HistoricoResumoResponse(
+    val success: Boolean,
+    val data: ResumoHistorico? = null,
+    val error: String? = null
+)
+
+/**
+ * Response de fornecedores
+ */
+@Serializable
+data class HistoricoFornecedoresResponse(
+    val success: Boolean,
+    val data: FornecedoresData? = null,
+    val error: String? = null
+)
+
+@Serializable
+data class FornecedoresData(
+    val fornecedores: List<String> = emptyList()
+)

@@ -237,4 +237,39 @@ interface SpeedRotaApi {
         @Query("limit") limit: Int? = null,
         @Query("offsetMinutos") offsetMinutos: Int? = null
     ): HistoricoPosicaoResponse
+
+    // ==================== HISTÓRICO DE ROTAS ====================
+
+    /**
+     * Lista histórico de rotas com filtros
+     * @pre Token válido
+     * @post Lista paginada de rotas + resumo
+     */
+    @GET("historico")
+    suspend fun getHistoricoRotas(
+        @Query("dataInicio") dataInicio: String? = null,
+        @Query("dataFim") dataFim: String? = null,
+        @Query("fornecedor") fornecedor: String? = null,
+        @Query("status") status: String? = null,
+        @Query("pagina") pagina: Int = 1,
+        @Query("limite") limite: Int = 20,
+        @Query("ordenarPor") ordenarPor: String = "data",
+        @Query("ordem") ordem: String = "desc"
+    ): HistoricoRotasResponse
+
+    /**
+     * Resumo agregado do período
+     */
+    @GET("historico/resumo")
+    suspend fun getHistoricoResumo(
+        @Query("dataInicio") dataInicio: String? = null,
+        @Query("dataFim") dataFim: String? = null,
+        @Query("fornecedor") fornecedor: String? = null
+    ): HistoricoResumoResponse
+
+    /**
+     * Lista fornecedores disponíveis para filtro
+     */
+    @GET("historico/fornecedores")
+    suspend fun getHistoricoFornecedores(): HistoricoFornecedoresResponse
 }

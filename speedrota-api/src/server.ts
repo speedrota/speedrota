@@ -27,6 +27,7 @@ import reotimizacaoRoutes from './routes/reotimizacao.routes.js';
 import { notificacoesRoutes } from './routes/notificacoes.routes.js';
 import { statusRoutes } from './routes/status.routes.js';
 import frotaRoutes from './routes/frota.routes.js';
+import historicoRoutes from './routes/historico.routes.js';
 
 // ==========================================
 // CRIAR SERVIDOR FASTIFY
@@ -181,6 +182,7 @@ app.register(reotimizacaoRoutes, { prefix: '/api/v1/reotimizar' });
 app.register(notificacoesRoutes, { prefix: '/api/v1/notificacoes' });
 app.register(statusRoutes, { prefix: '/api/v1/status' });
 app.register(frotaRoutes, { prefix: '/api/v1/frota' });
+app.register(historicoRoutes, { prefix: '/api/v1/historico' });
 
 // ==========================================
 // ERROR HANDLER GLOBAL

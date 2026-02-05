@@ -94,4 +94,65 @@ class RotaRepository @Inject constructor(
             Result.failure(e)
         }
     }
+    
+    // ========== HISTÓRICO ==========
+    
+    /**
+     * Busca histórico de rotas com filtros
+     * @pre Token válido
+     * @post Lista paginada de rotas filtradas
+     */
+    suspend fun getHistoricoRotas(
+        dataInicio: String? = null,
+        dataFim: String? = null,
+        fornecedor: String? = null,
+        status: String? = null,
+        pagina: Int = 1,
+        limite: Int = 20
+    ): Result<HistoricoRotasResponse> {
+        return try {
+            val response = api.getHistoricoRotas(
+                dataInicio = dataInicio,
+                dataFim = dataFim,
+                fornecedor = fornecedor,
+                status = status,
+                pagina = pagina,
+                limite = limite
+            )
+            Result.success(response)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Busca resumo do histórico
+     * @pre Token válido
+     * @post Estatísticas agregadas do período
+     */
+    suspend fun getHistoricoResumo(
+        dataInicio: String? = null,
+        dataFim: String? = null
+    ): Result<HistoricoResumoResponse> {
+        return try {
+            val response = api.getHistoricoResumo(dataInicio, dataFim)
+            Result.success(response)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Lista fornecedores do histórico
+     * @pre Token válido
+     * @post Lista de fornecedores com entregas
+     */
+    suspend fun getHistoricoFornecedores(): Result<HistoricoFornecedoresResponse> {
+        return try {
+            val response = api.getHistoricoFornecedores()
+            Result.success(response)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }
