@@ -14,6 +14,7 @@ import { useState, useEffect } from 'react';
 import { useRouteStore } from '../store/routeStore';
 import { MapaRota } from './Mapa';
 import { ModalPOD } from './ModalPOD';
+import { IndicadorTrafego } from './IndicadorTrafego';
 import { usePOD } from '../hooks/usePOD';
 import { formatarDistancia, formatarTempo, formatarMoeda } from '../utils/calculos';
 
@@ -197,6 +198,10 @@ export function TelaRota() {
       />
       
       {/* Métricas Principais */}
+      <div className="metricas-header">
+        <h3>Resumo da Rota</h3>
+        <IndicadorTrafego />
+      </div>
       <div className="metricas-grid">
         <div className="metrica-card metrica-destaque">
           <div className="metrica-valor">{formatarDistancia(metricas.distanciaTotalKm)}</div>

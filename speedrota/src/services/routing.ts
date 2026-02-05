@@ -8,6 +8,7 @@
  */
 
 import { haversine } from '../utils/calculos';
+import { ajustarDuracaoComTrafego } from './trafego';
 
 // ==========================================
 // TIPOS
@@ -16,6 +17,8 @@ import { haversine } from '../utils/calculos';
 export interface RotaOSRM {
   distanciaKm: number;
   duracaoMin: number;
+  duracaoComTrafego?: number;
+  fatorTrafego?: number;
   geometria?: string; // Polyline encoded
 }
 
@@ -63,11 +66,14 @@ export function calcularDistanciaCorrigida(
   const distanciaCorrigida = distanciaLinha * FATOR_CORRECAO_URBANO;
   
   // Estimar tempo: 30km/h média urbana
-  const duracaoMin = (distanciaCorrigida / 30) * 60;
+  const duracaoBase = Math.round((distanciaCorrigida / 30) * 60);
+  const ajuste = ajustarDuracaoComTrafego(duracaoBase);
   
   return {
     distanciaKm: Number(distanciaCorrigida.toFixed(2)),
-    duracaoMin: Math.round(duracaoMin),
+    duracaoMin: duracaoBase,
+    duracaoComTrafego: ajuste.duracaoAjustada,
+    fatorTrafego: ajuste.fatorAplicado,
   };
 }
 
@@ -119,9 +125,14 @@ export async function calcularRotaOSRM(
     }
     
     const rota = data.routes[0];
+    const duracaoBase = Math.round(rota.duration / 60); // segundos -> minutos
+    const ajuste = ajustarDuracaoComTrafego(duracaoBase);
+    
     const resultado: RotaOSRM = {
       distanciaKm: Number((rota.distance / 1000).toFixed(2)), // metros -> km
-      duracaoMin: Math.round(rota.duration / 60), // segundos -> minutos
+      duracaoMin: duracaoBase,
+      duracaoComTrafego: ajuste.duracaoAjustada,
+      fatorTrafego: ajuste.fatorAplicado,
     };
     
     // Salvar no cache

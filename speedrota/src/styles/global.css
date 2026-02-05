@@ -538,6 +538,20 @@ body {
    MÉTRICAS
    ========================================== */
 
+.metricas-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.metricas-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--gray-700);
+}
+
 .metricas-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);

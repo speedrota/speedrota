@@ -305,3 +305,40 @@ model ConfiguracaoSistema {
   
   @@map("configuracoes_sistema")
 }
+
+// ==========================================
+// HISTÓRICO DE TEMPO (Tráfego Real-time)
+// ==========================================
+// @description Armazena tempos reais vs estimados para aprendizado
+// @pre Rota finalizada com dados de tempo
+// @post Usado para melhorar estimativas futuras
+
+model HistoricoTempo {
+  id                  String    @id @default(uuid())
+  userId              String    @map("user_id")
+  
+  // Trajeto
+  origemLat           Float     @map("origem_lat")
+  origemLng           Float     @map("origem_lng")
+  destinoLat          Float     @map("destino_lat")
+  destinoLng          Float     @map("destino_lng")
+  
+  // Tempos
+  tempoEstimadoMin    Float     @map("tempo_estimado_min")
+  tempoRealMin        Float     @map("tempo_real_min")
+  fatorCorrecao       Float     @map("fator_correcao")  // tempoReal / tempoEstimado
+  
+  // Contexto
+  horaInicio          Int       @map("hora_inicio")     // 0-23
+  diaSemana           Int       @map("dia_semana")      // 0-6 (dom-sab)
+  distanciaKm         Float     @map("distancia_km")
+  
+  // Timestamps
+  dataViagem          DateTime  @map("data_viagem")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  
+  @@index([userId])
+  @@index([horaInicio])
+  @@index([diaSemana])
+  @@map("historico_tempo")
+}

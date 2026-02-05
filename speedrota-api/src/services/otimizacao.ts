@@ -13,6 +13,7 @@
  */
 
 import { CONSTANTES } from '../config/env.js';
+import { ajustarDuracaoComTrafego, obterFatorTrafegoAtual } from './trafego.js';
 
 // ==========================================
 // TIPOS
@@ -42,6 +43,9 @@ export interface ResultadoOtimizacao {
 export interface RotaOSRM {
   distanciaKm: number;
   duracaoMin: number;
+  duracaoComTrafego?: number;
+  fatorTrafego?: number;
+  periodoTrafego?: string;
 }
 
 // ==========================================
@@ -128,12 +132,18 @@ export async function calcularDistanciaOSRM(
       throw new Error('OSRM: rota não encontrada');
     }
     
+    const duracaoBase = Math.round(data.routes[0].duration / 60);
+    const ajuste = ajustarDuracaoComTrafego(duracaoBase);
+    
     const result: RotaOSRM = {
       distanciaKm: Number((data.routes[0].distance / 1000).toFixed(2)),
-      duracaoMin: Math.round(data.routes[0].duration / 60),
+      duracaoMin: duracaoBase,
+      duracaoComTrafego: ajuste.duracaoAjustada,
+      fatorTrafego: ajuste.fatorAplicado,
+      periodoTrafego: ajuste.periodo,
     };
     
-    // Salvar no cache
+    // Salvar no cache (nota: cache não considera horário, pode ser refinado)
     cacheOSRM.set(chave, result);
     
     return result;
@@ -142,9 +152,15 @@ export async function calcularDistanciaOSRM(
     
     // Fallback para Haversine corrigido
     const distancia = haversineCorrigido(lat1, lng1, lat2, lng2);
+    const duracaoBase = Math.round((distancia / CONSTANTES.VELOCIDADE_URBANA_KMH) * 60);
+    const ajuste = ajustarDuracaoComTrafego(duracaoBase);
+    
     return {
       distanciaKm: Number(distancia.toFixed(2)),
-      duracaoMin: Math.round((distancia / CONSTANTES.VELOCIDADE_URBANA_KMH) * 60),
+      duracaoMin: duracaoBase,
+      duracaoComTrafego: ajuste.duracaoAjustada,
+      fatorTrafego: ajuste.fatorAplicado,
+      periodoTrafego: ajuste.periodo,
     };
   }
 }

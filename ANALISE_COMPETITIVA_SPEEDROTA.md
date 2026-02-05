@@ -10,7 +10,7 @@
 |---------|-----------|----------|------|-------------|---------|
 | **Preço (BRL/mês)** | R$29-99 | ~R$1.200+ | ~R$150/driver | ~R$210/driver | ~R$3.100+ |
 | **OCR de NF-e** | ✅ ÚNICO | ❌ | ❌ | ❌ | ❌ |
-| **Tráfego Real-time** | ❌ | ✅ | ✅ | ✅ | ✅ |
+| **Tráfego Real-time** | ✅ NOVO | ✅ | ✅ | ✅ | ✅ |
 | **Janelas de Tempo** | ✅ NOVO | ✅ | ✅ | ✅ | ✅ |
 | **Prioridade Entregas** | ✅ NOVO | ✅ | ✅ | ✅ | ✅ |
 | **Compartilhar WhatsApp** | ✅ NOVO | ❌ | ❌ | ❌ | ❌ |
@@ -31,7 +31,7 @@
 
 | Gap | Impacto | Complexidade | Status |
 |-----|---------|--------------|--------|
-| **Tráfego Real-time** | ALTO - Rotas imprecisas | Média | ❌ P0 |
+| ~~Tráfego Real-time~~ | ~~ALTO - Rotas imprecisas~~ | ~~Média~~ | ✅ FEITO |
 | ~~Janelas de Tempo~~ | ~~ALTO - Entregas agendadas~~ | ~~Baixa~~ | ✅ FEITO |
 | **POD (Proof of Delivery)** | ALTO - Comprovação | Média | ✅ FEITO |
 | **Re-otimização Dinâmica** | MÉDIO - Mudanças em rota | Alta | ❌ P1 |
@@ -331,14 +331,15 @@ MÊS 7-12: ESCALA B2B
 [x] Janelas de tempo nas paradas ✅
 [x] Prioridade de entrega (Alta/Média/Baixa) ✅
 [x] Compartilhar rota via WhatsApp ✅
-[ ] Melhorar estimativa de tempo (fatores horário)
+[x] Melhorar estimativa de tempo (fatores horário) ✅ FEITO 05/02
 ```
 
-### Sprint 3-4 (Março 2026)
+### Sprint 3-4 (Março 2026) ✅ CONCLUÍDO
 ```
 [x] POD - Foto de entrega ✅ FEITO 05/02
 [x] POD - Código de entrega ✅ FEITO 05/02
 [x] Analytics básico (entregas/km/custo) ✅ FEITO 05/02
+[x] Tráfego Real-time (fatores horário pico) ✅ FEITO 05/02
 [ ] Notificações push
 ```
 
@@ -413,8 +414,9 @@ MÊS 7-12: ESCALA B2B
 1. ~~**HOJE**: Implementar janelas de tempo (quick win)~~ ✅ FEITO
 2. ~~**ESTA SEMANA**: Compartilhamento WhatsApp~~ ✅ FEITO
 3. ~~**AGORA**: POD básico + Analytics~~ ✅ FEITO
-4. **PRÓXIMO**: Notificações push + Re-otimização dinâmica
-5. **FUTURO**: Tráfego inteligente + Multi-motorista
+4. ~~**AGORA**: Tráfego inteligente (fatores de horário)~~ ✅ FEITO
+5. **PRÓXIMO**: Notificações push + Re-otimização dinâmica
+6. **FUTURO**: Multi-motorista + API Pública
 
 ---
 
@@ -423,6 +425,17 @@ MÊS 7-12: ESCALA B2B
 ---
 
 ## 📝 CHANGELOG
+
+### 05/02/2026 - Tráfego Real-time Implementado
+- ✅ **API Tráfego**: Serviço com fatores de horário de pico (rush manhã/tarde/almoço/madrugada)
+- ✅ **Fatores de Horário**: 07-09h (+50%), 11-14h (+20%), 17-19h (+60%), 22-05h (-20%)
+- ✅ **Integração OSRM**: Ajuste automático de duração com tráfego
+- ✅ **Modelo HistoricoTempo**: Schema Prisma para aprendizado contínuo
+- ✅ **Endpoint /trafego**: GET /atual, /fator/:hora, /previsao, POST /ajustar
+- ✅ **Web IndicadorTrafego**: Componente visual com emoji (🟢🟡🔴)
+- ✅ **Android TrafegoService**: Kotlin Singleton com mesma lógica
+- ✅ **Android TrafegoComponents**: Composables para indicador visual
+- 🎯 **Custo Zero**: Sem APIs pagas (OSRM + fatores locais)
 
 ### 05/02/2026 - Dashboard Modo Simples (UX Diferenciada)
 - ✅ **Filosofia Dual Dashboard**: Modo Simples para entregadores + Modo Pro para profissionais
