@@ -20,6 +20,8 @@ import br.com.speedrota.ui.screens.destinos.DestinosScreen
 import br.com.speedrota.ui.screens.rota.RotaScreen
 import br.com.speedrota.ui.screens.planos.PlanosScreen
 import br.com.speedrota.ui.screens.pagamento.PagamentoScreen
+import br.com.speedrota.ui.screens.previsao.PrevisaoScreen
+import br.com.speedrota.ui.screens.gamificacao.GamificacaoScreen
 
 /**
  * NavHost principal do SpeedRota
@@ -87,6 +89,12 @@ fun SpeedRotaNavHost() {
                 onDashboard = {
                     navController.navigate(Screen.Dashboard.route)
                 },
+                onPrevisao = {
+                    navController.navigate(Screen.Previsao.route)
+                },
+                onGamificacao = {
+                    navController.navigate(Screen.Gamificacao.route)
+                },
                 onVerPlanos = {
                     navController.navigate(Screen.Planos.route)
                 },
@@ -117,6 +125,24 @@ fun SpeedRotaNavHost() {
                 },
                 onVerPlanos = {
                     navController.navigate(Screen.Planos.route)
+                }
+            )
+        }
+        
+        // ML - Previsão de Demanda
+        composable(Screen.Previsao.route) {
+            PrevisaoScreen(
+                onBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+        
+        // Gamificação
+        composable(Screen.Gamificacao.route) {
+            GamificacaoScreen(
+                onBack = {
+                    navController.popBackStack()
                 }
             )
         }

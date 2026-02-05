@@ -21,6 +21,10 @@ sealed class Screen(val route: String) {
     // Analytics
     data object Dashboard : Screen("dashboard")
     
+    // ML e Gamificação
+    data object Previsao : Screen("previsao")
+    data object Gamificacao : Screen("gamificacao")
+    
     // Outros
     data object Planos : Screen("planos")
     data object Pagamento : Screen("pagamento/{plano}") {

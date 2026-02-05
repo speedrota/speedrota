@@ -1320,3 +1320,249 @@ data class ConfiguracaoGeofenceResponse(
     val data: ConfiguracaoGeofence? = null,
     val error: String? = null
 )
+
+// ==================== ML - PREVISÃO DE DEMANDA ====================
+
+/**
+ * Response de previsão de demanda
+ */
+@Serializable
+data class PrevisaoDemandaResponse(
+    val success: Boolean,
+    val data: PrevisaoDemandaData? = null,
+    val error: String? = null
+)
+
+@Serializable
+data class PrevisaoDemandaData(
+    val zona: String,
+    val data: String,
+    val horaInicio: Int,
+    val horaFim: Int,
+    val demandaPrevista: Int,
+    val confianca: Double,
+    val limiteInferior: Int,
+    val limiteSuperior: Int,
+    val fatores: FatoresPrevisao,
+    val insights: List<InsightML>
+)
+
+@Serializable
+data class FatoresPrevisao(
+    val diaSemana: Double,
+    val horario: Double,
+    val sazonalidade: Double,
+    val tendencia: Double
+)
+
+@Serializable
+data class InsightML(
+    val tipo: String,
+    val titulo: String,
+    val descricao: String,
+    val valor: Double,
+    val acao: String,
+    val prioridade: Int
+)
+
+/**
+ * Response de mapa de calor
+ */
+@Serializable
+data class MapaCalorResponse(
+    val success: Boolean,
+    val data: MapaCalorData? = null,
+    val error: String? = null
+)
+
+@Serializable
+data class MapaCalorData(
+    val data: String,
+    val zonas: List<ZonaCalor>
+)
+
+@Serializable
+data class ZonaCalor(
+    val zona: String,
+    val demandaPrevista: Int,
+    val intensidade: Double,
+    val melhorHorario: String
+)
+
+/**
+ * Response de insights ML
+ */
+@Serializable
+data class InsightsMLResponse(
+    val success: Boolean,
+    val data: List<InsightML>? = null,
+    val error: String? = null
+)
+
+/**
+ * Response de métricas do modelo ML
+ */
+@Serializable
+data class MetricasMLResponse(
+    val success: Boolean,
+    val data: MetricasML? = null,
+    val error: String? = null
+)
+
+@Serializable
+data class MetricasML(
+    val totalPrevisoes: Int,
+    val erroMedioAbsoluto: String,
+    val mape: String,
+    val taxaAcerto: String,
+    val confiancaMedia: String
+)
+
+// ==================== GAMIFICAÇÃO ====================
+
+/**
+ * Response de perfil de gamificação
+ */
+@Serializable
+data class PerfilGamificacaoResponse(
+    val success: Boolean,
+    val data: PerfilGamificacaoData? = null,
+    val error: String? = null
+)
+
+@Serializable
+data class PerfilGamificacaoData(
+    val usuarioId: String,
+    val nivel: Int,
+    val pontosAtuais: Int,
+    val pontosProximoNivel: Int,
+    val progressoNivel: Double,
+    val totalBadges: Int,
+    val badgesConquistados: Int,
+    val posicaoRanking: Int,
+    val sequenciaAtual: Int,
+    val melhorSequencia: Int,
+    val totalEntregas: Int,
+    val totalKm: Double,
+    val ultimaAtualizacao: String
+)
+
+/**
+ * Response de badges
+ */
+@Serializable
+data class BadgesResponse(
+    val success: Boolean,
+    val data: List<Badge>? = null,
+    val error: String? = null
+)
+
+@Serializable
+data class Badge(
+    val codigo: String,
+    val nome: String,
+    val descricao: String,
+    val icone: String,
+    val tipo: String,
+    val pontos: Int,
+    val raridade: String,
+    val conquistado: Boolean,
+    val progressoAtual: Int,
+    val requisito: Int,
+    val dataConquista: String? = null
+)
+
+/**
+ * Response de ranking
+ */
+@Serializable
+data class RankingResponse(
+    val success: Boolean,
+    val data: List<RankingItem>? = null,
+    val error: String? = null
+)
+
+@Serializable
+data class RankingItem(
+    val posicao: Int,
+    val usuarioId: String,
+    val nome: String,
+    val pontos: Int,
+    val nivel: Int,
+    val badgesCount: Int,
+    val entregasSemana: Int
+)
+
+/**
+ * Response de conquistas
+ */
+@Serializable
+data class ConquistasResponse(
+    val success: Boolean,
+    val data: List<ConquistaItem>? = null,
+    val error: String? = null
+)
+
+@Serializable
+data class ConquistaItem(
+    val id: String,
+    val tipo: String,
+    val titulo: String,
+    val descricao: String,
+    val icone: String,
+    val dataConquista: String,
+    val pontos: Int
+)
+
+/**
+ * Response de resumo semanal
+ */
+@Serializable
+data class ResumoSemanalResponse(
+    val success: Boolean,
+    val data: ResumoSemanalData? = null,
+    val error: String? = null
+)
+
+@Serializable
+data class ResumoSemanalData(
+    val entregasSemana: Int,
+    val kmSemana: Double,
+    val pontosGanhos: Int,
+    val novosConquistas: Int,
+    val posicaoMelhorou: Boolean,
+    val variacaoPosicao: Int,
+    val destaque: String,
+    val meta: MetasSemana
+)
+
+@Serializable
+data class MetasSemana(
+    val entregas: MetaProgresso,
+    val km: MetaProgresso
+)
+
+@Serializable
+data class MetaProgresso(
+    val atual: Int,
+    val meta: Int,
+    val progresso: Double
+)
+
+/**
+ * Response de leaderboard
+ */
+@Serializable
+data class LeaderboardResponse(
+    val success: Boolean,
+    val data: LeaderboardData? = null,
+    val error: String? = null
+)
+
+@Serializable
+data class LeaderboardData(
+    val periodo: String,
+    val ranking: List<RankingItem>,
+    val minhaPosicao: Int,
+    val totalParticipantes: Int
+)

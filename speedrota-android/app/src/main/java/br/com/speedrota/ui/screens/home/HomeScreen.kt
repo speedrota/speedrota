@@ -27,6 +27,8 @@ fun HomeScreen(
     onNovaRota: () -> Unit,
     onHistorico: () -> Unit,
     onDashboard: () -> Unit,
+    onPrevisao: () -> Unit = {},
+    onGamificacao: () -> Unit = {},
     onVerPlanos: () -> Unit,
     onLogout: () -> Unit
 ) {
@@ -192,6 +194,54 @@ fun HomeScreen(
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "Dashboard Analytics",
+                    style = MaterialTheme.typography.titleMedium
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            // Botão Previsão de Demanda
+            OutlinedButton(
+                onClick = onPrevisao,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = androidx.compose.ui.graphics.Color(0xFFF59E0B)
+                )
+            ) {
+                Text(
+                    text = "🔮",
+                    fontSize = 20.sp
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Previsão de Demanda",
+                    style = MaterialTheme.typography.titleMedium
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            // Botão Conquistas (Gamificação)
+            OutlinedButton(
+                onClick = onGamificacao,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = androidx.compose.ui.graphics.Color(0xFF8B5CF6)
+                )
+            ) {
+                Text(
+                    text = "🎮",
+                    fontSize = 20.sp
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Conquistas",
                     style = MaterialTheme.typography.titleMedium
                 )
             }

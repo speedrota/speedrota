@@ -341,4 +341,93 @@ interface SpeedRotaApi {
         @Path("zonaId") zonaId: String,
         @Body config: ConfiguracaoGeofence
     ): ApiResponse
+
+    // ==================== ML - PREVISÃO DE DEMANDA ====================
+
+    /**
+     * Obtém previsão de demanda para uma zona
+     * @pre Zona válida (CEP 5 dígitos)
+     * @post Previsão com confiança + fatores + insights
+     */
+    @GET("ml/previsao/{zona}")
+    suspend fun getPrevisaoDemanda(
+        @Path("zona") zona: String,
+        @Query("data") data: String? = null,
+        @Query("horaInicio") horaInicio: Int? = null,
+        @Query("horaFim") horaFim: Int? = null
+    ): PrevisaoDemandaResponse
+
+    /**
+     * Obtém mapa de calor de demanda por zona
+     * @post Lista de zonas com intensidade de demanda
+     */
+    @GET("ml/mapa-calor")
+    suspend fun getMapaCalor(
+        @Query("data") data: String? = null
+    ): MapaCalorResponse
+
+    /**
+     * Lista insights personalizados para o motorista
+     */
+    @GET("ml/insights")
+    suspend fun getInsightsML(
+        @Query("zona") zona: String? = null,
+        @Query("limite") limite: Int? = null
+    ): InsightsMLResponse
+
+    /**
+     * Obtém métricas de qualidade do modelo ML
+     */
+    @GET("ml/metricas")
+    suspend fun getMetricasML(): MetricasMLResponse
+
+    // ==================== GAMIFICAÇÃO ====================
+
+    /**
+     * Obtém perfil de gamificação do usuário
+     * @post Nível, pontos, badges, ranking
+     */
+    @GET("gamificacao/perfil")
+    suspend fun getPerfilGamificacao(): PerfilGamificacaoResponse
+
+    /**
+     * Lista todos os badges
+     */
+    @GET("gamificacao/badges")
+    suspend fun getBadges(): BadgesResponse
+
+    /**
+     * Lista badges de um tipo específico
+     */
+    @GET("gamificacao/badges/{tipo}")
+    suspend fun getBadgesPorTipo(
+        @Path("tipo") tipo: String
+    ): BadgesResponse
+
+    /**
+     * Obtém ranking semanal
+     */
+    @GET("gamificacao/ranking")
+    suspend fun getRankingSemanal(): RankingResponse
+
+    /**
+     * Lista conquistas do usuário
+     */
+    @GET("gamificacao/conquistas")
+    suspend fun getConquistas(): ConquistasResponse
+
+    /**
+     * Obtém resumo semanal de gamificação
+     */
+    @GET("gamificacao/resumo-semanal")
+    suspend fun getResumoSemanal(): ResumoSemanalResponse
+
+    /**
+     * Obtém leaderboard global
+     */
+    @GET("gamificacao/leaderboard")
+    suspend fun getLeaderboard(
+        @Query("periodo") periodo: String? = null,
+        @Query("limite") limite: Int? = null
+    ): LeaderboardResponse
 }
