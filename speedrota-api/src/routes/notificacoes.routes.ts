@@ -26,7 +26,7 @@ import {
   TipoNotificacao,
 } from '../services/notificacoes.js';
 import { env } from '../config/env.js';
-import { authenticate } from '../middleware/auth.js';
+import { authenticate } from '../middlewares/auth.middleware.js';
 
 // ==========================================
 // SCHEMAS
