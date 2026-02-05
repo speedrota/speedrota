@@ -131,11 +131,10 @@ void async function _importarQrCode(conteudo: string, rotaId: string): Promise<{
 // ==========================================
 
 export function TelaQrCodeScanner() {
-  const { irPara, destinos, adicionarDestino } = useRouteStore();
+  const { irPara, destinos } = useRouteStore();
   
   // Aliases para compatibilidade
   const setEtapa = irPara;
-  const addDestino = adicionarDestino;
   
   // Suprimir warnings de variáveis para uso futuro
   void destinos;
