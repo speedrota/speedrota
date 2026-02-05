@@ -8,4 +8,4 @@ cmds = ["cd speedrota-api && npm install"]
 cmds = ["cd speedrota-api && npx prisma generate"]
 
 [start]
-cmd = "cd speedrota-api && npm start"
+cmd = "cd speedrota-api && npx prisma db push --accept-data-loss && npm start"
