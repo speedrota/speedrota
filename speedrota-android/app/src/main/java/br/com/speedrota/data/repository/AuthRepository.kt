@@ -29,10 +29,11 @@ class AuthRepository @Inject constructor(
         nome: String,
         email: String,
         senha: String,
-        telefone: String? = null
+        telefone: String? = null,
+        tipoUsuario: String = "ENTREGADOR"
     ): Result<UserData> {
         return try {
-            val response = api.register(RegisterRequest(nome, email, senha, telefone))
+            val response = api.register(RegisterRequest(nome, email, senha, telefone, tipoUsuario))
 
             if (response.success && response.data?.token != null && response.data.user != null) {
                 preferences.saveToken(response.data.token)
@@ -40,7 +41,8 @@ class AuthRepository @Inject constructor(
                     id = response.data.user.id,
                     nome = response.data.user.nome,
                     email = response.data.user.email,
-                    plano = response.data.user.plano
+                    plano = response.data.user.plano,
+                    tipoUsuario = response.data.user.tipoUsuario
                 )
                 Result.success(response.data.user)
             } else {
@@ -66,7 +68,8 @@ class AuthRepository @Inject constructor(
                     id = response.data.user.id,
                     nome = response.data.user.nome,
                     email = response.data.user.email,
-                    plano = response.data.user.plano
+                    plano = response.data.user.plano,
+                    tipoUsuario = response.data.user.tipoUsuario
                 )
                 Result.success(response.data.user)
             } else {
@@ -99,7 +102,8 @@ class AuthRepository @Inject constructor(
                     id = response.usuario.id,
                     nome = response.usuario.nome,
                     email = response.usuario.email,
-                    plano = response.usuario.plano
+                    plano = response.usuario.plano,
+                    tipoUsuario = response.usuario.tipoUsuario
                 )
                 Result.success(response.usuario)
             } else {

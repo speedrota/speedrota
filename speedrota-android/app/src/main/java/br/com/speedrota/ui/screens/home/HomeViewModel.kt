@@ -18,6 +18,7 @@ import javax.inject.Inject
 data class HomeUiState(
     val userName: String = "",
     val userPlano: String = "FREE",
+    val tipoUsuario: String = "ENTREGADOR",
     val rotasHoje: Int = 0,
     val rotasRestantes: Int = 2,
     val isLoading: Boolean = true,
@@ -45,12 +46,14 @@ class HomeViewModel @Inject constructor(
             try {
                 val userName = preferencesManager.userName.first() ?: ""
                 val userPlano = preferencesManager.userPlano.first() ?: "FREE"
+                val tipoUsuario = preferencesManager.userTipoUsuario.first() ?: "ENTREGADOR"
                 
                 val plano = Plano.entries.find { it.name == userPlano } ?: Plano.FREE
                 
                 _uiState.value = _uiState.value.copy(
                     userName = userName,
                     userPlano = userPlano,
+                    tipoUsuario = tipoUsuario,
                     rotasRestantes = plano.rotasPorDia,
                     isLoading = false
                 )
@@ -62,6 +65,7 @@ class HomeViewModel @Inject constructor(
                         _uiState.value = _uiState.value.copy(
                             userName = user.nome,
                             userPlano = user.plano,
+                            tipoUsuario = user.tipoUsuario,
                             rotasRestantes = user.rotasRestantes ?: planoAtualizado.rotasPorDia
                         )
                     }

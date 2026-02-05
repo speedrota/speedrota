@@ -14,6 +14,7 @@ import br.com.speedrota.ui.screens.auth.RegisterScreen
 import br.com.speedrota.ui.screens.auth.ForgotPasswordScreen
 import br.com.speedrota.ui.screens.dashboard.DashboardScreen
 import br.com.speedrota.ui.screens.home.HomeScreen
+import br.com.speedrota.ui.screens.frota.TelaFrotaMotorista
 import br.com.speedrota.ui.screens.historico.HistoricoScreen
 import br.com.speedrota.ui.screens.origem.OrigemScreen
 import br.com.speedrota.ui.screens.destinos.DestinosScreen
@@ -91,6 +92,9 @@ fun SpeedRotaNavHost() {
                 onDashboard = {
                     navController.navigate(Screen.Dashboard.route)
                 },
+                onFrota = {
+                    navController.navigate(Screen.Frota.route)
+                },
                 onPrevisao = {
                     navController.navigate(Screen.Previsao.route)
                 },
@@ -110,6 +114,18 @@ fun SpeedRotaNavHost() {
                     navController.navigate(Screen.Login.route) {
                         popUpTo(0) { inclusive = true }
                     }
+                }
+            )
+        }
+        
+        // Gestão de Frota
+        composable(Screen.Frota.route) {
+            TelaFrotaMotorista(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onNavigateToRota = { rotaId ->
+                    navController.navigate(Screen.Rota.createRoute(rotaId))
                 }
             )
         }

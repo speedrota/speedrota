@@ -27,6 +27,7 @@ fun HomeScreen(
     onNovaRota: () -> Unit,
     onHistorico: () -> Unit,
     onDashboard: () -> Unit,
+    onFrota: () -> Unit = {},
     onPrevisao: () -> Unit = {},
     onGamificacao: () -> Unit = {},
     onEcommerce: () -> Unit = {},
@@ -35,6 +36,10 @@ fun HomeScreen(
     onLogout: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    
+    // Determina perfil do usuário
+    val isEntregador = uiState.tipoUsuario == "ENTREGADOR"
+    val isGestorFrota = uiState.tipoUsuario == "GESTOR_FROTA"
 
     Scaffold(
         topBar = {
@@ -121,198 +126,294 @@ fun HomeScreen(
             
             Spacer(modifier = Modifier.height(32.dp))
             
-            // Botão Principal - Nova Rota
-            Button(
-                onClick = onNovaRota,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(120.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Primary
-                )
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally
+            // ==================== BOTÕES POR PERFIL ====================
+            
+            if (isEntregador) {
+                // ========== ENTREGADOR ==========
+                
+                // Botão Principal - Nova Rota
+                Button(
+                    onClick = onNovaRota,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Primary
+                    )
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(
+                            Icons.Default.AddLocation,
+                            contentDescription = null,
+                            modifier = Modifier.size(40.dp)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Nova Rota",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "Otimize suas entregas",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                // Botão Histórico
+                OutlinedButton(
+                    onClick = onHistorico,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
                     Icon(
-                        Icons.Default.AddLocation,
+                        Icons.Default.History,
                         contentDescription = null,
-                        modifier = Modifier.size(40.dp)
+                        modifier = Modifier.size(24.dp)
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Nova Rota",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
+                        text = "Histórico de Rotas",
+                        style = MaterialTheme.typography.titleMedium
                     )
+                }
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                // Botão Dashboard
+                OutlinedButton(
+                    onClick = onDashboard,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = Primary
+                    )
+                ) {
+                    Icon(
+                        Icons.Default.Analytics,
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Otimize suas entregas",
-                        style = MaterialTheme.typography.bodyMedium
+                        text = "Meu Dashboard",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                // Botão Conquistas (Gamificação)
+                OutlinedButton(
+                    onClick = onGamificacao,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = androidx.compose.ui.graphics.Color(0xFF8B5CF6)
+                    )
+                ) {
+                    Text(
+                        text = "🎮",
+                        fontSize = 20.sp
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Conquistas",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                // Botão QR Code Scanner
+                OutlinedButton(
+                    onClick = onQrCodeScanner,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = androidx.compose.ui.graphics.Color(0xFF06B6D4)
+                    )
+                ) {
+                    Text(
+                        text = "📱",
+                        fontSize = 20.sp
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "QR Code NF-e",
+                        style = MaterialTheme.typography.titleMedium
                     )
                 }
             }
             
-            Spacer(modifier = Modifier.height(12.dp))
-            
-            // Botão Histórico
-            OutlinedButton(
-                onClick = onHistorico,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Icon(
-                    Icons.Default.History,
-                    contentDescription = null,
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Histórico de Rotas",
-                    style = MaterialTheme.typography.titleMedium
-                )
-            }
-            
-            Spacer(modifier = Modifier.height(12.dp))
-            
-            // Botão Dashboard Analytics
-            OutlinedButton(
-                onClick = onDashboard,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = Primary
-                )
-            ) {
-                Icon(
-                    Icons.Default.Analytics,
-                    contentDescription = null,
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Dashboard Analytics",
-                    style = MaterialTheme.typography.titleMedium
-                )
-            }
-            
-            Spacer(modifier = Modifier.height(12.dp))
-            
-            // Botão Previsão de Demanda
-            OutlinedButton(
-                onClick = onPrevisao,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = androidx.compose.ui.graphics.Color(0xFFF59E0B)
-                )
-            ) {
-                Text(
-                    text = "🔮",
-                    fontSize = 20.sp
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Previsão de Demanda",
-                    style = MaterialTheme.typography.titleMedium
-                )
-            }
-            
-            Spacer(modifier = Modifier.height(12.dp))
-            
-            // Botão Conquistas (Gamificação)
-            OutlinedButton(
-                onClick = onGamificacao,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = androidx.compose.ui.graphics.Color(0xFF8B5CF6)
-                )
-            ) {
-                Text(
-                    text = "🎮",
-                    fontSize = 20.sp
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Conquistas",
-                    style = MaterialTheme.typography.titleMedium
-                )
-            }
-            
-            Spacer(modifier = Modifier.height(12.dp))
-            
-            // Botão E-commerce (VTEX + Shopify)
-            OutlinedButton(
-                onClick = onEcommerce,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = androidx.compose.ui.graphics.Color(0xFFEC4899)
-                )
-            ) {
-                Text(
-                    text = "🛒",
-                    fontSize = 20.sp
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "E-commerce",
-                    style = MaterialTheme.typography.titleMedium
-                )
-            }
-            
-            Spacer(modifier = Modifier.height(12.dp))
-            
-            // Botão QR Code Scanner
-            OutlinedButton(
-                onClick = onQrCodeScanner,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = androidx.compose.ui.graphics.Color(0xFF06B6D4)
-                )
-            ) {
-                Text(
-                    text = "📱",
-                    fontSize = 20.sp
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "QR Code NF-e",
-                    style = MaterialTheme.typography.titleMedium
-                )
+            if (isGestorFrota) {
+                // ========== GESTOR DE FROTA ==========
+                
+                // Botão Principal - Gestão de Frota
+                Button(
+                    onClick = onFrota,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = androidx.compose.ui.graphics.Color(0xFF10B981)
+                    )
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "🚚",
+                            fontSize = 40.sp
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Gestão de Frota",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "Gerencie motoristas e veículos",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                // Botão Dashboard Analytics
+                OutlinedButton(
+                    onClick = onDashboard,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = Primary
+                    )
+                ) {
+                    Icon(
+                        Icons.Default.Analytics,
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Dashboard Analytics",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                // Botão Previsão de Demanda
+                OutlinedButton(
+                    onClick = onPrevisao,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = androidx.compose.ui.graphics.Color(0xFFF59E0B)
+                    )
+                ) {
+                    Text(
+                        text = "🔮",
+                        fontSize = 20.sp
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Previsão de Demanda",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                // Botão E-commerce (VTEX + Shopify)
+                OutlinedButton(
+                    onClick = onEcommerce,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = androidx.compose.ui.graphics.Color(0xFFEC4899)
+                    )
+                ) {
+                    Text(
+                        text = "🛒",
+                        fontSize = 20.sp
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "E-commerce",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                // Botão Histórico
+                OutlinedButton(
+                    onClick = onHistorico,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(
+                        Icons.Default.History,
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Histórico de Rotas",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
             }
             
             Spacer(modifier = Modifier.height(24.dp))
             
             // Como funciona
             Text(
-                text = "Como funciona",
+                text = if (isEntregador) "Como funciona" else "Funcionalidades",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            // Steps
-            val steps = listOf(
-                Triple(Icons.Default.MyLocation, "1. Defina sua origem", "Sua localização atual ou endereço"),
-                Triple(Icons.Default.CameraAlt, "2. Escaneie as notas", "Capture endereços via OCR"),
-                Triple(Icons.Default.Route, "3. Rota otimizada", "Economize tempo e combustível")
-            )
+            // Steps - diferenciados por perfil
+            val steps = if (isEntregador) {
+                listOf(
+                    Triple(Icons.Default.MyLocation, "1. Defina sua origem", "Sua localização atual ou endereço"),
+                    Triple(Icons.Default.CameraAlt, "2. Escaneie as notas", "Capture endereços via OCR"),
+                    Triple(Icons.Default.Route, "3. Rota otimizada", "Economize tempo e combustível")
+                )
+            } else {
+                listOf(
+                    Triple(Icons.Default.People, "Motoristas", "Gerencie sua equipe de entregadores"),
+                    Triple(Icons.Default.DirectionsCar, "Veículos", "Controle sua frota"),
+                    Triple(Icons.Default.Analytics, "Métricas", "Acompanhe performance em tempo real")
+                )
+            }
             
             steps.forEach { (icon, title, description) ->
                 Card(

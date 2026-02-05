@@ -31,6 +31,7 @@ class PreferencesManager @Inject constructor(
         private val USER_NAME_KEY = stringPreferencesKey("user_name")
         private val USER_EMAIL_KEY = stringPreferencesKey("user_email")
         private val USER_PLANO_KEY = stringPreferencesKey("user_plano")
+        private val USER_TIPO_KEY = stringPreferencesKey("user_tipo_usuario")
     }
 
     // Token JWT
@@ -55,13 +56,15 @@ class PreferencesManager @Inject constructor(
     val userName: Flow<String?> = context.dataStore.data.map { it[USER_NAME_KEY] }
     val userEmail: Flow<String?> = context.dataStore.data.map { it[USER_EMAIL_KEY] }
     val userPlano: Flow<String?> = context.dataStore.data.map { it[USER_PLANO_KEY] }
+    val userTipoUsuario: Flow<String?> = context.dataStore.data.map { it[USER_TIPO_KEY] }
 
-    suspend fun saveUserData(id: String, nome: String, email: String, plano: String) {
+    suspend fun saveUserData(id: String, nome: String, email: String, plano: String, tipoUsuario: String = "ENTREGADOR") {
         context.dataStore.edit { preferences ->
             preferences[USER_ID_KEY] = id
             preferences[USER_NAME_KEY] = nome
             preferences[USER_EMAIL_KEY] = email
             preferences[USER_PLANO_KEY] = plano
+            preferences[USER_TIPO_KEY] = tipoUsuario
         }
     }
 
@@ -71,6 +74,7 @@ class PreferencesManager @Inject constructor(
             preferences.remove(USER_NAME_KEY)
             preferences.remove(USER_EMAIL_KEY)
             preferences.remove(USER_PLANO_KEY)
+            preferences.remove(USER_TIPO_KEY)
         }
     }
 

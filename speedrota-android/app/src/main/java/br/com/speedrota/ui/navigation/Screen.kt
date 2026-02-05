@@ -11,6 +11,7 @@ sealed class Screen(val route: String) {
     
     // Main
     data object Home : Screen("home")
+    data object Frota : Screen("frota")
     data object Origem : Screen("origem")
     data object Destinos : Screen("destinos")
     data object Rota : Screen("rota?rotaId={rotaId}") {

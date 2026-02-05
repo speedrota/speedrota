@@ -22,6 +22,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -137,6 +138,63 @@ fun RegisterScreen(
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Tipo de Usuário
+            Text(
+                text = "Qual seu perfil?",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.fillMaxWidth()
+            )
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Botão Entregador
+                OutlinedButton(
+                    onClick = { viewModel.onTipoUsuarioChange("ENTREGADOR") },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(56.dp),
+                    colors = if (uiState.tipoUsuario == "ENTREGADOR") {
+                        ButtonDefaults.outlinedButtonColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer
+                        )
+                    } else {
+                        ButtonDefaults.outlinedButtonColors()
+                    }
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("🚴", fontSize = 18.sp)
+                        Text("Entregador", style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+                
+                // Botão Gestor de Frota
+                OutlinedButton(
+                    onClick = { viewModel.onTipoUsuarioChange("GESTOR_FROTA") },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(56.dp),
+                    colors = if (uiState.tipoUsuario == "GESTOR_FROTA") {
+                        ButtonDefaults.outlinedButtonColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer
+                        )
+                    } else {
+                        ButtonDefaults.outlinedButtonColors()
+                    }
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("🚚", fontSize = 18.sp)
+                        Text("Gestor Frota", style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
             
             Spacer(modifier = Modifier.height(16.dp))
 

@@ -32,7 +32,8 @@ data class RegisterRequest(
     val nome: String,
     val email: String,
     val senha: String,
-    val telefone: String? = null
+    val telefone: String? = null,
+    val tipoUsuario: String = "ENTREGADOR"
 )
 
 @Serializable
@@ -62,7 +63,8 @@ data class UserData(
     val email: String,
     val plano: String,
     val telefone: String? = null,
-    val rotasRestantes: Int? = null
+    val rotasRestantes: Int? = null,
+    val tipoUsuario: String = "ENTREGADOR"
 )
 
 @Serializable

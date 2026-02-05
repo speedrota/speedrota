@@ -16,6 +16,7 @@ data class RegisterUiState(
     val senha: String = "",
     val confirmarSenha: String = "",
     val telefone: String = "",
+    val tipoUsuario: String = "ENTREGADOR",
     val isLoading: Boolean = false,
     val error: String? = null,
     val isSuccess: Boolean = false
@@ -47,6 +48,10 @@ class RegisterViewModel @Inject constructor(
 
     fun onTelefoneChange(telefone: String) {
         _uiState.value = _uiState.value.copy(telefone = telefone, error = null)
+    }
+
+    fun onTipoUsuarioChange(tipoUsuario: String) {
+        _uiState.value = _uiState.value.copy(tipoUsuario = tipoUsuario, error = null)
     }
 
     fun register() {
@@ -81,7 +86,8 @@ class RegisterViewModel @Inject constructor(
                 nome = state.nome,
                 email = state.email,
                 senha = state.senha,
-                telefone = state.telefone.takeIf { it.isNotBlank() }
+                telefone = state.telefone.takeIf { it.isNotBlank() },
+                tipoUsuario = state.tipoUsuario
             )
                 .onSuccess { user ->
                     _uiState.value = _uiState.value.copy(
