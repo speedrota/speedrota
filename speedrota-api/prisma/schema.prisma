@@ -50,6 +50,8 @@ model User {
   passwordResetTokens PasswordResetToken[]
   notificacoes  Notificacao[]
   tokensPush    TokenPush[]
+  empresasGerenciadas Empresa[] @relation("GestorEmpresa")
+  motoristaVinculado  Motorista?
   
   @@map("users")
 }
@@ -480,3 +482,505 @@ model PosicaoHistorico {
   @@index([timestamp])
   @@map("posicao_historico")
 }
+
+// ==========================================
+// MULTI-MOTORISTA / GESTÃO DE FROTA
+// ==========================================
+// @description Sistema completo de gestão de frota com distribuição inteligente
+// @pre Usuário com plano FROTA ou ENTERPRISE
+// @post Gestão centralizada de motoristas, veículos e entregas
+// @invariant Distribuição otimizada por zona, capacidade e performance
+
+model Empresa {
+  id                String    @id @default(uuid())
+  
+  // Dados básicos
+  nome              String
+  cnpj              String?   @unique
+  email             String
+  telefone          String?
+  
+  // Proprietário/Gestor principal
+  gestorId          String    @map("gestor_id")
+  
+  // Configurações
+  limiteMotoristas  Int       @default(10) @map("limite_motoristas")
+  limiteVeiculos    Int       @default(10) @map("limite_veiculos")
+  
+  // Localização base
+  baseLat           Float?    @map("base_lat")
+  baseLng           Float?    @map("base_lng")
+  baseEndereco      String?   @map("base_endereco")
+  
+  // Configurações de distribuição
+  modoDistribuicao  ModoDistribuicao @default(AUTOMATICO) @map("modo_distribuicao")
+  balanceamentoCarga Boolean  @default(true) @map("balanceamento_carga")
+  respeitarZonas    Boolean   @default(true) @map("respeitar_zonas")
+  
+  // Timestamps
+  ativo             Boolean   @default(true)
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  deletedAt         DateTime? @map("deleted_at")
+  
+  // Relacionamentos
+  gestor            User      @relation("GestorEmpresa", fields: [gestorId], references: [id])
+  motoristas        Motorista[]
+  veiculos          Veiculo[]
+  equipes           Equipe[]
+  zonasAtuacao      ZonaAtuacao[]
+  rotasEmpresa      RotaEmpresa[]
+  
+  @@index([gestorId])
+  @@map("empresas")
+}
+
+model Motorista {
+  id                String    @id @default(uuid())
+  empresaId         String    @map("empresa_id")
+  
+  // Dados pessoais
+  nome              String
+  email             String
+  telefone          String
+  cpf               String?
+  cnh               String?
+  cnhValidade       DateTime? @map("cnh_validade")
+  foto              String?   // URL da foto
+  
+  // Credenciais (se tiver acesso ao app)
+  userId            String?   @unique @map("user_id") // Link com User se usar app
+  pin               String?   // PIN de 4 dígitos para acesso rápido
+  
+  // Status operacional
+  status            StatusMotorista @default(DISPONIVEL)
+  statusAtualizadoEm DateTime? @map("status_atualizado_em")
+  motivoIndisponivel String?   @map("motivo_indisponivel")
+  
+  // Localização atual
+  ultimaLat         Float?    @map("ultima_lat")
+  ultimaLng         Float?    @map("ultima_lng")
+  ultimaPosicaoEm   DateTime? @map("ultima_posicao_em")
+  
+  // Capacidade e preferências
+  capacidadeKg      Float     @default(100) @map("capacidade_kg")
+  capacidadeVolumes Int       @default(50) @map("capacidade_volumes")
+  raioMaximoKm      Float     @default(50) @map("raio_maximo_km")
+  
+  // Performance (atualizado diariamente)
+  taxaEntrega       Float     @default(100) @map("taxa_entrega") // %
+  tempoMedioEntrega Float     @default(5) @map("tempo_medio_entrega") // min
+  avaliacaoMedia    Float     @default(5) @map("avaliacao_media") // 1-5
+  totalEntregas     Int       @default(0) @map("total_entregas")
+  totalKm           Float     @default(0) @map("total_km")
+  
+  // Jornada de trabalho
+  horaInicio        String?   @map("hora_inicio") // "08:00"
+  horaFim           String?   @map("hora_fim")    // "18:00"
+  diasTrabalho      String?   @map("dias_trabalho") // "1,2,3,4,5" (seg-sex)
+  
+  // Veículo atual
+  veiculoAtualId    String?   @map("veiculo_atual_id")
+  
+  // Equipe
+  equipeId          String?   @map("equipe_id")
+  
+  // Timestamps
+  ativo             Boolean   @default(true)
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  deletedAt         DateTime? @map("deleted_at")
+  
+  // Relacionamentos
+  empresa           Empresa   @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  user              User?     @relation(fields: [userId], references: [id])
+  veiculoAtual      Veiculo?  @relation("MotoristaVeiculoAtual", fields: [veiculoAtualId], references: [id])
+  equipe            Equipe?   @relation(fields: [equipeId], references: [id])
+  zonasPreferidas   MotoristaZona[]
+  rotasAtribuidas   RotaEmpresa[] @relation("MotoristaRotas")
+  historicoAtribuicoes AtribuicaoHistorico[]
+  performanceHistorico PerformanceMotorista[]
+  
+  @@index([empresaId])
+  @@index([status])
+  @@index([equipeId])
+  @@map("motoristas")
+}
+
+model Veiculo {
+  id                String    @id @default(uuid())
+  empresaId         String    @map("empresa_id")
+  
+  // Identificação
+  placa             String
+  modelo            String
+  marca             String?
+  ano               Int?
+  cor               String?
+  
+  // Tipo e capacidade
+  tipo              TipoVeiculo @default(MOTO)
+  capacidadeKg      Float     @default(50) @map("capacidade_kg")
+  capacidadeVolumes Int       @default(20) @map("capacidade_volumes")
+  capacidadeM3      Float?    @map("capacidade_m3") // Volume em m³
+  
+  // Consumo
+  consumoKmL        Float     @default(15) @map("consumo_km_l") // km por litro
+  tipoCombustivel   String?   @map("tipo_combustivel") // GASOLINA, ETANOL, DIESEL, ELETRICO
+  
+  // Documentação
+  renavam           String?
+  chassi            String?
+  seguroVencimento  DateTime? @map("seguro_vencimento")
+  ipvaVencimento    DateTime? @map("ipva_vencimento")
+  
+  // Status
+  status            StatusVeiculo @default(DISPONIVEL)
+  kmAtual           Float     @default(0) @map("km_atual")
+  ultimaManutencao  DateTime? @map("ultima_manutencao")
+  proximaManutencao DateTime? @map("proxima_manutencao")
+  
+  // Timestamps
+  ativo             Boolean   @default(true)
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  
+  // Relacionamentos
+  empresa           Empresa   @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  motoristasUsando  Motorista[] @relation("MotoristaVeiculoAtual")
+  historicoUso      VeiculoHistorico[]
+  
+  @@unique([empresaId, placa])
+  @@index([empresaId])
+  @@index([status])
+  @@map("veiculos")
+}
+
+model Equipe {
+  id                String    @id @default(uuid())
+  empresaId         String    @map("empresa_id")
+  
+  // Dados
+  nome              String
+  descricao         String?
+  cor               String?   // Cor para identificação visual
+  
+  // Líder
+  liderId           String?   @map("lider_id")
+  
+  // Zona padrão
+  zonaPadraoId      String?   @map("zona_padrao_id")
+  
+  // Timestamps
+  ativo             Boolean   @default(true)
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  
+  // Relacionamentos
+  empresa           Empresa   @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  motoristas        Motorista[]
+  zonaPadrao        ZonaAtuacao? @relation(fields: [zonaPadraoId], references: [id])
+  
+  @@index([empresaId])
+  @@map("equipes")
+}
+
+model ZonaAtuacao {
+  id                String    @id @default(uuid())
+  empresaId         String    @map("empresa_id")
+  
+  // Identificação
+  nome              String
+  descricao         String?
+  cor               String?   // Cor no mapa
+  
+  // Polígono (GeoJSON simplificado - array de coordenadas)
+  // Formato: [[lat1,lng1], [lat2,lng2], ...]
+  poligono          String?   // JSON do polígono
+  
+  // Centro e raio (alternativa ao polígono)
+  centroLat         Float?    @map("centro_lat")
+  centroLng         Float?    @map("centro_lng")
+  raioKm            Float?    @map("raio_km")
+  
+  // Cidades/bairros (lista)
+  cidades           String?   // JSON array de cidades
+  bairros           String?   // JSON array de bairros
+  ceps              String?   // JSON array de prefixos CEP
+  
+  // Prioridade
+  prioridade        Int       @default(1) // 1 = maior prioridade
+  
+  // Timestamps
+  ativo             Boolean   @default(true)
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  
+  // Relacionamentos
+  empresa           Empresa   @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  motoristasZona    MotoristaZona[]
+  equipesZona       Equipe[]
+  
+  @@index([empresaId])
+  @@map("zonas_atuacao")
+}
+
+// Relação N:N entre Motorista e Zona
+model MotoristaZona {
+  id                String    @id @default(uuid())
+  motoristaId       String    @map("motorista_id")
+  zonaId            String    @map("zona_id")
+  
+  // Preferência (1 = principal)
+  prioridade        Int       @default(1)
+  
+  // Motorista
+  motorista         Motorista @relation(fields: [motoristaId], references: [id], onDelete: Cascade)
+  zona              ZonaAtuacao @relation(fields: [zonaId], references: [id], onDelete: Cascade)
+  
+  @@unique([motoristaId, zonaId])
+  @@map("motorista_zonas")
+}
+
+// Rota atribuída a um motorista da empresa
+model RotaEmpresa {
+  id                String    @id @default(uuid())
+  empresaId         String    @map("empresa_id")
+  motoristaId       String?   @map("motorista_id")
+  rotaOriginalId    String?   @map("rota_original_id") // Link com Rota se importada
+  
+  // Status da atribuição
+  statusAtribuicao  StatusAtribuicao @default(PENDENTE) @map("status_atribuicao")
+  atribuidoEm       DateTime? @map("atribuido_em")
+  aceitoEm          DateTime? @map("aceito_em")
+  recusadoEm        DateTime? @map("recusado_em")
+  motivoRecusa      String?   @map("motivo_recusa")
+  
+  // Dados da rota
+  origemLat         Float     @map("origem_lat")
+  origemLng         Float     @map("origem_lng")
+  origemEndereco    String    @map("origem_endereco")
+  
+  // Métricas
+  totalParadas      Int       @default(0) @map("total_paradas")
+  distanciaKm       Float?    @map("distancia_km")
+  tempoEstimadoMin  Float?    @map("tempo_estimado_min")
+  pesoTotalKg       Float?    @map("peso_total_kg")
+  volumeTotal       Int?      @map("volume_total")
+  
+  // Execução
+  status            StatusRota @default(RASCUNHO)
+  iniciadaEm        DateTime? @map("iniciada_em")
+  finalizadaEm      DateTime? @map("finalizada_em")
+  entreguesCount    Int       @default(0) @map("entregues_count")
+  falhasCount       Int       @default(0) @map("falhas_count")
+  
+  // Resultado
+  kmReal            Float?    @map("km_real")
+  tempoRealMin      Float?    @map("tempo_real_min")
+  custoReal         Float?    @map("custo_real")
+  notaAvaliacao     Float?    @map("nota_avaliacao")
+  
+  // Timestamps
+  dataRota          DateTime  @default(now()) @map("data_rota")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  
+  // Relacionamentos
+  empresa           Empresa   @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  motorista         Motorista? @relation("MotoristaRotas", fields: [motoristaId], references: [id])
+  paradasEmpresa    ParadaEmpresa[]
+  
+  @@index([empresaId])
+  @@index([motoristaId])
+  @@index([status])
+  @@index([dataRota])
+  @@map("rotas_empresa")
+}
+
+// Paradas da rota da empresa
+model ParadaEmpresa {
+  id                String    @id @default(uuid())
+  rotaEmpresaId     String    @map("rota_empresa_id")
+  
+  // Localização
+  lat               Float
+  lng               Float
+  endereco          String
+  cidade            String
+  uf                String
+  cep               String?
+  bairro            String?
+  
+  // Destinatário
+  nome              String
+  telefone          String?
+  
+  // Entrega
+  ordem             Int?
+  pesoKg            Float?    @map("peso_kg")
+  volumes           Int       @default(1)
+  valor             Float?    // Valor da entrega/mercadoria
+  
+  // Janela de tempo
+  janelaInicio      String?   @map("janela_inicio")
+  janelaFim         String?   @map("janela_fim")
+  prioridade        Prioridade @default(MEDIA)
+  
+  // Status
+  status            String    @default("PENDENTE")
+  entregueEm        DateTime? @map("entregue_em")
+  motivoFalha       String?   @map("motivo_falha")
+  observacao        String?
+  
+  // Timestamps
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  
+  // Relacionamento
+  rotaEmpresa       RotaEmpresa @relation(fields: [rotaEmpresaId], references: [id], onDelete: Cascade)
+  
+  @@index([rotaEmpresaId])
+  @@map("paradas_empresa")
+}
+
+// Histórico de atribuições
+model AtribuicaoHistorico {
+  id                String    @id @default(uuid())
+  motoristaId       String    @map("motorista_id")
+  rotaEmpresaId     String?   @map("rota_empresa_id")
+  
+  // Ação
+  acao              String    // ATRIBUIDO, ACEITO, RECUSADO, REATRIBUIDO, CONCLUIDO
+  
+  // Contexto
+  motivo            String?
+  atribuidoPor      String?   @map("atribuido_por") // ID do gestor
+  metodoAtribuicao  String?   @map("metodo_atribuicao") // AUTOMATICO, MANUAL
+  
+  // Timestamp
+  timestamp         DateTime  @default(now())
+  
+  // Relacionamento
+  motorista         Motorista @relation(fields: [motoristaId], references: [id], onDelete: Cascade)
+  
+  @@index([motoristaId])
+  @@index([timestamp])
+  @@map("atribuicao_historico")
+}
+
+// Performance diária do motorista
+model PerformanceMotorista {
+  id                String    @id @default(uuid())
+  motoristaId       String    @map("motorista_id")
+  
+  // Data
+  data              DateTime  @db.Date
+  
+  // Métricas do dia
+  totalRotas        Int       @default(0) @map("total_rotas")
+  totalEntregas     Int       @default(0) @map("total_entregas")
+  entregasSucesso   Int       @default(0) @map("entregas_sucesso")
+  entregasFalha     Int       @default(0) @map("entregas_falha")
+  
+  // Distância e tempo
+  kmRodados         Float     @default(0) @map("km_rodados")
+  tempoTrabalhoMin  Float     @default(0) @map("tempo_trabalho_min")
+  tempoEntregasMin  Float     @default(0) @map("tempo_entregas_min")
+  
+  // Eficiência
+  taxaSucesso       Float?    @map("taxa_sucesso") // %
+  tempoMedioEntrega Float?    @map("tempo_medio_entrega") // min
+  entregrasPorHora  Float?    @map("entregas_por_hora")
+  
+  // Avaliação
+  avaliacaoMedia    Float?    @map("avaliacao_media")
+  totalAvaliacoes   Int       @default(0) @map("total_avaliacoes")
+  
+  // Custo
+  custoCombustivel  Float?    @map("custo_combustivel")
+  
+  // Timestamps
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  
+  // Relacionamento
+  motorista         Motorista @relation(fields: [motoristaId], references: [id], onDelete: Cascade)
+  
+  @@unique([motoristaId, data])
+  @@index([motoristaId])
+  @@index([data])
+  @@map("performance_motorista")
+}
+
+// Histórico de uso de veículos
+model VeiculoHistorico {
+  id                String    @id @default(uuid())
+  veiculoId         String    @map("veiculo_id")
+  motoristaId       String?   @map("motorista_id")
+  
+  // Período
+  dataInicio        DateTime  @map("data_inicio")
+  dataFim           DateTime? @map("data_fim")
+  
+  // Km
+  kmInicio          Float     @map("km_inicio")
+  kmFim             Float?    @map("km_fim")
+  
+  // Custo
+  combustivelL      Float?    @map("combustivel_l")
+  custoCombustivel  Float?    @map("custo_combustivel")
+  
+  // Relacionamento
+  veiculo           Veiculo   @relation(fields: [veiculoId], references: [id], onDelete: Cascade)
+  
+  @@index([veiculoId])
+  @@index([dataInicio])
+  @@map("veiculo_historico")
+}
+
+// ==========================================
+// ENUMS MULTI-MOTORISTA
+// ==========================================
+
+enum ModoDistribuicao {
+  AUTOMATICO       // Sistema distribui automaticamente
+  MANUAL           // Gestor atribui manualmente
+  HIBRIDO          // Sugestão automática, confirmação manual
+}
+
+enum StatusMotorista {
+  DISPONIVEL       // Pronto para receber entregas
+  EM_ROTA          // Executando rota
+  PAUSADO          // Em pausa (almoço, etc)
+  INDISPONIVEL     // Não disponível (folga, etc)
+  OFFLINE          // Sem conexão/app fechado
+}
+
+enum StatusVeiculo {
+  DISPONIVEL       // Pronto para uso
+  EM_USO           // Em uso por motorista
+  MANUTENCAO       // Em manutenção
+  RESERVADO        // Reservado para uso futuro
+  INATIVO          // Fora de operação
+}
+
+enum TipoVeiculo {
+  MOTO
+  BICICLETA
+  CARRO
+  VAN
+  FURGAO
+  CAMINHAO_LEVE
+  CAMINHAO_MEDIO
+  CAMINHAO_PESADO
+}
+
+enum StatusAtribuicao {
+  PENDENTE         // Aguardando aceite
+  ACEITO           // Motorista aceitou
+  RECUSADO         // Motorista recusou
+  REATRIBUIDO      // Reatribuído a outro motorista
+  CANCELADO        // Cancelado pelo gestor
+}
+

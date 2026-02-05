@@ -26,6 +26,7 @@ import { trafegoRoutes } from './routes/trafego.routes.js';
 import reotimizacaoRoutes from './routes/reotimizacao.routes.js';
 import { notificacoesRoutes } from './routes/notificacoes.routes.js';
 import { statusRoutes } from './routes/status.routes.js';
+import frotaRoutes from './routes/frota.routes.js';
 
 // ==========================================
 // CRIAR SERVIDOR FASTIFY
@@ -163,6 +164,7 @@ app.get('/api/v1', async () => ({
     pagamentos: '/api/v1/pagamentos',
     analytics: '/api/v1/analytics',
     trafego: '/api/v1/trafego',
+    frota: '/api/v1/frota',
   },
 }));
 
@@ -178,6 +180,7 @@ app.register(trafegoRoutes, { prefix: '/api/v1/trafego' });
 app.register(reotimizacaoRoutes, { prefix: '/api/v1/reotimizar' });
 app.register(notificacoesRoutes, { prefix: '/api/v1/notificacoes' });
 app.register(statusRoutes, { prefix: '/api/v1/status' });
+app.register(frotaRoutes, { prefix: '/api/v1/frota' });
 
 // ==========================================
 // ERROR HANDLER GLOBAL

@@ -1,0 +1,642 @@
+/**
+ * @fileoverview Estilos para Gestão de Frota Multi-motorista
+ */
+
+/* ==========================================
+   CONTAINER & LAYOUT
+   ========================================== */
+
+.frota-container {
+  min-height: 100vh;
+  background: var(--bg-primary, #f8fafc);
+  padding-bottom: 80px;
+}
+
+.frota-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: var(--primary, #2563eb);
+  color: white;
+}
+
+.frota-header h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.frota-header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.frota-select {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  font-size: 0.9rem;
+}
+
+.frota-select option {
+  color: #1f2937;
+}
+
+/* ==========================================
+   TABS
+   ========================================== */
+
+.frota-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 0 16px;
+  background: var(--primary, #2563eb);
+  overflow-x: auto;
+}
+
+.frota-tab {
+  padding: 12px 16px;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+  cursor: pointer;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+}
+
+.frota-tab:hover {
+  color: white;
+}
+
+.frota-tab.active {
+  color: white;
+  border-bottom-color: white;
+}
+
+/* ==========================================
+   CONTENT
+   ========================================== */
+
+.frota-content {
+  padding: 20px;
+}
+
+.frota-section {
+  margin-bottom: 24px;
+}
+
+.frota-section h2 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary, #1f2937);
+  margin-bottom: 16px;
+}
+
+.frota-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+/* ==========================================
+   CARDS DE RESUMO
+   ========================================== */
+
+.frota-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.frota-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.frota-card-icon {
+  font-size: 2rem;
+}
+
+.frota-card-content h3 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary, #1f2937);
+  margin: 0;
+}
+
+.frota-card-content span {
+  font-size: 0.85rem;
+  color: var(--text-secondary, #6b7280);
+}
+
+.frota-card-detail {
+  font-size: 0.75rem;
+  color: var(--text-secondary, #6b7280);
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.frota-card-detail .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.frota-card-detail .dot.disponivel {
+  background: #22c55e;
+}
+
+/* ==========================================
+   STATUS GRID
+   ========================================== */
+
+.frota-status-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.frota-status-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: white;
+  border-radius: 8px;
+  border-left: 3px solid;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.frota-status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.frota-status-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary, #6b7280);
+}
+
+.frota-status-count {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary, #1f2937);
+  margin-left: auto;
+}
+
+.frota-status-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: white;
+}
+
+/* ==========================================
+   TOP MOTORISTAS
+   ========================================== */
+
+.frota-top-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.frota-top-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.frota-top-rank {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--primary, #2563eb);
+  min-width: 28px;
+}
+
+.frota-top-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--primary, #2563eb);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  overflow: hidden;
+}
+
+.frota-top-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.frota-top-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.frota-top-info strong {
+  font-size: 0.95rem;
+  color: var(--text-primary, #1f2937);
+}
+
+.frota-top-info span {
+  font-size: 0.8rem;
+  color: var(--text-secondary, #6b7280);
+}
+
+.frota-top-status {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: white;
+}
+
+/* ==========================================
+   TABELA
+   ========================================== */
+
+.frota-table-container {
+  overflow-x: auto;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.frota-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.frota-table th,
+.frota-table td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.frota-table th {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-secondary, #6b7280);
+  background: #f9fafb;
+}
+
+.frota-table tr:last-child td {
+  border-bottom: none;
+}
+
+.frota-motorista-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.frota-avatar-sm {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--primary, #2563eb);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 0.85rem;
+  font-weight: 500;
+  overflow: hidden;
+}
+
+.frota-avatar-sm img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.frota-text-muted {
+  color: var(--text-secondary, #9ca3af);
+  font-style: italic;
+}
+
+.frota-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.frota-progress-bar {
+  height: 6px;
+  border-radius: 3px;
+  width: 60px;
+}
+
+.frota-progress span {
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.frota-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.frota-select-sm {
+  padding: 4px 8px;
+  font-size: 0.8rem;
+  border-radius: 4px;
+  border: 1px solid #d1d5db;
+}
+
+.frota-btn-icon {
+  background: transparent;
+  border: none;
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 4px;
+}
+
+/* ==========================================
+   VEÍCULOS GRID
+   ========================================== */
+
+.frota-veiculos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.frota-veiculo-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.frota-veiculo-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.frota-veiculo-icon {
+  font-size: 2rem;
+}
+
+.frota-veiculo-header h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.frota-veiculo-header span {
+  font-size: 0.85rem;
+  color: var(--text-secondary, #6b7280);
+}
+
+.frota-veiculo-header .frota-status-badge {
+  margin-left: auto;
+}
+
+.frota-veiculo-body {
+  padding: 16px;
+}
+
+.frota-veiculo-stat {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.frota-veiculo-stat span {
+  color: var(--text-secondary, #6b7280);
+  font-size: 0.85rem;
+}
+
+.frota-veiculo-stat strong {
+  color: var(--text-primary, #1f2937);
+  font-size: 0.9rem;
+}
+
+/* ==========================================
+   ZONAS GRID
+   ========================================== */
+
+.frota-zonas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.frota-zona-card {
+  background: white;
+  border-radius: 12px;
+  border-left: 4px solid;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.frota-zona-card h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0 0 12px;
+}
+
+.frota-zona-info p {
+  font-size: 0.85rem;
+  color: var(--text-secondary, #6b7280);
+  margin: 4px 0;
+}
+
+.frota-zona-info strong {
+  color: var(--text-primary, #1f2937);
+}
+
+/* ==========================================
+   DISTRIBUIR
+   ========================================== */
+
+.frota-distribuir-info {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.frota-distribuir-info p {
+  margin: 4px 0;
+  color: #1e40af;
+}
+
+.frota-distribuir-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ==========================================
+   BUTTONS
+   ========================================== */
+
+.frota-btn-primary {
+  padding: 12px 24px;
+  background: var(--primary, #2563eb);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.frota-btn-primary:hover {
+  background: #1d4ed8;
+}
+
+.frota-btn-secondary {
+  padding: 12px 24px;
+  background: white;
+  color: var(--primary, #2563eb);
+  border: 2px solid var(--primary, #2563eb);
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.frota-btn-secondary:hover {
+  background: #eff6ff;
+}
+
+.frota-btn-success {
+  padding: 12px 24px;
+  background: #22c55e;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.frota-btn-success:hover {
+  background: #16a34a;
+}
+
+/* ==========================================
+   ESTADOS
+   ========================================== */
+
+.frota-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  color: var(--text-secondary, #6b7280);
+}
+
+.frota-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  text-align: center;
+  padding: 24px;
+}
+
+.frota-empty h2 {
+  margin-bottom: 8px;
+  color: var(--text-primary, #1f2937);
+}
+
+.frota-empty p {
+  margin-bottom: 24px;
+  color: var(--text-secondary, #6b7280);
+}
+
+.frota-error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+/* ==========================================
+   RESPONSIVO
+   ========================================== */
+
+@media (max-width: 768px) {
+  .frota-header h1 {
+    font-size: 1.2rem;
+  }
+
+  .frota-tabs {
+    padding: 0 8px;
+  }
+
+  .frota-tab {
+    padding: 10px 12px;
+    font-size: 0.8rem;
+  }
+
+  .frota-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .frota-table th,
+  .frota-table td {
+    padding: 8px 12px;
+    font-size: 0.85rem;
+  }
+
+  .frota-veiculos-grid,
+  .frota-zonas-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .frota-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .frota-card {
+    flex-direction: column;
+    text-align: center;
+  }
+}

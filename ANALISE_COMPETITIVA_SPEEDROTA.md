@@ -15,7 +15,7 @@
 | **Prioridade Entregas** | ✅ NOVO | ✅ | ✅ | ✅ | ✅ |
 | **Compartilhar WhatsApp** | ✅ ÚNICO | ❌ | ❌ | ❌ | ❌ |
 | **Re-otimização Dinâmica** | ✅ NOVO (7 cenários) | ✅ | ✅ | ✅ | ✅ |
-| **Multi-driver** | ❌ | ✅ | ✅ | ✅ | ✅ |
+| **Multi-driver** | ✅ NOVO | ✅ | ✅ | ✅ | ✅ |
 | **POD (Proof of Delivery)** | ✅ NOVO | ✅ | ✅ | ✅ | ✅ |
 | **Integração ERP/TMS** | ❌ | ✅ | ✅ | ✅ | ✅ |
 | **Analytics Avançados** | ✅ NOVO | ✅ | ✅ | ✅ | ✅ |
@@ -36,7 +36,7 @@
 | ~~Janelas de Tempo~~ | ~~ALTO - Entregas agendadas~~ | ~~Baixa~~ | ✅ FEITO |
 | **POD (Proof of Delivery)** | ALTO - Comprovação | Média | ✅ FEITO |
 | ~~Re-otimização Dinâmica~~ | ~~MÉDIO - Mudanças em rota~~ | ~~Alta~~ | ✅ FEITO (7 cenários) |
-| **Multi-driver/Frota** | ALTO - Escalar clientes | Alta | ❌ P2 |
+| ~~Multi-driver/Frota~~ | ~~ALTO - Escalar clientes~~ | ~~Alta~~ | ✅ FEITO |
 
 ### 2.2 Gaps de Média Prioridade
 
@@ -362,13 +362,13 @@ MÊS 7-12: ESCALA B2B
 [x] Status de entrega em tempo real ✅ FEITO 05/02
 [ ] Histórico detalhado com filtros
 [ ] Export PDF/Excel
-[ ] Multi-driver básico
+[x] Multi-driver completo ✅ FEITO 06/02
 ```
 
 ### Sprint 7-8 (Maio 2026)
 ```
-[ ] Dashboard web para gestores
-[ ] Multi-motorista básico
+[x] Dashboard web para gestores ✅ FEITO 06/02
+[x] Multi-motorista completo ✅ FEITO 06/02
 [ ] API pública v1
 [ ] Integração Bling
 ```
@@ -432,16 +432,34 @@ MÊS 7-12: ESCALA B2B
 5. ~~**AGORA**: Re-otimização dinâmica (7 cenários)~~ ✅ FEITO
 6. ~~**AGORA**: Notificações push (API + Web + Android)~~ ✅ FEITO
 7. ~~**AGORA**: Status tempo real (SSE + tracking)~~ ✅ FEITO
-8. **PRÓXIMO**: Multi-motorista básico + Histórico com filtros
-9. **FUTURO**: API Pública + Dashboard web
+8. ~~**AGORA**: Multi-motorista completo (Gestão de Frota)~~ ✅ FEITO
+9. **PRÓXIMO**: Histórico com filtros + Export PDF/Excel
+10. **FUTURO**: API Pública v1 + Integração Bling
 
 ---
 
-*Documento atualizado em 05/02/2026 - SpeedRota Team*
+*Documento atualizado em 06/02/2026 - SpeedRota Team*
 
 ---
 
 ## 📝 CHANGELOG
+
+### 06/02/2026 - Multi-motorista / Gestão de Frota Completa
+- ✅ **Prisma Models**: 12 novos models (Empresa, Motorista, Veiculo, Equipe, ZonaAtuacao, etc.)
+- ✅ **Enums**: ModoDistribuicao (AUTO/MANUAL/HIBRIDO), StatusMotorista, StatusVeiculo, TipoVeiculo
+- ✅ **Algoritmo Distribuição**: Score-based inteligente (zona, distância, capacidade, performance, balanceamento)
+- ✅ **TSP Otimização**: Nearest Neighbor com prioridade janelas de tempo
+- ✅ **Redistribuição Dinâmica**: Reatribuição automática se motorista indisponível
+- ✅ **Modo Híbrido**: Sugestões IA + confirmação manual do gestor
+- ✅ **API REST Completa**: CRUD empresas, motoristas, veículos, equipes, zonas + distribuição
+- ✅ **Dashboard Web**: TelaFrota com overview, motoristas, veículos, zonas, distribuição
+- ✅ **Estilos CSS**: frota.css com design responsivo
+- ✅ **Android Driver App**: TelaFrotaMotorista, FrotaMotoristaViewModel, TelaRotaExecucao
+- ✅ **Location Tracking**: LocationTrackingService (foreground service com FCM)
+- ✅ **Status Motorista**: DISPONIVEL, EM_ROTA, PAUSADO, INDISPONIVEL, OFFLINE
+- ✅ **Capacidade Veículo**: Por tipo (MOTO 30kg, CARRO 200kg, VAN 800kg, CAMINHAO até 15000kg)
+- ✅ **Zonas de Atuação**: Definição por CEP, cidade, bairro ou raio/polígono
+- 🎯 **Enterprise-Grade**: Sistema robusto para escalar de autônomos a transportadoras
 
 ### 05/02/2026 - Notificações Push Implementadas
 - ✅ **API Notificações**: Serviço completo com 8 tipos (tráfego, cancelamento, janela expirando, novo pedido, entrega confirmada, atraso, re-otimização, sistema)

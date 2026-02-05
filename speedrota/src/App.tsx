@@ -14,7 +14,9 @@ import { TelaPlanos } from './components/TelaPlanos';
 import { TelaPagamentoRetorno } from './components/TelaPagamentoRetorno';
 import TelaHistorico from './components/TelaHistorico';
 import { TelaDashboard } from './components/Dashboard';
+import TelaFrota from './components/TelaFrota';
 import './styles/global.css';
+import './styles/frota.css';
 
 const TITULOS: Record<string, string> = {
   home: 'SpeedRota',
@@ -23,6 +25,7 @@ const TITULOS: Record<string, string> = {
   rota: 'Rota Otimizada',
   navegacao: 'Navegação',
   dashboard: 'Dashboard Analytics',
+  frota: 'Gestão de Frota',
 };
 
 // Verificar se é página de retorno do pagamento
@@ -159,6 +162,7 @@ export default function App() {
         {etapaAtual === 'destinos' && <TelaDestinos />}
         {etapaAtual === 'rota' && <TelaRota />}
         {etapaAtual === 'dashboard' && <TelaDashboard />}
+        {etapaAtual === 'frota' && <TelaFrota />}
       </main>
       
       {/* Footer com info da origem (se definida e não na home) */}

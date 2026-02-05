@@ -30,6 +30,10 @@ export function TelaHome({ onAbrirHistorico }: TelaHomeProps) {
     irPara('dashboard');
   };
 
+  const handleFrota = () => {
+    irPara('frota');
+  };
+
   return (
     <div className="home-hero">
       <div className="home-brand">
@@ -61,6 +65,18 @@ export function TelaHome({ onAbrirHistorico }: TelaHomeProps) {
           }}
         >
           📊 Dashboard Analytics
+        </button>
+
+        <button
+          className="btn btn-secondary"
+          onClick={handleFrota}
+          style={{
+            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+            color: 'white',
+            border: 'none'
+          }}
+        >
+          🚚 Gestão de Frota
         </button>
       </div>
 
