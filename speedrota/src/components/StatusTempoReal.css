@@ -1,0 +1,487 @@
+/**
+ * Status em Tempo Real - Styles
+ * @description Estilos para componentes de tracking
+ */
+
+/* ==========================================
+   PAINEL TRACKING
+   ========================================== */
+
+.painel-tracking {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--color-background, #f8fafc);
+  border-radius: 12px;
+}
+
+.painel-tracking.loading,
+.painel-tracking.erro {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  color: var(--color-text-secondary, #64748b);
+}
+
+.painel-tracking.erro {
+  color: var(--color-error, #ef4444);
+}
+
+.tracking-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tracking-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--color-text, #1e293b);
+}
+
+/* ==========================================
+   INDICADOR CONEXÃO
+   ========================================== */
+
+.indicador-conexao {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.indicador-conexao.conectado {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.indicador-conexao.desconectado {
+  background: #fef3c7;
+  color: #d97706;
+  animation: pulse 2s infinite;
+}
+
+.conexao-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.indicador-conexao.conectado .conexao-dot {
+  background: #22c55e;
+}
+
+.indicador-conexao.desconectado .conexao-dot {
+  background: #f59e0b;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* ==========================================
+   BARRA PROGRESSO
+   ========================================== */
+
+.barra-progresso-container {
+  background: white;
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.barra-progresso-info {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.barra-progresso-texto {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary, #64748b);
+}
+
+.barra-progresso-porcentagem {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-primary, #2563eb);
+}
+
+.barra-progresso-track {
+  height: 8px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.barra-progresso-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-primary, #2563eb), #3b82f6);
+  border-radius: 999px;
+  transition: width 0.5s ease;
+}
+
+/* ==========================================
+   CARD MÉTRICAS
+   ========================================== */
+
+.card-metricas {
+  background: white;
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.metricas-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+}
+
+.metrica-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.5rem;
+  background: #f8fafc;
+  border-radius: 8px;
+}
+
+.metrica-valor {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text, #1e293b);
+}
+
+.metrica-label {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary, #64748b);
+  text-align: center;
+}
+
+.metrica-item.falha .metrica-valor {
+  color: var(--color-error, #ef4444);
+}
+
+.proxima-parada {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: #eff6ff;
+  border-radius: 8px;
+  border-left: 4px solid var(--color-primary, #2563eb);
+}
+
+.proxima-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-primary, #2563eb);
+}
+
+.proxima-endereco {
+  flex: 1;
+  font-size: 0.875rem;
+  color: var(--color-text, #1e293b);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.proxima-eta {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-primary, #2563eb);
+}
+
+/* ==========================================
+   CONTROLES ROTA
+   ========================================== */
+
+.controles-rota {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.btn-controle {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-controle:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-controle.iniciar {
+  background: var(--color-primary, #2563eb);
+  color: white;
+  flex: 1;
+}
+
+.btn-controle.iniciar:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.btn-controle.pausar {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.btn-controle.pausar:hover:not(:disabled) {
+  background: #fde68a;
+}
+
+.btn-controle.finalizar {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.btn-controle.finalizar:hover:not(:disabled) {
+  background: #bbf7d0;
+}
+
+.rota-concluida {
+  padding: 1rem 2rem;
+  background: #dcfce7;
+  color: #16a34a;
+  border-radius: 8px;
+  font-size: 1.25rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+/* ==========================================
+   LISTA PARADAS
+   ========================================== */
+
+.lista-paradas {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.item-parada {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  transition: all 0.2s;
+}
+
+.item-parada.entregue {
+  opacity: 0.7;
+}
+
+.item-parada.em_transito {
+  border-left: 4px solid #3b82f6;
+}
+
+.item-parada.falha {
+  border-left: 4px solid #ef4444;
+}
+
+.parada-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  cursor: pointer;
+}
+
+.parada-ordem {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-primary, #2563eb);
+  color: white;
+  border-radius: 50%;
+  font-size: 0.75rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.item-parada.entregue .parada-ordem {
+  background: #22c55e;
+}
+
+.item-parada.falha .parada-ordem {
+  background: #ef4444;
+}
+
+.parada-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.parada-nome {
+  display: block;
+  font-weight: 600;
+  color: var(--color-text, #1e293b);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.parada-endereco {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary, #64748b);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.parada-status {
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: white;
+  white-space: nowrap;
+}
+
+/* ==========================================
+   AÇÕES PARADA
+   ========================================== */
+
+.parada-acoes {
+  padding: 0 1rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 1rem;
+  animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.btn-acao {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-acao.em-transito {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.btn-acao.em-transito:hover {
+  background: #dbeafe;
+}
+
+.btn-acao.entregue {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.btn-acao.entregue:hover {
+  background: #bbf7d0;
+}
+
+.btn-acao.falha {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.btn-acao.falha:hover {
+  background: #fecaca;
+}
+
+.btn-acao.retentar {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.btn-acao.retentar:hover {
+  background: #fde68a;
+}
+
+.falha-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.falha-form select,
+.falha-form input {
+  padding: 0.5rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 0.875rem;
+}
+
+.falha-form select:focus,
+.falha-form input:focus {
+  outline: none;
+  border-color: var(--color-primary, #2563eb);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+/* ==========================================
+   POSIÇÃO ATUAL
+   ========================================== */
+
+.posicao-atual {
+  padding: 0.75rem;
+  background: #f8fafc;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary, #64748b);
+  text-align: center;
+}
+
+.velocidade {
+  font-weight: 600;
+  color: var(--color-primary, #2563eb);
+}
+
+/* ==========================================
+   RESPONSIVE
+   ========================================== */
+
+@media (max-width: 480px) {
+  .metricas-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .controles-rota {
+    flex-direction: column;
+  }
+
+  .btn-controle {
+    width: 100%;
+  }
+}

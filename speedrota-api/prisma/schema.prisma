@@ -103,10 +103,18 @@ model Rota {
   
   // Métricas calculadas
   distanciaTotalKm  Float?  @map("distancia_total_km")
+  distanciaTotal    Float?  @map("distancia_total")  // Alias para km
   tempoViagemMin    Float?  @map("tempo_viagem_min")
   tempoEntregasMin  Float?  @map("tempo_entregas_min")
   combustivelL      Float?  @map("combustivel_l")
   custoR            Float?  @map("custo_r")
+  
+  // Tracking em tempo real
+  ultimaLat         Float?  @map("ultima_lat")
+  ultimaLng         Float?  @map("ultima_lng")
+  ultimaPosicaoEm   DateTime? @map("ultima_posicao_em")
+  entregasRealizadas Int?   @map("entregas_realizadas")
+  entregasFalhas    Int?    @map("entregas_falhas")
   
   // Status
   status          StatusRota @default(RASCUNHO)
@@ -122,6 +130,8 @@ model Rota {
   // Relacionamentos
   user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   paradas         Parada[]
+  posicaoHistorico PosicaoHistorico[]  // Tracking de posição
+  statusHistorico StatusHistorico[]   // Histórico de status
   
   @@map("rotas")
 }
@@ -171,6 +181,12 @@ model Parada {
   // Relacionamentos
   rota            Rota      @relation(fields: [rotaId], references: [id], onDelete: Cascade)
   pod             ProofOfDelivery?  // Comprovante de entrega (opcional)
+  statusHistorico StatusHistorico[] // Histórico de mudanças de status
+  
+  // Campos para controle de status estendido
+  status          String?    @default("PENDENTE")  // PENDENTE, EM_TRANSITO, CHEGOU, ENTREGUE, FALHA, CANCELADO, PULADO
+  motivoFalha     String?    @map("motivo_falha")  // CLIENTE_AUSENTE, ENDERECO_NAO_ENCONTRADO, RECUSADO, AVARIADO, OUTRO
+  observacaoFalha String?    @map("observacao_falha")
   
   @@map("paradas")
 }
@@ -407,4 +423,60 @@ model Notificacao {
   @@index([userId, lida])
   @@index([tipo])
   @@map("notificacoes")
+}
+
+// ==========================================
+// STATUS EM TEMPO REAL - TRACKING
+// ==========================================
+// @description Histórico de mudanças de status e tracking de posição
+// @pre Rota em andamento
+// @post Histórico completo para auditoria e analytics
+
+model StatusHistorico {
+  id          String    @id @default(uuid())
+  paradaId    String?   @map("parada_id")
+  rotaId      String    @map("rota_id")
+  
+  // Status
+  status      String    // PENDENTE, EM_TRANSITO, CHEGOU, ENTREGUE, FALHA, etc.
+  motivoFalha String?   @map("motivo_falha")
+  observacao  String?
+  
+  // Localização no momento
+  lat         Float?
+  lng         Float?
+  
+  // Timestamp
+  timestamp   DateTime  @default(now())
+  
+  // Relacionamentos
+  parada      Parada?   @relation(fields: [paradaId], references: [id], onDelete: Cascade)
+  rota        Rota      @relation(fields: [rotaId], references: [id], onDelete: Cascade)
+  
+  @@index([rotaId])
+  @@index([paradaId])
+  @@index([timestamp])
+  @@map("status_historico")
+}
+
+model PosicaoHistorico {
+  id          String    @id @default(uuid())
+  rotaId      String    @map("rota_id")
+  
+  // Posição
+  lat         Float
+  lng         Float
+  heading     Float?    // 0-360 graus
+  velocidade  Float?    // km/h
+  precisao    Float?    // metros
+  
+  // Timestamp
+  timestamp   DateTime  @default(now())
+  
+  // Relacionamento
+  rota        Rota      @relation(fields: [rotaId], references: [id], onDelete: Cascade)
+  
+  @@index([rotaId])
+  @@index([timestamp])
+  @@map("posicao_historico")
 }

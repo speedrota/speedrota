@@ -25,6 +25,7 @@ import { analyticsRoutes } from './routes/analytics.routes.js';
 import { trafegoRoutes } from './routes/trafego.routes.js';
 import reotimizacaoRoutes from './routes/reotimizacao.routes.js';
 import { notificacoesRoutes } from './routes/notificacoes.routes.js';
+import { statusRoutes } from './routes/status.routes.js';
 
 // ==========================================
 // CRIAR SERVIDOR FASTIFY
@@ -176,6 +177,7 @@ app.register(analyticsRoutes, { prefix: '/api/v1/analytics' });
 app.register(trafegoRoutes, { prefix: '/api/v1/trafego' });
 app.register(reotimizacaoRoutes, { prefix: '/api/v1/reotimizar' });
 app.register(notificacoesRoutes, { prefix: '/api/v1/notificacoes' });
+app.register(statusRoutes, { prefix: '/api/v1/status' });
 
 // ==========================================
 // ERROR HANDLER GLOBAL
