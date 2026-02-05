@@ -2,6 +2,9 @@
 <resources>
     <string name="app_name">SpeedRota</string>
     
+    <!-- API -->
+    <string name="api_base_url">https://speedrota-api.up.railway.app</string>
+
     <!-- Auth -->
     <string name="login">Entrar</string>
     <string name="register">Cadastrar</string>
