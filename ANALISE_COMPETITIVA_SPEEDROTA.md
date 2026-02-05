@@ -23,9 +23,9 @@
 | **Analytics Avançados** | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **Dashboard Gestor Frota** | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **Distribuição Inteligente** | ✅ (Score-based) | ✅ | ✅ | ✅ | ✅ |
-| **Integração ERP/TMS** | ❌ | ✅ | ✅ | ✅ | ✅ |
+| **Integração ERP/TMS** | ✅ (Bling/Tiny) | ✅ | ✅ | ✅ | ✅ |
 | **Geofencing** | ❌ | ✅ | ✅ | ❌ | ✅ |
-| **API Pública** | ❌ | ✅ | ✅ | ✅ | ✅ |
+| **API Pública** | ✅ (v1) | ✅ | ✅ | ✅ | ✅ |
 | **Suporte PT-BR** | ✅ ÚNICO | ❌ | ❌ | ❌ | ❌ |
 | **Pagamento PIX/Boleto** | ✅ ÚNICO | ❌ | ❌ | ❌ | ❌ |
 | **App Android Nativo** | ✅ | ✅ | ✅ | ✅ | ✅ |
@@ -52,7 +52,7 @@
 | **Capacidade Veículo** | MÉDIO | Baixa | ❌ P2 |
 | ~~Analytics/Relatórios~~ | ~~MÉDIO~~ | ~~Média~~ | ✅ FEITO |
 | ~~Integração WhatsApp~~ | ~~ALTO no Brasil~~ | ~~Média~~ | ✅ FEITO |
-| **API Pública** | ALTO para B2B | Alta | ❌ P3 |
+| **API Pública** | ALTO para B2B | Alta | ✅ FEITO (v1 + Bling/Tiny) |
 | **Geofencing** | BAIXO | Média | ❌ P3 |
 
 ---
@@ -480,6 +480,30 @@ MÊS 7-12: ESCALA B2B
 - ✅ **Capacidade Veículo**: Por tipo (MOTO 30kg, CARRO 200kg, VAN 800kg, CAMINHAO até 15000kg)
 - ✅ **Zonas de Atuação**: Definição por CEP, cidade, bairro ou raio/polígono
 - 🎯 **Enterprise-Grade**: Sistema robusto para escalar de autônomos a transportadoras
+
+### 05/02/2026 - Histórico com Filtros + Export PDF/Excel
+- ✅ **API Histórico**: Endpoints GET /historico, /resumo, /export/pdf, /export/excel, /fornecedores
+- ✅ **Service historico.ts**: Design por Contrato (pre/post conditions)
+- ✅ **PDF Export**: pdfkit com resumo, métricas e lista de entregas
+- ✅ **Excel Export**: exceljs com 4 worksheets (Resumo, Entregas, Fornecedores, Métricas)
+- ✅ **Web TelaHistorico**: Filtros por data, fornecedor, status + botões export
+- ✅ **Android HistoricoScreen**: Compose com paginação e filtros
+- ✅ **Android Models**: HistoricoRota, HistoricoResumo, HistoricoFiltro
+- 🎯 **Sprint 5-6 Roadmap**: Histórico completo implementado
+
+### 05/02/2026 - API Pública v1 + Integração Bling/Tiny
+- ✅ **Prisma Models**: ApiKey, Webhook, WebhookEntrega, LogApiPublica, IntegracaoFornecedor, PedidoImportado
+- ✅ **API Key Auth**: Middleware com rate limiting, permissões, HMAC validation
+- ✅ **Formato**: sk_live_xxx (produção) ou sk_test_xxx (sandbox)
+- ✅ **Service integracoes.ts**: Gestão de API Keys, webhooks e importação de pedidos
+- ✅ **API /api/v1/public**: Endpoints para rotas, paradas, otimização (via API Key)
+- ✅ **API /api/v1/webhooks/erp**: Receber webhooks do Bling, Tiny e genérico
+- ✅ **API /api/v1/developer**: Criar/revogar API Keys e gerenciar integrações
+- ✅ **Webhook Outgoing**: Disparo de eventos (rota.criada, parada.entregue, etc.)
+- ✅ **X-SpeedRota-Signature**: HMAC SHA256 para validação de webhooks
+- ✅ **Rate Limiting**: Configurável por API Key (headers RateLimit-Limit/Remaining/Reset)
+- ✅ **Permissões**: Array de scopes (rotas:read, paradas:write, otimizacao:execute, etc.)
+- 🎯 **Sprint 7-8 Roadmap**: API Pública + Integração ERPs pronta para B2B
 
 ### 05/02/2026 - Notificações Push Implementadas
 - ✅ **API Notificações**: Serviço completo com 8 tipos (tráfego, cancelamento, janela expirando, novo pedido, entrega confirmada, atraso, re-otimização, sistema)
