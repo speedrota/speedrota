@@ -1,0 +1,423 @@
+/**
+ * Estilos para componentes de Previsão de Demanda (ML)
+ * SpeedRota - Sprint 11-12
+ */
+
+/* ==========================================
+   TELA PRINCIPAL
+   ========================================== */
+
+.tela-previsao-demanda {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.previsao-header-principal {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.previsao-header-principal h1 {
+  font-size: 1.75rem;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.previsao-header-principal p {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+/* ==========================================
+   BUSCA DE PREVISÃO
+   ========================================== */
+
+.busca-previsao {
+  margin-bottom: 2rem;
+}
+
+.busca-form {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.busca-form input {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+}
+
+.busca-form input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.busca-form button {
+  padding: 0.75rem 1.5rem;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.busca-form button:hover:not(:disabled) {
+  background: var(--primary-dark);
+  transform: translateY(-1px);
+}
+
+.busca-form button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.erro {
+  color: var(--danger);
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+}
+
+/* ==========================================
+   CARD DE PREVISÃO
+   ========================================== */
+
+.card-previsao {
+  background: var(--bg-card);
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  margin-bottom: 1.5rem;
+}
+
+.previsao-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.previsao-zona {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.previsao-confianca {
+  font-size: 0.9rem;
+  font-weight: 500;
+  padding: 0.25rem 0.75rem;
+  background: var(--bg-secondary);
+  border-radius: 20px;
+}
+
+.previsao-principal {
+  display: flex;
+  justify-content: space-around;
+  margin: 1.5rem 0;
+  padding: 1rem;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+}
+
+.previsao-numero,
+.previsao-intervalo {
+  text-align: center;
+}
+
+.previsao-valor {
+  display: block;
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.previsao-range {
+  display: block;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.previsao-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  display: block;
+  margin-top: 0.25rem;
+}
+
+/* ==========================================
+   FATORES
+   ========================================== */
+
+.previsao-fatores {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.fator {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+}
+
+.fator-label {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.fator-valor {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* ==========================================
+   CARD DE INSIGHT
+   ========================================== */
+
+.card-insight {
+  background: var(--bg-secondary);
+  border-left: 4px solid var(--primary);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.insight-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.insight-icone {
+  font-size: 1.25rem;
+}
+
+.insight-titulo {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.insight-descricao {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin-bottom: 0.75rem;
+  line-height: 1.4;
+}
+
+.insight-acao {
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  padding: 0.5rem;
+  background: var(--bg-card);
+  border-radius: 6px;
+}
+
+/* ==========================================
+   MAPA DE CALOR
+   ========================================== */
+
+.mapa-calor-container {
+  background: var(--bg-card);
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.mapa-calor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.mapa-calor-header h3 {
+  font-size: 1.1rem;
+  color: var(--text-primary);
+}
+
+.input-data {
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.zonas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.zona-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  border-radius: 12px;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  min-height: 100px;
+  transition: transform 0.2s;
+  cursor: pointer;
+}
+
+.zona-card:hover {
+  transform: scale(1.02);
+}
+
+.zona-nome {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.zona-demanda {
+  font-size: 0.85rem;
+  margin-bottom: 0.25rem;
+}
+
+.zona-horario {
+  font-size: 0.8rem;
+  opacity: 0.9;
+}
+
+.legenda {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.legenda-item {
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  color: white;
+  font-weight: 500;
+}
+
+/* ==========================================
+   PAINEL DE INSIGHTS
+   ========================================== */
+
+.painel-insights {
+  background: var(--bg-card);
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.painel-insights h3 {
+  font-size: 1.1rem;
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+}
+
+.painel-insights.vazio {
+  text-align: center;
+  color: var(--text-secondary);
+  padding: 2rem;
+}
+
+.insights-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* ==========================================
+   MÉTRICAS DO MODELO
+   ========================================== */
+
+.metricas-modelo {
+  background: var(--bg-card);
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.metricas-modelo.vazio {
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.metricas-modelo h4 {
+  font-size: 1.1rem;
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+}
+
+.metricas-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+.metrica {
+  text-align: center;
+  padding: 1rem;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+}
+
+.metrica-valor {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.metrica-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* ==========================================
+   LOADING
+   ========================================== */
+
+.loading {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-secondary);
+}
+
+/* ==========================================
+   RESPONSIVO
+   ========================================== */
+
+@media (max-width: 600px) {
+  .busca-form {
+    flex-direction: column;
+  }
+
+  .previsao-fatores {
+    grid-template-columns: 1fr;
+  }
+
+  .metricas-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .mapa-calor-header {
+    flex-direction: column;
+    gap: 0.75rem;
+    text-align: center;
+  }
+}

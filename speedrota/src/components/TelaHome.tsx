@@ -34,6 +34,14 @@ export function TelaHome({ onAbrirHistorico }: TelaHomeProps) {
     irPara('frota');
   };
 
+  const handlePrevisao = () => {
+    irPara('previsao');
+  };
+
+  const handleGamificacao = () => {
+    irPara('gamificacao');
+  };
+
   return (
     <div className="home-hero">
       <div className="home-brand">
@@ -77,6 +85,30 @@ export function TelaHome({ onAbrirHistorico }: TelaHomeProps) {
           }}
         >
           🚚 Gestão de Frota
+        </button>
+
+        <button
+          className="btn btn-secondary"
+          onClick={handlePrevisao}
+          style={{
+            background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+            color: 'white',
+            border: 'none'
+          }}
+        >
+          🔮 Previsão de Demanda
+        </button>
+
+        <button
+          className="btn btn-secondary"
+          onClick={handleGamificacao}
+          style={{
+            background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+            color: 'white',
+            border: 'none'
+          }}
+        >
+          🎮 Conquistas
         </button>
       </div>
 

@@ -1,0 +1,542 @@
+/**
+ * Estilos para componentes de Gamificação
+ * SpeedRota - Sprint 11-12
+ */
+
+/* ==========================================
+   TELA PRINCIPAL
+   ========================================== */
+
+.tela-gamificacao {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.gamificacao-header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.gamificacao-header h1 {
+  font-size: 1.75rem;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+}
+
+.gamificacao-header p {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+/* ==========================================
+   PERFIL HEADER
+   ========================================== */
+
+.perfil-section {
+  margin-bottom: 1.5rem;
+}
+
+.perfil-header {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  border-radius: 16px;
+  padding: 1.5rem;
+  color: white;
+}
+
+.perfil-nivel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  border: 3px solid white;
+}
+
+.nivel-numero {
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.nivel-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  opacity: 0.9;
+}
+
+.perfil-info {
+  flex: 1;
+}
+
+.perfil-progresso {
+  margin-bottom: 1rem;
+}
+
+.progresso-nivel-bar {
+  height: 12px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.progresso-nivel-fill {
+  height: 100%;
+  background: white;
+  border-radius: 6px;
+  transition: width 0.3s ease;
+}
+
+.progresso-nivel-texto {
+  font-size: 0.85rem;
+  opacity: 0.9;
+}
+
+.perfil-stats {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.perfil-stats .stat {
+  font-size: 0.9rem;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+}
+
+/* ==========================================
+   TABS DE NAVEGAÇÃO
+   ========================================== */
+
+.gamificacao-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  padding: 0.5rem;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 0.75rem;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tab-btn.ativo {
+  background: var(--bg-card);
+  color: var(--primary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.tab-btn:hover:not(.ativo) {
+  color: var(--text-primary);
+}
+
+/* ==========================================
+   LISTA DE BADGES
+   ========================================== */
+
+.lista-badges-container {
+  background: var(--bg-card);
+  border-radius: 16px;
+  padding: 1.5rem;
+}
+
+.badges-filtros {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+}
+
+.filtro-btn {
+  padding: 0.5rem 1rem;
+  background: var(--bg-secondary);
+  border: none;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filtro-btn.ativo {
+  background: var(--primary);
+  color: white;
+}
+
+.filtro-btn:hover:not(.ativo) {
+  background: var(--bg-tertiary);
+}
+
+.badges-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+/* ==========================================
+   CARD DE BADGE
+   ========================================== */
+
+.card-badge {
+  display: flex;
+  gap: 1rem;
+  background: var(--bg-secondary);
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem;
+  transition: all 0.2s;
+}
+
+.card-badge.conquistado {
+  background: var(--bg-card);
+  border-width: 2px;
+}
+
+.card-badge.bloqueado {
+  opacity: 0.7;
+}
+
+.card-badge:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.badge-icone-container {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.badge-icone {
+  font-size: 2.5rem;
+  display: block;
+}
+
+.badge-icone.grayscale {
+  filter: grayscale(1);
+  opacity: 0.6;
+}
+
+.badge-check {
+  position: absolute;
+  bottom: -5px;
+  right: -5px;
+  font-size: 0.9rem;
+}
+
+.badge-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.badge-nome {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+}
+
+.badge-descricao {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.3;
+  margin-bottom: 0.5rem;
+}
+
+.badge-progresso {
+  margin-bottom: 0.5rem;
+}
+
+.progresso-bar {
+  height: 6px;
+  background: var(--bg-tertiary);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 0.25rem;
+}
+
+.progresso-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.progresso-texto {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.badge-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.badge-raridade {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.badge-pontos {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+/* ==========================================
+   RANKING
+   ========================================== */
+
+.ranking-container {
+  background: var(--bg-card);
+  border-radius: 16px;
+  padding: 1.5rem;
+}
+
+.ranking-container h3 {
+  font-size: 1.1rem;
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+}
+
+.ranking-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.ranking-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  transition: transform 0.2s;
+}
+
+.ranking-item:hover {
+  transform: translateX(4px);
+}
+
+.ranking-item.destaque {
+  background: linear-gradient(135deg, #fef3c7, #fcd34d);
+}
+
+.ranking-item.destaque:nth-child(2) {
+  background: linear-gradient(135deg, #e5e7eb, #d1d5db);
+}
+
+.ranking-item.destaque:nth-child(3) {
+  background: linear-gradient(135deg, #fed7aa, #fb923c);
+}
+
+.ranking-posicao {
+  font-size: 1.5rem;
+  font-weight: 700;
+  min-width: 50px;
+  text-align: center;
+}
+
+.ranking-info {
+  flex: 1;
+}
+
+.ranking-nome {
+  display: block;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.ranking-nivel {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.ranking-stats {
+  text-align: right;
+}
+
+.ranking-pontos {
+  display: block;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.ranking-entregas {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+/* ==========================================
+   RESUMO SEMANAL
+   ========================================== */
+
+.resumo-semanal {
+  background: var(--bg-card);
+  border-radius: 16px;
+  padding: 1.5rem;
+}
+
+.resumo-semanal h3 {
+  font-size: 1.1rem;
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+}
+
+.resumo-destaque {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+}
+
+.destaque-emoji {
+  font-size: 2rem;
+}
+
+.destaque-texto {
+  font-weight: 600;
+  color: #78350f;
+}
+
+.resumo-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.resumo-stat {
+  text-align: center;
+  padding: 1rem;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+}
+
+.resumo-stat .stat-valor {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.resumo-stat .stat-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* Metas */
+.resumo-metas {
+  margin-bottom: 1rem;
+}
+
+.resumo-metas h4 {
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  margin-bottom: 0.75rem;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.meta-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  min-width: 70px;
+}
+
+.meta-bar {
+  flex: 1;
+  height: 10px;
+  background: var(--bg-secondary);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.meta-fill {
+  height: 100%;
+  background: var(--primary);
+  border-radius: 5px;
+  transition: width 0.3s ease;
+}
+
+.meta-valor {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  min-width: 60px;
+  text-align: right;
+}
+
+.resumo-posicao-up {
+  text-align: center;
+  padding: 0.75rem;
+  background: #dcfce7;
+  color: #166534;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+/* ==========================================
+   LOADING
+   ========================================== */
+
+.loading {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-secondary);
+}
+
+/* ==========================================
+   RESPONSIVO
+   ========================================== */
+
+@media (max-width: 600px) {
+  .perfil-header {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .perfil-stats {
+    justify-content: center;
+  }
+
+  .badges-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .resumo-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .gamificacao-tabs {
+    flex-wrap: wrap;
+  }
+
+  .tab-btn {
+    flex: 1 1 calc(33% - 0.5rem);
+  }
+}

@@ -15,6 +15,8 @@ import { TelaPagamentoRetorno } from './components/TelaPagamentoRetorno';
 import TelaHistorico from './components/TelaHistorico';
 import { TelaDashboard } from './components/Dashboard';
 import TelaFrota from './components/TelaFrota';
+import { TelaPrevisaoDemanda } from './components/PrevisaoDemanda';
+import { TelaGamificacao } from './components/Gamificacao';
 import './styles/global.css';
 import './styles/frota.css';
 
@@ -26,6 +28,8 @@ const TITULOS: Record<string, string> = {
   navegacao: 'Navegação',
   dashboard: 'Dashboard Analytics',
   frota: 'Gestão de Frota',
+  previsao: 'Previsão de Demanda',
+  gamificacao: 'Conquistas',
 };
 
 // Verificar se é página de retorno do pagamento
@@ -163,6 +167,8 @@ export default function App() {
         {etapaAtual === 'rota' && <TelaRota />}
         {etapaAtual === 'dashboard' && <TelaDashboard />}
         {etapaAtual === 'frota' && <TelaFrota />}
+        {etapaAtual === 'previsao' && <TelaPrevisaoDemanda />}
+        {etapaAtual === 'gamificacao' && <TelaGamificacao />}
       </main>
       
       {/* Footer com info da origem (se definida e não na home) */}
