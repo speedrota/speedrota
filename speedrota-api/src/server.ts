@@ -31,6 +31,9 @@ import historicoRoutes from './routes/historico.routes.js';
 import publicApiRoutes from './routes/public.routes.js';
 import webhookErpRoutes from './routes/webhook.erp.routes.js';
 import apiKeysRoutes from './routes/apikeys.routes.js';
+import { capacidadeRoutes } from './routes/capacidade.routes.js';
+import { geofencingRoutes } from './routes/geofencing.routes.js';
+import { sefazRoutes } from './routes/sefaz.routes.js';
 
 // ==========================================
 // CRIAR SERVIDOR FASTIFY
@@ -188,6 +191,11 @@ app.register(notificacoesRoutes, { prefix: '/api/v1/notificacoes' });
 app.register(statusRoutes, { prefix: '/api/v1/status' });
 app.register(frotaRoutes, { prefix: '/api/v1/frota' });
 app.register(historicoRoutes, { prefix: '/api/v1/historico' });
+
+// Sprint 9-10: Capacidade, Geofencing, SEFAZ
+app.register(capacidadeRoutes, { prefix: '/api/v1/capacidade' });
+app.register(geofencingRoutes, { prefix: '/api/v1/geofencing' });
+app.register(sefazRoutes, { prefix: '/api/v1/sefaz' });
 
 // API Pública (usa API Key ao invés de JWT)
 app.register(publicApiRoutes, { prefix: '/api/v1/public' });

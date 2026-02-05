@@ -524,14 +524,15 @@ model Empresa {
   deletedAt DateTime? @map("deleted_at")
 
   // Relacionamentos
-  gestor       User                   @relation("GestorEmpresa", fields: [gestorId], references: [id])
-  motoristas   Motorista[]
-  veiculos     Veiculo[]
-  equipes      Equipe[]
-  zonasAtuacao ZonaAtuacao[]
-  rotasEmpresa RotaEmpresa[]
-  apiKeys      ApiKey[]
-  integracoes  IntegracaoFornecedor[]
+  gestor            User                   @relation("GestorEmpresa", fields: [gestorId], references: [id])
+  motoristas        Motorista[]
+  veiculos          Veiculo[]
+  equipes           Equipe[]
+  zonasAtuacao      ZonaAtuacao[]
+  rotasEmpresa      RotaEmpresa[]
+  apiKeys           ApiKey[]
+  integracoes       IntegracaoFornecedor[]
+  configuracaoSefaz ConfiguracaoSefaz?
 
   @@index([gestorId])
   @@map("empresas")
@@ -602,6 +603,7 @@ model Motorista {
   rotasAtribuidas      RotaEmpresa[]          @relation("MotoristaRotas")
   historicoAtribuicoes AtribuicaoHistorico[]
   performanceHistorico PerformanceMotorista[]
+  eventosGeofence      EventoGeofence[]
 
   @@index([empresaId])
   @@index([status])
@@ -719,9 +721,11 @@ model ZonaAtuacao {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relacionamentos
-  empresa        Empresa         @relation(fields: [empresaId], references: [id], onDelete: Cascade)
-  motoristasZona MotoristaZona[]
-  equipesZona    Equipe[]
+  empresa              Empresa               @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  motoristasZona       MotoristaZona[]
+  equipesZona          Equipe[]
+  eventosGeofence      EventoGeofence[]
+  configuracaoGeofence ConfiguracaoGeofence?
 
   @@index([empresaId])
   @@map("zonas_atuacao")
@@ -792,6 +796,8 @@ model RotaEmpresa {
   empresa        Empresa         @relation(fields: [empresaId], references: [id], onDelete: Cascade)
   motorista      Motorista?      @relation("MotoristaRotas", fields: [motoristaId], references: [id])
   paradasEmpresa ParadaEmpresa[]
+  cargaVeiculo   CargaVeiculo?   @relation(fields: [cargaVeiculoId], references: [id])
+  cargaVeiculoId String?
 
   @@index([empresaId])
   @@index([motoristaId])
@@ -1236,4 +1242,244 @@ enum StatusPedidoImportado {
   PROCESSADO // Virou parada
   IGNORADO // Descartado (duplicado, etc.)
   ERRO // Erro no processamento
+}
+
+// ==========================================
+// GEOFENCING
+// ==========================================
+// @description Eventos de entrada/saída de zonas geográficas
+// @pre Zona deve ter polígono OU centro+raio definidos
+// @post Evento registrado com timestamp e coordenadas
+// @invariant Debounce de 30s entre eventos do mesmo tipo
+
+model EventoGeofence {
+  id String @id @default(uuid())
+
+  // Relacionamentos
+  motoristaId String  @map("motorista_id")
+  zonaId      String  @map("zona_id")
+  rotaId      String? @map("rota_id") // Rota ativa no momento
+
+  // Evento
+  tipo       TipoEventoGeofence
+  lat        Float
+  lng        Float
+  precisao   Float? // Precisão GPS em metros
+  velocidade Float? // Velocidade km/h
+
+  // Contexto
+  enderecoApproximado String? @map("endereco_approx")
+  tempoNaZonaMin      Int?    @map("tempo_na_zona_min") // Só para SAIDA
+
+  // Processamento
+  notificacaoEnviada Boolean   @default(false) @map("notificacao_enviada")
+  processadoEm       DateTime? @map("processado_em")
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relacionamentos
+  motorista Motorista   @relation(fields: [motoristaId], references: [id], onDelete: Cascade)
+  zona      ZonaAtuacao @relation(fields: [zonaId], references: [id], onDelete: Cascade)
+
+  @@index([motoristaId])
+  @@index([zonaId])
+  @@index([createdAt])
+  @@map("eventos_geofence")
+}
+
+// Configuração de alerta por zona
+model ConfiguracaoGeofence {
+  id String @id @default(uuid())
+
+  zonaId String @map("zona_id")
+
+  // Alertas habilitados
+  alertaEntrada       Boolean @default(true) @map("alerta_entrada")
+  alertaSaida         Boolean @default(true) @map("alerta_saida")
+  alertaTempoExcedido Boolean @default(false) @map("alerta_tempo_excedido")
+
+  // Configurações
+  tempoMaximoMin       Int @default(60) @map("tempo_maximo_min") // Alerta se > X min
+  debounceSegundos     Int @default(30) @map("debounce_segundos")
+  raioToleranciaMetros Int @default(50) @map("raio_tolerancia_metros")
+
+  // Notificações
+  notificarGestor    Boolean @default(true) @map("notificar_gestor")
+  notificarMotorista Boolean @default(false) @map("notificar_motorista")
+  webhookUrl         String? @map("webhook_url")
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relacionamentos
+  zona ZonaAtuacao @relation(fields: [zonaId], references: [id], onDelete: Cascade)
+
+  @@unique([zonaId])
+  @@map("configuracoes_geofence")
+}
+
+enum TipoEventoGeofence {
+  ENTRADA
+  SAIDA
+  TEMPO_EXCEDIDO
+}
+
+// ==========================================
+// INTEGRAÇÃO SEFAZ
+// ==========================================
+// @description Cache de consultas NF-e à SEFAZ
+// @pre Chave de 44 dígitos válida
+// @post XML armazenado por 7 dias
+// @invariant Não consultar mesma chave mais de 1x por hora
+
+model CacheSefaz {
+  id String @id @default(uuid())
+
+  // Chave de acesso
+  chaveAcesso String @unique @map("chave_acesso") // 44 dígitos
+  uf          String // UF do emitente (2 dígitos)
+
+  // Status da NF-e
+  status           StatusNfe
+  protocolo        String?
+  dataAutorizacao  DateTime? @map("data_autorizacao")
+  dataCancelamento DateTime? @map("data_cancelamento")
+
+  // XML (comprimido ou referência)
+  xmlNfe     String? @map("xml_nfe") // XML da NF-e (pode ser grande)
+  xmlProcNfe String? @map("xml_proc_nfe") // XML de processamento
+
+  // Dados extraídos do XML (para consulta rápida)
+  numero      String?
+  serie       String?
+  dataEmissao DateTime? @map("data_emissao")
+  valorTotal  Float?    @map("valor_total")
+
+  // Emitente
+  emitenteCnpj String? @map("emitente_cnpj")
+  emitenteNome String? @map("emitente_nome")
+  emitenteUf   String? @map("emitente_uf")
+
+  // Destinatário
+  destCpfCnpj     String? @map("dest_cpf_cnpj")
+  destNome        String? @map("dest_nome")
+  destEndereco    String? @map("dest_endereco")
+  destNumero      String? @map("dest_numero")
+  destComplemento String? @map("dest_complemento")
+  destBairro      String? @map("dest_bairro")
+  destCidade      String? @map("dest_cidade")
+  destUf          String? @map("dest_uf")
+  destCep         String? @map("dest_cep")
+  destTelefone    String? @map("dest_telefone")
+
+  // Transporte
+  volumes     Int?   @default(1)
+  pesoLiquido Float? @map("peso_liquido")
+  pesoBruto   Float? @map("peso_bruto")
+
+  // Metadados
+  consultadoEm   DateTime @default(now()) @map("consultado_em")
+  expiraEm       DateTime @map("expira_em") // Expirar cache após 7 dias
+  totalConsultas Int      @default(1) @map("total_consultas")
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([chaveAcesso])
+  @@index([emitenteCnpj])
+  @@index([destCpfCnpj])
+  @@index([expiraEm])
+  @@map("cache_sefaz")
+}
+
+// Configuração de integração SEFAZ por empresa
+model ConfiguracaoSefaz {
+  id String @id @default(uuid())
+
+  empresaId String @unique @map("empresa_id")
+
+  // Certificado Digital (criptografado)
+  certificadoBase64   String?   @map("certificado_base64")
+  certificadoSenha    String?   @map("certificado_senha") // Criptografado
+  certificadoValidade DateTime? @map("certificado_validade")
+
+  // Ambiente
+  ambiente AmbienteSefaz @default(PRODUCAO)
+  ufPadrao String?       @map("uf_padrao") // UF padrão para consultas
+
+  // Configurações
+  consultaAutomatica Boolean @default(false) @map("consulta_automatica")
+  importarAutomatico Boolean @default(false) @map("importar_automatico")
+
+  // Limites
+  maxConsultasDia Int       @default(100) @map("max_consultas_dia")
+  consultasHoje   Int       @default(0) @map("consultas_hoje")
+  ultimoResetDia  DateTime? @map("ultimo_reset_dia")
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relacionamentos
+  empresa Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  @@map("configuracoes_sefaz")
+}
+
+enum StatusNfe {
+  AUTORIZADA
+  CANCELADA
+  DENEGADA
+  NAO_ENCONTRADA
+  ERRO_CONSULTA
+}
+
+enum AmbienteSefaz {
+  PRODUCAO
+  HOMOLOGACAO
+}
+
+// ==========================================
+// CAPACIDADE DE VEÍCULO - TRACKING
+// ==========================================
+// @description Registro de carga do veículo durante a rota
+// @pre Veículo atribuído à rota
+// @post Atualizado a cada entrega
+// @invariant cargaAtualKg <= capacidadeKg (sempre)
+
+model CargaVeiculo {
+  id String @id @default(uuid())
+
+  veiculoId String @map("veiculo_id")
+  rotaId    String @map("rota_id")
+
+  // Carga atual
+  pesoAtualKg   Float @default(0) @map("peso_atual_kg")
+  volumesAtuais Int   @default(0) @map("volumes_atuais")
+  volumeM3Atual Float @default(0) @map("volume_m3_atual")
+
+  // Capacidade do veículo (snapshot no momento)
+  capacidadeKg      Float  @map("capacidade_kg")
+  capacidadeVolumes Int    @map("capacidade_volumes")
+  capacidadeM3      Float? @map("capacidade_m3")
+
+  // Percentuais
+  percentualPeso    Float @default(0) @map("percentual_peso")
+  percentualVolumes Float @default(0) @map("percentual_volumes")
+
+  // Alertas
+  alertaEnviado80 Boolean @default(false) @map("alerta_enviado_80")
+  alertaEnviado95 Boolean @default(false) @map("alerta_enviado_95")
+
+  // Timestamps
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+  rotaEmpresas RotaEmpresa[]
+
+  @@unique([veiculoId, rotaId])
+  @@index([rotaId])
+  @@map("cargas_veiculo")
 }
