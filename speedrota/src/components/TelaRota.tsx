@@ -79,6 +79,48 @@ export function TelaRota() {
     window.open(url, '_blank');
   };
   
+  // Compartilhar rota via WhatsApp
+  const handleCompartilharWhatsApp = () => {
+    const hoje = new Date().toLocaleDateString('pt-BR');
+    
+    // Construir mensagem formatada
+    let mensagem = `🚚 *Rota do dia - SpeedRota*\n`;
+    mensagem += `📅 ${hoje}\n`;
+    mensagem += `📍 ${paradas.length} entregas | ${formatarDistancia(metricas.distanciaTotalKm)} | ~${formatarTempo(metricas.tempoAjustadoMin)}\n\n`;
+    
+    // Origem
+    mensagem += `📌 *Origem:* ${origem.endereco || 'Localização atual'}\n\n`;
+    
+    // Lista de paradas
+    mensagem += `*Entregas:*\n`;
+    paradas.forEach((parada, index) => {
+      const prioridade = parada.prioridade === 'ALTA' ? '🔴' : parada.prioridade === 'BAIXA' ? '🟢' : '';
+      const janela = parada.janelaInicio && parada.janelaFim ? ` ⏰${parada.janelaInicio}-${parada.janelaFim}` : '';
+      mensagem += `${index + 1}️⃣ ${prioridade}${parada.nome}${janela}\n`;
+      mensagem += `   📍 ${parada.endereco}\n`;
+      if (parada.telefone) {
+        mensagem += `   📞 ${parada.telefone}\n`;
+      }
+    });
+    
+    // Retorno
+    if (incluirRetorno && destinoRetorno) {
+      mensagem += `\n🔄 *Retorno:* ${destinoRetorno.endereco || 'Origem'}\n`;
+    }
+    
+    // Métricas
+    mensagem += `\n💰 Custo estimado: ${formatarMoeda(metricas.custoR$)}`;
+    mensagem += `\n⛽ Combustível: ${metricas.combustivelL.toFixed(1)}L`;
+    
+    // Footer
+    mensagem += `\n\n_Rota otimizada por SpeedRota_ 🚀`;
+    mensagem += `\nhttps://speedrota.com.br`;
+    
+    // Abrir WhatsApp com mensagem
+    const url = `https://wa.me/?text=${encodeURIComponent(mensagem)}`;
+    window.open(url, '_blank');
+  };
+  
   // Gerar URL do Waze com todos os destinos (abre sequencialmente)
   const gerarLinksWaze = () => {
     const links: { nome: string; url: string }[] = [];
@@ -272,6 +314,15 @@ export function TelaRota() {
         onClick={handleIniciarWaze}
       >
         🚗 Iniciar Navegação (Waze)
+      </button>
+      
+      {/* Compartilhar WhatsApp */}
+      <button 
+        className="btn btn-whatsapp btn-lg mb-2"
+        onClick={handleCompartilharWhatsApp}
+        style={{ backgroundColor: '#25D366', color: 'white' }}
+      >
+        📲 Compartilhar no WhatsApp
       </button>
       
       {/* Links individuais Waze */}

@@ -31,6 +31,10 @@ fun DestinosScreen(
     var showAddDialog by remember { mutableStateOf(false) }
     var novoEndereco by remember { mutableStateOf("") }
     var selectedFornecedor by remember { mutableStateOf(Fornecedor.OUTRO) }
+    // Novos campos - janela de tempo e prioridade
+    var janelaInicio by remember { mutableStateOf("") }
+    var janelaFim by remember { mutableStateOf("") }
+    var prioridade by remember { mutableStateOf("MEDIA") }
 
     Scaffold(
         topBar = {
@@ -185,15 +189,87 @@ fun DestinosScreen(
                             )
                         }
                     }
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    // Janela de tempo
+                    Text(
+                        text = "⏰ Janela de Entrega (opcional)",
+                        style = MaterialTheme.typography.labelMedium
+                    )
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = janelaInicio,
+                            onValueChange = { janelaInicio = it },
+                            label = { Text("Início") },
+                            placeholder = { Text("08:00") },
+                            modifier = Modifier.weight(1f),
+                            singleLine = true
+                        )
+                        OutlinedTextField(
+                            value = janelaFim,
+                            onValueChange = { janelaFim = it },
+                            label = { Text("Fim") },
+                            placeholder = { Text("12:00") },
+                            modifier = Modifier.weight(1f),
+                            singleLine = true
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    // Prioridade
+                    Text(
+                        text = "🎯 Prioridade",
+                        style = MaterialTheme.typography.labelMedium
+                    )
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        FilterChip(
+                            selected = prioridade == "ALTA",
+                            onClick = { prioridade = "ALTA" },
+                            label = { Text("🔴 Alta") }
+                        )
+                        FilterChip(
+                            selected = prioridade == "MEDIA",
+                            onClick = { prioridade = "MEDIA" },
+                            label = { Text("🟡 Média") }
+                        )
+                        FilterChip(
+                            selected = prioridade == "BAIXA",
+                            onClick = { prioridade = "BAIXA" },
+                            label = { Text("🟢 Baixa") }
+                        )
+                    }
                 }
             },
             confirmButton = {
                 TextButton(
                     onClick = {
                         if (novoEndereco.isNotBlank()) {
-                            viewModel.addDestino(novoEndereco, selectedFornecedor)
+                            viewModel.addDestino(
+                                endereco = novoEndereco,
+                                fornecedor = selectedFornecedor,
+                                janelaInicio = janelaInicio.takeIf { it.isNotBlank() },
+                                janelaFim = janelaFim.takeIf { it.isNotBlank() },
+                                prioridade = prioridade
+                            )
                             novoEndereco = ""
                             selectedFornecedor = Fornecedor.OUTRO
+                            janelaInicio = ""
+                            janelaFim = ""
+                            prioridade = "MEDIA"
                             showAddDialog = false
                         }
                     }

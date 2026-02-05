@@ -135,6 +135,12 @@ export interface Destino {
   fonte: 'ocr' | 'manual' | 'pdf';
   /** Confiança do geocoding (0-1) */
   confianca: number;
+  /** Janela de tempo - início (HH:MM) */
+  janelaInicio?: string;
+  /** Janela de tempo - fim (HH:MM) */
+  janelaFim?: string;
+  /** Prioridade da entrega */
+  prioridade?: 'ALTA' | 'MEDIA' | 'BAIXA';
 }
 
 // ==========================================

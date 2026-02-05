@@ -39,6 +39,10 @@ const addParadaSchema = z.object({
   fornecedor: z.string().default('outro'),
   fonte: z.enum(['ocr', 'manual', 'pdf']).default('manual'),
   confianca: z.number().min(0).max(1).default(1),
+  // Novos campos - Janela de tempo e prioridade
+  janelaInicio: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/).optional(), // "08:00"
+  janelaFim: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/).optional(),    // "12:00"
+  prioridade: z.enum(['ALTA', 'MEDIA', 'BAIXA']).default('MEDIA'),
 });
 
 // ==========================================
@@ -60,6 +64,46 @@ function haversineCorrigido(lat1: number, lng1: number, lat2: number, lng2: numb
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   
   return R * c * CONSTANTES.FATOR_CORRECAO_URBANA;
+}
+
+/**
+ * Converte horário "HH:MM" para minutos desde meia-noite
+ * @pre horario no formato "HH:MM"
+ * @post retorna minutos (0-1439)
+ */
+function horarioParaMinutos(horario: string | null | undefined): number {
+  if (!horario) return 1440; // Sem janela = final do dia
+  const [h, m] = horario.split(':').map(Number);
+  return h * 60 + m;
+}
+
+/**
+ * Ordena paradas por prioridade e janela de tempo
+ * @pre paradas com campos prioridade e janelaFim opcionais
+ * @post paradas ordenadas: ALTA primeiro, depois por janelaFim mais cedo
+ */
+function ordenarPorPrioridadeEJanela<T extends { 
+  id: string; 
+  prioridade?: string | null;
+  janelaFim?: string | null;
+}>(paradas: T[]): T[] {
+  const pesosPrioridade: Record<string, number> = {
+    'ALTA': 0,
+    'MEDIA': 1,
+    'BAIXA': 2,
+  };
+  
+  return [...paradas].sort((a, b) => {
+    // Primeiro por prioridade
+    const prioA = pesosPrioridade[a.prioridade || 'MEDIA'] ?? 1;
+    const prioB = pesosPrioridade[b.prioridade || 'MEDIA'] ?? 1;
+    if (prioA !== prioB) return prioA - prioB;
+    
+    // Depois por janela de tempo (mais cedo primeiro)
+    const janelaA = horarioParaMinutos(a.janelaFim);
+    const janelaB = horarioParaMinutos(b.janelaFim);
+    return janelaA - janelaB;
+  });
 }
 
 /**
@@ -164,6 +208,11 @@ export async function rotaRoutes(app: FastifyInstance) {
         status: p.statusEntrega,
         fornecedor: p.fornecedor,
         nomeDestinatario: p.nome,
+        telefone: p.telefone,
+        // Novos campos - janela de tempo e prioridade
+        janelaInicio: p.janelaInicio,
+        janelaFim: p.janelaFim,
+        prioridade: p.prioridade,
         createdAt: p.createdAt?.toISOString(),
       })),
     }));
@@ -224,6 +273,11 @@ export async function rotaRoutes(app: FastifyInstance) {
         status: p.statusEntrega,
         fornecedor: p.fornecedor,
         nomeDestinatario: p.nome,
+        telefone: p.telefone,
+        // Novos campos - janela de tempo e prioridade
+        janelaInicio: p.janelaInicio,
+        janelaFim: p.janelaFim,
+        prioridade: p.prioridade,
         createdAt: p.createdAt?.toISOString(),
       })),
     };
@@ -453,10 +507,21 @@ export async function rotaRoutes(app: FastifyInstance) {
     
     // Calcular ordem otimizada
     const origem = { lat: rota.origemLat, lng: rota.origemLng };
-    const paradasParaOtimizar = rota.paradas.map(p => ({
+    
+    // NOVO: Pré-ordenar por prioridade e janela de tempo
+    const paradasOrdenadas = ordenarPorPrioridadeEJanela(rota.paradas);
+    
+    // Separar paradas de alta prioridade (devem ser visitadas primeiro)
+    const paradasAlta = paradasOrdenadas.filter(p => p.prioridade === 'ALTA');
+    const paradasOutras = paradasOrdenadas.filter(p => p.prioridade !== 'ALTA');
+    
+    // Otimizar paradas de alta prioridade primeiro, depois as outras
+    const paradasParaOtimizar = [...paradasAlta, ...paradasOutras].map(p => ({
       id: p.id,
       lat: p.lat,
       lng: p.lng,
+      prioridade: p.prioridade,
+      janelaFim: p.janelaFim,
     }));
     
     const ordemOtimizada = nearestNeighbor(origem, paradasParaOtimizar, rota.incluirRetorno);

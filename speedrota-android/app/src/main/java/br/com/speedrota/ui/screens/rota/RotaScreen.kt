@@ -1,5 +1,7 @@
 package br.com.speedrota.ui.screens.rota
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -14,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -21,6 +24,9 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import br.com.speedrota.data.model.Destino
 import br.com.speedrota.ui.theme.*
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,6 +38,43 @@ fun RotaScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val uriHandler = LocalUriHandler.current
+    val context = LocalContext.current
+    
+    // Função para compartilhar no WhatsApp
+    fun compartilharWhatsApp() {
+        val hoje = SimpleDateFormat("dd/MM/yyyy", Locale("pt", "BR")).format(Date())
+        val distancia = String.format(Locale.getDefault(), "%.1f km", uiState.distanciaTotal)
+        val tempo = "${uiState.tempoEstimado} min"
+        
+        val mensagem = buildString {
+            append("🚚 *Rota do dia - SpeedRota*\n")
+            append("📅 $hoje\n")
+            append("📍 ${uiState.destinosOtimizados.size} entregas | $distancia | ~$tempo\n\n")
+            append("*Entregas:*\n")
+            
+            uiState.destinosOtimizados.forEachIndexed { index, destino ->
+                val prioridadeIcon = when (destino.prioridade) {
+                    "ALTA" -> "🔴"
+                    "BAIXA" -> "🟢"
+                    else -> ""
+                }
+                val janela = if (!destino.janelaInicio.isNullOrBlank() && !destino.janelaFim.isNullOrBlank()) {
+                    " ⏰${destino.janelaInicio}-${destino.janelaFim}"
+                } else ""
+                
+                append("${index + 1}️⃣ $prioridadeIcon${destino.endereco}$janela\n")
+            }
+            
+            append("\n💰 Custo estimado: R$ ${String.format("%.2f", uiState.custoEstimado)}")
+            append("\n\n_Rota otimizada por SpeedRota_ 🚀")
+            append("\nhttps://speedrota.com.br")
+        }
+        
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            data = Uri.parse("https://wa.me/?text=${Uri.encode(mensagem)}")
+        }
+        context.startActivity(intent)
+    }
     
     // Carregar rota do histórico se rotaId foi fornecido
     LaunchedEffect(rotaId) {
@@ -229,6 +272,23 @@ fun RotaScreen(
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Iniciar")
                     }
+                }
+                
+                // Botão compartilhar WhatsApp
+                Button(
+                    onClick = { compartilharWhatsApp() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .padding(bottom = 16.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF25D366) // WhatsApp Green
+                    ),
+                    enabled = uiState.destinosOtimizados.isNotEmpty()
+                ) {
+                    Icon(Icons.Default.Share, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("📲 Compartilhar no WhatsApp")
                 }
             }
         }

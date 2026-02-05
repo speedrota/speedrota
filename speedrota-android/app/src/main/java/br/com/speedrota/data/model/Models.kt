@@ -104,7 +104,11 @@ data class Destino(
     val endereco: String,
     val coordenadas: Coordenada? = null,
     val fornecedor: String? = null,
-    val ordem: Int? = null
+    val ordem: Int? = null,
+    // Novos campos - janela de tempo e prioridade
+    val janelaInicio: String? = null,
+    val janelaFim: String? = null,
+    val prioridade: String? = null // "ALTA", "MEDIA", "BAIXA"
 )
 
 @Serializable
@@ -169,6 +173,11 @@ data class ParadaItem(
     val status: String? = null,
     val fornecedor: String? = null,
     val nomeDestinatario: String? = null,
+    val telefone: String? = null,
+    // Novos campos - janela de tempo e prioridade
+    val janelaInicio: String? = null,
+    val janelaFim: String? = null,
+    val prioridade: String? = null, // "ALTA", "MEDIA", "BAIXA"
     val createdAt: String? = null
 )
 

@@ -147,6 +147,11 @@ model Parada {
   fonte           String    // 'ocr' | 'manual' | 'pdf'
   confianca       Float     @default(1.0) // 0-1
   
+  // Janela de tempo e prioridade (NOVO - Quick Win)
+  janelaInicio    String?   @map("janela_inicio")  // "08:00"
+  janelaFim       String?   @map("janela_fim")     // "12:00"
+  prioridade      Prioridade @default(MEDIA)
+  
   // Ordem na rota (após otimização)
   ordem           Int?
   distanciaAnterior Float?  @map("distancia_anterior")
@@ -165,6 +170,13 @@ model Parada {
   rota            Rota      @relation(fields: [rotaId], references: [id], onDelete: Cascade)
   
   @@map("paradas")
+}
+
+// Prioridade de entrega (NOVO)
+enum Prioridade {
+  ALTA
+  MEDIA
+  BAIXA
 }
 
 enum StatusRota {

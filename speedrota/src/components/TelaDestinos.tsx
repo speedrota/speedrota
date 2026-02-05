@@ -43,6 +43,10 @@ export function TelaDestinos() {
   const [telefone, setTelefone] = useState('');
   const [referencia, setReferencia] = useState('');
   const [fornecedorManual, setFornecedorManual] = useState<Fornecedor>('outro');
+  // Novos campos - janela de tempo e prioridade
+  const [janelaInicio, setJanelaInicio] = useState('');
+  const [janelaFim, setJanelaFim] = useState('');
+  const [prioridade, setPrioridade] = useState<'ALTA' | 'MEDIA' | 'BAIXA'>('MEDIA');
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -133,6 +137,10 @@ export function TelaDestinos() {
         fornecedor: fornecedorManual,
         fonte: 'manual',
         confianca: geo.confiancaValor,
+        // Novos campos - janela de tempo e prioridade
+        janelaInicio: janelaInicio || undefined,
+        janelaFim: janelaFim || undefined,
+        prioridade,
       });
       
       // Limpar form
@@ -142,6 +150,9 @@ export function TelaDestinos() {
       setTelefone('');
       setReferencia('');
       setFornecedorManual('outro');
+      setJanelaInicio('');
+      setJanelaFim('');
+      setPrioridade('MEDIA');
       setModoManual(false);
       
     } catch (error) {
@@ -275,6 +286,45 @@ export function TelaDestinos() {
                     {config.emoji} {config.nome}
                   </option>
                 ))}
+              </select>
+            </div>
+            
+            {/* Janela de tempo */}
+            <div className="form-group">
+              <label className="form-label">⏰ Janela de Entrega (opcional)</label>
+              <div className="flex gap-2">
+                <input
+                  type="time"
+                  className="form-input"
+                  placeholder="Início"
+                  value={janelaInicio}
+                  onChange={(e) => setJanelaInicio(e.target.value)}
+                  style={{ flex: 1 }}
+                />
+                <span style={{ alignSelf: 'center' }}>até</span>
+                <input
+                  type="time"
+                  className="form-input"
+                  placeholder="Fim"
+                  value={janelaFim}
+                  onChange={(e) => setJanelaFim(e.target.value)}
+                  style={{ flex: 1 }}
+                />
+              </div>
+              <small className="text-muted">Ex: 08:00 até 12:00</small>
+            </div>
+            
+            {/* Prioridade */}
+            <div className="form-group">
+              <label className="form-label">🎯 Prioridade</label>
+              <select
+                className="form-input"
+                value={prioridade}
+                onChange={(e) => setPrioridade(e.target.value as 'ALTA' | 'MEDIA' | 'BAIXA')}
+              >
+                <option value="ALTA">🔴 Alta (entregar primeiro)</option>
+                <option value="MEDIA">🟡 Média (normal)</option>
+                <option value="BAIXA">🟢 Baixa (pode esperar)</option>
               </select>
             </div>
             

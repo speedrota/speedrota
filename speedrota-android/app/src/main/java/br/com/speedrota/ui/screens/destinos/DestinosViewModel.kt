@@ -17,7 +17,11 @@ data class DestinoItem(
     val endereco: String,
     val fornecedor: Fornecedor = Fornecedor.OUTRO,
     val coordenadas: Coordenada? = null,
-    val confianca: Float = 0f
+    val confianca: Float = 0f,
+    // Novos campos - janela de tempo e prioridade
+    val janelaInicio: String? = null,
+    val janelaFim: String? = null,
+    val prioridade: String = "MEDIA" // "ALTA", "MEDIA", "BAIXA"
 )
 
 data class DestinosUiState(
@@ -33,12 +37,21 @@ class DestinosViewModel @Inject constructor() : ViewModel() {
     private val _uiState = MutableStateFlow(DestinosUiState())
     val uiState: StateFlow<DestinosUiState> = _uiState.asStateFlow()
 
-    fun addDestino(endereco: String, fornecedor: Fornecedor = Fornecedor.OUTRO) {
+    fun addDestino(
+        endereco: String,
+        fornecedor: Fornecedor = Fornecedor.OUTRO,
+        janelaInicio: String? = null,
+        janelaFim: String? = null,
+        prioridade: String = "MEDIA"
+    ) {
         if (endereco.isBlank()) return
         
         val novoDestino = DestinoItem(
             endereco = endereco,
-            fornecedor = fornecedor
+            fornecedor = fornecedor,
+            janelaInicio = janelaInicio,
+            janelaFim = janelaFim,
+            prioridade = prioridade
         )
         
         _uiState.value = _uiState.value.copy(
