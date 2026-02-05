@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "356624170932",
+    "project_id": "speedrota-f4408",
+    "storage_bucket": "speedrota-f4408.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:356624170932:android:b73a65728594cbca78bce1",
+        "android_client_info": {
+          "package_name": "br.com.speedrota"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC_OVasjPB8zOtqQgJ7nWITXl8RTD9T1jg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
