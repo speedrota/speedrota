@@ -2,6 +2,18 @@ package br.com.speedrota.data.model
 
 import kotlinx.serialization.Serializable
 
+// ==================== GENERIC ====================
+
+/**
+ * Response genérica para endpoints que retornam apenas sucesso/erro
+ */
+@Serializable
+data class ApiResponse(
+    val success: Boolean = false,
+    val message: String? = null,
+    val error: String? = null
+)
+
 // ==================== AUTH ====================
 
 @Serializable
@@ -1071,7 +1083,8 @@ data class CargaAtual(
 data class AlertaCapacidade(
     val tipo: String, // SOBRECARGA_PESO, SOBRECARGA_VOLUME, LIMITE_PROXIMO, PESO_LEGAL_EXCEDIDO
     val mensagem: String,
-    val severidade: String // warning, error
+    val severidade: String, // warning, error
+    val percentual: Double? = null
 )
 
 /**

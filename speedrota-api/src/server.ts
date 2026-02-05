@@ -34,6 +34,8 @@ import apiKeysRoutes from './routes/apikeys.routes.js';
 import { capacidadeRoutes } from './routes/capacidade.routes.js';
 import { geofencingRoutes } from './routes/geofencing.routes.js';
 import { sefazRoutes } from './routes/sefaz.routes.js';
+import mlRoutes from './routes/ml.routes.js';
+import gamificacaoRoutes from './routes/gamificacao.routes.js';
 
 // ==========================================
 // CRIAR SERVIDOR FASTIFY
@@ -173,6 +175,11 @@ app.get('/api/v1', async () => ({
     trafego: '/api/v1/trafego',
     frota: '/api/v1/frota',
     historico: '/api/v1/historico',
+    capacidade: '/api/v1/capacidade',
+    geofencing: '/api/v1/geofencing',
+    sefaz: '/api/v1/sefaz',
+    ml: '/api/v1/ml',
+    gamificacao: '/api/v1/gamificacao',
     public: '/api/v1/public (API Key required)',
   },
 }));
@@ -196,6 +203,10 @@ app.register(historicoRoutes, { prefix: '/api/v1/historico' });
 app.register(capacidadeRoutes, { prefix: '/api/v1/capacidade' });
 app.register(geofencingRoutes, { prefix: '/api/v1/geofencing' });
 app.register(sefazRoutes, { prefix: '/api/v1/sefaz' });
+
+// Sprint 11-12: ML + Gamificação
+app.register(mlRoutes, { prefix: '/api/v1/ml' });
+app.register(gamificacaoRoutes, { prefix: '/api/v1/gamificacao' });
 
 // API Pública (usa API Key ao invés de JWT)
 app.register(publicApiRoutes, { prefix: '/api/v1/public' });

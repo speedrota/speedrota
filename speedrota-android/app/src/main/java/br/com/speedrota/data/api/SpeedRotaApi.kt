@@ -341,3 +341,4 @@ interface SpeedRotaApi {
         @Path("zonaId") zonaId: String,
         @Body config: ConfiguracaoGeofence
     ): ApiResponse
+}

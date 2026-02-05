@@ -1483,3 +1483,279 @@ model CargaVeiculo {
   @@index([rotaId])
   @@map("cargas_veiculo")
 }
+
+// ==========================================
+// MACHINE LEARNING - PREVISÃO DE DEMANDA
+// ==========================================
+// @description Agregação de dados históricos para ML
+// @pre Entregas concluídas com geolocalização
+// @post Previsões com score de confiança 0-1
+// @invariant demandaPrevista >= 0
+
+model AgregacaoDemanda {
+  id String @id @default(uuid())
+
+  // Dimensões
+  zona        String // CEP prefix (5 dígitos) ou bairro
+  diaSemana   Int    @map("dia_semana") // 0=Dom, 6=Sab
+  horaInicio  Int    @map("hora_inicio") // 0-23
+  fornecedor  String? // natura, mercadolivre, shopee, etc
+  
+  // Métricas agregadas
+  totalEntregas     Int   @default(0) @map("total_entregas")
+  mediaEntregasDia  Float @default(0) @map("media_entregas_dia")
+  desvioPadrao      Float @default(0) @map("desvio_padrao")
+  tempoMedioEntrega Float @default(0) @map("tempo_medio_entrega") // minutos
+  
+  // Sazonalidade
+  fatorSazonalidade Float @default(1.0) @map("fator_sazonalidade")
+  
+  // Período de agregação
+  periodoInicio DateTime @map("periodo_inicio")
+  periodoFim    DateTime @map("periodo_fim")
+  totalDias     Int      @map("total_dias")
+  
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([zona, diaSemana, horaInicio, fornecedor])
+  @@index([zona])
+  @@index([diaSemana, horaInicio])
+  @@map("agregacoes_demanda")
+}
+
+model PrevisaoDemanda {
+  id String @id @default(uuid())
+
+  // Contexto da previsão
+  zona       String
+  data       DateTime
+  horaInicio Int      @map("hora_inicio")
+  horaFim    Int      @map("hora_fim")
+  fornecedor String?
+
+  // Previsão
+  demandaPrevista Int   @map("demanda_prevista")
+  confianca       Float // 0-1
+  limiteInferior  Int   @map("limite_inferior") // IC 95%
+  limiteSuperior  Int   @map("limite_superior")
+
+  // Fatores considerados
+  fatorDiaSemana    Float @default(1.0) @map("fator_dia_semana")
+  fatorHorario      Float @default(1.0) @map("fator_horario")
+  fatorSazonalidade Float @default(1.0) @map("fator_sazonalidade")
+  fatorTendencia    Float @default(1.0) @map("fator_tendencia")
+
+  // Validação (quando disponível)
+  demandaReal   Int?      @map("demanda_real")
+  erroAbsoluto  Float?    @map("erro_absoluto")
+  validadoEm    DateTime? @map("validado_em")
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([zona, data])
+  @@index([data])
+  @@map("previsoes_demanda")
+}
+
+model InsightDemanda {
+  id String @id @default(uuid())
+
+  // Tipo de insight
+  tipo      TipoInsight
+  titulo    String
+  descricao String
+  
+  // Contexto
+  zona       String?
+  fornecedor String?
+  
+  // Métricas do insight
+  valor       Float  // ex: +40% demanda
+  comparacao  String // ex: "vs semana anterior"
+  acao        String // ex: "Posicione-se na Zona Sul às 14h"
+  
+  // Prioridade
+  prioridade  Int @default(1) // 1=alta, 2=média, 3=baixa
+  confianca   Float @default(0.8)
+  
+  // Período
+  validoAte DateTime @map("valido_ate")
+  
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([tipo])
+  @@index([validoAte])
+  @@map("insights_demanda")
+}
+
+enum TipoInsight {
+  PICO_DEMANDA      // "Zona X terá +40% amanhã"
+  MELHOR_HORARIO    // "Melhor horário: 14h-17h"
+  FORNECEDOR_PICO   // "Natura tem pico dia 15"
+  ZONA_EVITAR       // "Evite Centro após 18h"
+  TENDENCIA         // "Demanda crescendo 10%/semana"
+  OPORTUNIDADE      // "Shopee cresceu 25% na região"
+}
+
+// ==========================================
+// GAMIFICAÇÃO - BADGES E RANKING
+// ==========================================
+// @description Sistema de conquistas e ranking
+// @pre Usuário com entregas completadas
+// @post Badges desbloqueados automaticamente
+// @invariant Pontos >= 0
+
+model Badge {
+  id String @id @default(uuid())
+
+  // Identificação
+  codigo    String @unique // ex: "PRIMEIRO_100", "STREAK_7"
+  nome      String
+  descricao String
+  icone     String // emoji ou URL
+  
+  // Requisitos
+  tipo       TipoBadge
+  requisito  Int // valor numérico para desbloquear
+  
+  // Pontos concedidos
+  pontos Int @default(10)
+  
+  // Raridade
+  raridade Raridade @default(COMUM)
+  
+  // Status
+  ativo Boolean @default(true)
+  
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relacionamentos
+  usuariosBadges UsuarioBadge[]
+
+  @@map("badges")
+}
+
+model UsuarioBadge {
+  id String @id @default(uuid())
+
+  userId  String @map("user_id")
+  badgeId String @map("badge_id")
+
+  // Progresso
+  progressoAtual Int      @default(0) @map("progresso_atual")
+  desbloqueadoEm DateTime? @map("desbloqueado_em")
+  
+  // Notificado
+  notificado Boolean @default(false)
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  badge Badge @relation(fields: [badgeId], references: [id])
+
+  @@unique([userId, badgeId])
+  @@index([userId])
+  @@map("usuarios_badges")
+}
+
+model Ranking {
+  id String @id @default(uuid())
+
+  userId String @map("user_id")
+  
+  // Período
+  periodo     PeriodoRanking
+  dataInicio  DateTime @map("data_inicio")
+  dataFim     DateTime @map("data_fim")
+  
+  // Métricas
+  totalEntregas   Int   @default(0) @map("total_entregas")
+  totalKm         Float @default(0) @map("total_km")
+  tempoMedioMin   Float @default(0) @map("tempo_medio_min")
+  taxaSucesso     Float @default(1.0) @map("taxa_sucesso") // 0-1
+  pontos          Int   @default(0)
+  
+  // Posição
+  posicao       Int?
+  posicaoZona   Int?   @map("posicao_zona")
+  zona          String?
+  
+  // Streak
+  streakAtual   Int @default(0) @map("streak_atual")
+  maiorStreak   Int @default(0) @map("maior_streak")
+  
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, periodo, dataInicio])
+  @@index([periodo, dataInicio])
+  @@index([posicao])
+  @@map("rankings")
+}
+
+model Conquista {
+  id String @id @default(uuid())
+
+  userId String @map("user_id")
+  
+  // Tipo
+  tipo  TipoConquista
+  valor Int // valor alcançado
+  
+  // Detalhes
+  descricao String
+  data      DateTime @default(now())
+  
+  // Pontos
+  pontosGanhos Int @default(0) @map("pontos_ganhos")
+  
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([tipo])
+  @@map("conquistas")
+}
+
+enum TipoBadge {
+  ENTREGAS      // Total de entregas
+  STREAK        // Dias consecutivos
+  VELOCIDADE    // Tempo médio
+  PRECISAO      // Taxa de sucesso
+  DISTANCIA     // Km rodados
+  FORNECEDOR    // Especialista em fornecedor
+  ZONA          // Mestre de zona
+  ESPECIAL      // Eventos especiais
+}
+
+enum Raridade {
+  COMUM
+  INCOMUM
+  RARO
+  EPICO
+  LENDARIO
+}
+
+enum PeriodoRanking {
+  DIARIO
+  SEMANAL
+  MENSAL
+  ANUAL
+  TOTAL
+}
+
+enum TipoConquista {
+  PRIMEIRA_ENTREGA
+  MARCO_ENTREGAS    // 100, 500, 1000, etc
+  STREAK_RECORD
+  MELHOR_DIA
+  NOVO_BADGE
+  TOP_RANKING
+}

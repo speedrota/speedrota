@@ -36,37 +36,37 @@ object CapacidadeService {
     
     private val capacidadesPadrao = mapOf(
         TipoVeiculo.MOTO to CapacidadeVeiculo(
-            tipo = TipoVeiculo.MOTO,
+            tipo = TipoVeiculo.MOTO.name,
             capacidadeKg = 10.0,
             capacidadeVolumes = 3,
             capacidadeM3 = 0.05
         ),
         TipoVeiculo.BIKE to CapacidadeVeiculo(
-            tipo = TipoVeiculo.BIKE,
+            tipo = TipoVeiculo.BIKE.name,
             capacidadeKg = 8.0,
             capacidadeVolumes = 2,
             capacidadeM3 = 0.03
         ),
         TipoVeiculo.CARRO to CapacidadeVeiculo(
-            tipo = TipoVeiculo.CARRO,
+            tipo = TipoVeiculo.CARRO.name,
             capacidadeKg = 150.0,
             capacidadeVolumes = 30,
             capacidadeM3 = 0.8
         ),
         TipoVeiculo.VAN to CapacidadeVeiculo(
-            tipo = TipoVeiculo.VAN,
+            tipo = TipoVeiculo.VAN.name,
             capacidadeKg = 500.0,
             capacidadeVolumes = 80,
             capacidadeM3 = 3.0
         ),
         TipoVeiculo.CAMINHAO_LEVE to CapacidadeVeiculo(
-            tipo = TipoVeiculo.CAMINHAO_LEVE,
+            tipo = TipoVeiculo.CAMINHAO_LEVE.name,
             capacidadeKg = 1500.0,
             capacidadeVolumes = 200,
             capacidadeM3 = 10.0
         ),
         TipoVeiculo.CAMINHAO to CapacidadeVeiculo(
-            tipo = TipoVeiculo.CAMINHAO,
+            tipo = TipoVeiculo.CAMINHAO.name,
             capacidadeKg = 4000.0,
             capacidadeVolumes = 500,
             capacidadeM3 = 25.0
