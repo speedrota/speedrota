@@ -949,7 +949,7 @@ fun StatusBarPro(item: PieChartItem) {
         }
         Spacer(modifier = Modifier.height(4.dp))
         LinearProgressIndicator(
-            progress = { (item.percent / 100f).coerceIn(0f, 1f) },
+            progress = { (item.percent / 100.0).coerceIn(0.0, 1.0).toFloat() },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(6.dp)

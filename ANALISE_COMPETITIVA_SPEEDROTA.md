@@ -13,15 +13,16 @@
 | **Tráfego Real-time** | ✅ NOVO | ✅ | ✅ | ✅ | ✅ |
 | **Janelas de Tempo** | ✅ NOVO | ✅ | ✅ | ✅ | ✅ |
 | **Prioridade Entregas** | ✅ NOVO | ✅ | ✅ | ✅ | ✅ |
-| **Compartilhar WhatsApp** | ✅ NOVO | ❌ | ❌ | ❌ | ❌ |
+| **Compartilhar WhatsApp** | ✅ ÚNICO | ❌ | ❌ | ❌ | ❌ |
+| **Re-otimização Dinâmica** | ✅ NOVO (7 cenários) | ✅ | ✅ | ✅ | ✅ |
 | **Multi-driver** | ❌ | ✅ | ✅ | ✅ | ✅ |
 | **POD (Proof of Delivery)** | ✅ NOVO | ✅ | ✅ | ✅ | ✅ |
 | **Integração ERP/TMS** | ❌ | ✅ | ✅ | ✅ | ✅ |
-| **Analytics Avançados** | ❌ | ✅ | ✅ | ✅ | ✅ |
+| **Analytics Avançados** | ✅ NOVO | ✅ | ✅ | ✅ | ✅ |
 | **Geofencing** | ❌ | ✅ | ✅ | ❌ | ✅ |
 | **API Pública** | ❌ | ✅ | ✅ | ✅ | ✅ |
-| **Suporte PT-BR** | ✅ | ❌ | ❌ | ❌ | ❌ |
-| **Pagamento PIX/Boleto** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Suporte PT-BR** | ✅ ÚNICO | ❌ | ❌ | ❌ | ❌ |
+| **Pagamento PIX/Boleto** | ✅ ÚNICO | ❌ | ❌ | ❌ | ❌ |
 
 ---
 
@@ -34,7 +35,7 @@
 | ~~Tráfego Real-time~~ | ~~ALTO - Rotas imprecisas~~ | ~~Média~~ | ✅ FEITO |
 | ~~Janelas de Tempo~~ | ~~ALTO - Entregas agendadas~~ | ~~Baixa~~ | ✅ FEITO |
 | **POD (Proof of Delivery)** | ALTO - Comprovação | Média | ✅ FEITO |
-| **Re-otimização Dinâmica** | MÉDIO - Mudanças em rota | Alta | ❌ P1 |
+| ~~Re-otimização Dinâmica~~ | ~~MÉDIO - Mudanças em rota~~ | ~~Alta~~ | ✅ FEITO (7 cenários) |
 | **Multi-driver/Frota** | ALTO - Escalar clientes | Alta | ❌ P2 |
 
 ### 2.2 Gaps de Média Prioridade
@@ -194,15 +195,27 @@ Dashboard Mobile:
 
 **Impacto**: Retenção +40% (entregador vê valor tangível)
 
-#### 2.3 Re-otimização Dinâmica
+#### 2.3 Re-otimização Dinâmica ✅ IMPLEMENTADO
 ```
-Cenário: Entregador está na parada 3/8, cliente 5 cancela
+7 CENÁRIOS INTELIGENTES:
 
-Fluxo atual:   Refazer rota manualmente 😞
-Fluxo novo:    
-  1. Notificação: "Cliente cancelou. Recalcular?"
-  2. 1 clique → Nova rota otimizada
-  3. Navegação atualizada automaticamente
+| Cenário | Trigger | Ação Automática |
+|---------|---------|-----------------|
+| 1. CANCELAMENTO | Cliente cancela | Remove parada, recalcula |
+| 2. TRÁFEGO_INTENSO | Fator > 1.5 detectado | Reordena por janelas |
+| 3. ATRASO_ACUMULADO | > 15min atrasado | Prioriza urgentes |
+| 4. CLIENTE_AUSENTE | Não encontrado | Move para final |
+| 5. NOVO_PEDIDO_URGENTE | Nova entrega ALTA | Insere otimamente |
+| 6. ENDERECO_INCORRETO | Não localizado | Pula e notifica |
+| 7. REAGENDAMENTO | Nova janela | Atualiza e reordena |
+
+API: POST /api/v1/reotimizar/:rotaId
+  - GET /cenarios (lista cenários)
+  - POST /:rotaId/verificar-trafego
+  - POST /:rotaId/verificar-atrasos
+
+Web: ModalReotimizacao, AlertaReotimizacao (auto-detecta)
+Android: Composables ModalReotimizacao, AlertaReotimizacao
 ```
 
 ---
@@ -340,15 +353,16 @@ MÊS 7-12: ESCALA B2B
 [x] POD - Código de entrega ✅ FEITO 05/02
 [x] Analytics básico (entregas/km/custo) ✅ FEITO 05/02
 [x] Tráfego Real-time (fatores horário pico) ✅ FEITO 05/02
+[x] Re-otimização dinâmica (7 cenários) ✅ FEITO 05/02
 [ ] Notificações push
 ```
 
 ### Sprint 5-6 (Abril 2026)
 ```
-[ ] Re-otimização dinâmica
 [ ] Status de entrega em tempo real
 [ ] Histórico detalhado com filtros
 [ ] Export PDF/Excel
+[ ] Multi-driver básico
 ```
 
 ### Sprint 7-8 (Maio 2026)
@@ -415,8 +429,9 @@ MÊS 7-12: ESCALA B2B
 2. ~~**ESTA SEMANA**: Compartilhamento WhatsApp~~ ✅ FEITO
 3. ~~**AGORA**: POD básico + Analytics~~ ✅ FEITO
 4. ~~**AGORA**: Tráfego inteligente (fatores de horário)~~ ✅ FEITO
-5. **PRÓXIMO**: Notificações push + Re-otimização dinâmica
-6. **FUTURO**: Multi-motorista + API Pública
+5. ~~**AGORA**: Re-otimização dinâmica (7 cenários)~~ ✅ FEITO
+6. **PRÓXIMO**: Notificações push + Status tempo real
+7. **FUTURO**: Multi-motorista + API Pública
 
 ---
 

@@ -116,4 +116,41 @@ interface SpeedRotaApi {
         @Query("dataInicio") dataInicio: String? = null,
         @Query("dataFim") dataFim: String? = null
     ): SuppliersResponse
+    
+    // ==================== RE-OTIMIZAÇÃO ====================
+    
+    /**
+     * Lista cenários de re-otimização disponíveis
+     * @pre Token válido
+     * @post Lista de cenários
+     */
+    @GET("reotimizar/cenarios")
+    suspend fun listarCenariosReotimizacao(): CenariosResponse
+    
+    /**
+     * Re-otimiza rota baseado em cenário
+     * @pre Rota existe, motivo válido
+     * @post Rota re-otimizada
+     */
+    @POST("reotimizar/{rotaId}")
+    suspend fun reotimizarRota(
+        @Path("rotaId") rotaId: String,
+        @Body request: ReotimizarRequest
+    ): ReotimizarResponse
+    
+    /**
+     * Verifica se tráfego requer re-otimização
+     */
+    @POST("reotimizar/{rotaId}/verificar-trafego")
+    suspend fun verificarTrafegoRota(
+        @Path("rotaId") rotaId: String
+    ): VerificarTrafegoResponse
+    
+    /**
+     * Verifica se há atrasos que requerem re-otimização
+     */
+    @POST("reotimizar/{rotaId}/verificar-atrasos")
+    suspend fun verificarAtrasosRota(
+        @Path("rotaId") rotaId: String
+    ): VerificarAtrasosResponse
 }

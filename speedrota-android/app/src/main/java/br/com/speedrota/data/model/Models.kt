@@ -597,3 +597,90 @@ enum class Plano(
     PRO("Pro", 10, 20, 19.90),
     FULL("Full", 999, 50, 39.90)
 }
+
+// ==================== RE-OTIMIZAÇÃO ====================
+
+/**
+ * Request para re-otimização
+ */
+@Serializable
+data class ReotimizarRequest(
+    val motivo: String,
+    val paradaId: String? = null,
+    val dados: ReotimizarDados? = null
+)
+
+@Serializable
+data class ReotimizarDados(
+    val novaJanelaInicio: String? = null,
+    val novaJanelaFim: String? = null,
+    val novaParada: NovaParadaRequest? = null
+)
+
+@Serializable
+data class NovaParadaRequest(
+    val lat: Double,
+    val lng: Double,
+    val endereco: String,
+    val cidade: String,
+    val uf: String,
+    val nome: String,
+    val fornecedor: String,
+    val prioridade: String
+)
+
+/**
+ * Response da re-otimização
+ */
+@Serializable
+data class ReotimizarResponse(
+    val success: Boolean,
+    val motivo: String,
+    val mensagem: String,
+    val acaoTomada: String,
+    val paradasAlteradas: Int,
+    val novaDistanciaKm: Double? = null,
+    val novoTempoMin: Double? = null,
+    val economiaKm: Double? = null,
+    val economiaMin: Double? = null
+)
+
+/**
+ * Cenário de re-otimização
+ */
+@Serializable
+data class CenarioDto(
+    val motivo: String,
+    val nome: String,
+    val descricao: String,
+    val icone: String,
+    val requerParadaId: Boolean,
+    val acaoAutomatica: String
+)
+
+@Serializable
+data class CenariosResponse(
+    val cenarios: List<CenarioDto>,
+    val total: Int
+)
+
+/**
+ * Verificação de tráfego
+ */
+@Serializable
+data class VerificarTrafegoResponse(
+    val requerReotimizacao: Boolean,
+    val fatorTrafego: Double,
+    val periodo: String,
+    val sugestao: String
+)
+
+/**
+ * Verificação de atrasos
+ */
+@Serializable
+data class VerificarAtrasosResponse(
+    val requerReotimizacao: Boolean,
+    val paradasEmRisco: Int,
+    val sugestao: String
+)
