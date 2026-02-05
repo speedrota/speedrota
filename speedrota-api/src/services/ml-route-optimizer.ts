@@ -648,5 +648,3 @@ function calcularConfiancaPredicao(
 export default {
   otimizarRotaComML,
 };
-
-export { otimizarRotaComML };
