@@ -289,12 +289,9 @@ export function TelaQrCodeScanner() {
         endereco: resultado.endereco || 'Endereço não disponível'
       };
 
-      // Adiciona ao store local
-      addDestino({
-        endereco: novaParada.endereco,
-        observacao: `NF-e: ${resultado.chaveAcesso.slice(-8)}`,
-        fornecedor: 'outro'
-      });
+      // TODO: Integrar com adicionarDestinoDeNFe quando tiver geocoding
+      // Por enquanto, apenas adiciona na lista local de importados
+      console.log('Parada importada:', novaParada);
 
       setImportados(prev => [...prev, novaParada]);
       setResultado(null);
