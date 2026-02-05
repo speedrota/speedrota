@@ -91,7 +91,7 @@ const FORNECEDORES_INFO: Record<string, { nome: string; emoji: string; cor: stri
 // ==========================================
 
 export default function TelaEcommerce() {
-  const { setEtapa } = useRotaStore();
+  const { irPara } = useRotaStore();
   const [abaSelecionada, setAbaSelecionada] = useState<'integracoes' | 'pedidos'>('integracoes');
   const [integracoes, setIntegracoes] = useState<Integracao[]>([]);
   const [integracaoSelecionada, setIntegracaoSelecionada] = useState<string | null>(null);
@@ -304,7 +304,7 @@ export default function TelaEcommerce() {
     console.log('Importando destinos:', destinos);
     
     setMensagemSucesso(`${selecionados.length} destinos importados para rota`);
-    setEtapa('destinos');
+    irPara('destinos');
   };
 
   // ==========================================
@@ -330,7 +330,7 @@ export default function TelaEcommerce() {
     <div className="tela-ecommerce">
       {/* Header */}
       <header className="ecommerce-header">
-        <button className="btn-voltar" onClick={() => setEtapa('home')}>
+        <button className="btn-voltar" onClick={() => irPara('home')}>
           ← Voltar
         </button>
         <h1>🛒 Integrações E-commerce</h1>

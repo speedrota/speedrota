@@ -108,8 +108,7 @@ async function consultarQrCode(conteudo: string): Promise<{
  * @pre QR Code válido e rotaId existente
  * @post Parada criada com geocoding
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-async function _importarQrCode(conteudo: string, rotaId: string): Promise<{
+void async function _importarQrCode(conteudo: string, rotaId: string): Promise<{
   success: boolean;
   data?: {
     paradaId: string;
@@ -292,7 +291,6 @@ export function TelaQrCodeScanner() {
 
       // Adiciona ao store local
       addDestino({
-        id: novaParada.id,
         endereco: novaParada.endereco,
         observacao: `NF-e: ${resultado.chaveAcesso.slice(-8)}`,
         fornecedor: 'outro'

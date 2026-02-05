@@ -62,8 +62,8 @@ export default function TelaHistorico({ onFechar, onCarregarRota }: TelaHistoric
     if (filtroStatus && r.status !== filtroStatus) return false;
     // Filtro por fornecedor
     if (filtroFornecedor) {
-      const fornecedoresRota = r.paradas.map(p => p.fornecedor);
-      if (!fornecedoresRota.includes(filtroFornecedor as string)) return false;
+      const fornecedoresRota = r.paradas.map(p => p.fornecedor) as string[];
+      if (!fornecedoresRota.includes(filtroFornecedor)) return false;
     }
     // Filtro por data
     const rotaData = new Date(r.createdAt);
@@ -164,8 +164,7 @@ export default function TelaHistorico({ onFechar, onCarregarRota }: TelaHistoric
   }
 
   // Função auxiliar para formatar tempo (reservada para uso futuro)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _formatarTempo = (minutos: number): string => {
+  void function _formatarTempo(minutos: number): string {
     if (minutos < 60) return `${Math.round(minutos)}min`;
     const h = Math.floor(minutos / 60);
     const m = Math.round(minutos % 60);

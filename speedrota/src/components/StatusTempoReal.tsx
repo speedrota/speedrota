@@ -31,12 +31,11 @@ import {
   corPorStatus,
   emojiPorStatus,
   formatarMotivoFalha,
-  type StatusParada,
-  type StatusRota,
-  type MotivoFalha,
-  type MetricasTempoReal,
-  type Posicao,
+  StatusParada,
+  StatusRota,
+  MotivoFalha,
 } from '../services/statusTempoReal';
+import type { MetricasTempoReal, Posicao } from '../services/statusTempoReal';
 import './StatusTempoReal.css';
 
 // ==========================================
