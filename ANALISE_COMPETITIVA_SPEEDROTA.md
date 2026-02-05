@@ -8,12 +8,14 @@
 
 | Feature | SpeedRota | Route4Me | Cigo | OptimoRoute | Onfleet |
 |---------|-----------|----------|------|-------------|---------|
-| **Preço (BRL/mês)** | R$29-89 | ~R$1.200+ | ~R$150/driver | ~R$210/driver | ~R$3.100+ |
+| **Preço (BRL/mês)** | R$29-99 | ~R$1.200+ | ~R$150/driver | ~R$210/driver | ~R$3.100+ |
 | **OCR de NF-e** | ✅ ÚNICO | ❌ | ❌ | ❌ | ❌ |
 | **Tráfego Real-time** | ❌ | ✅ | ✅ | ✅ | ✅ |
-| **Janelas de Tempo** | ❌ | ✅ | ✅ | ✅ | ✅ |
+| **Janelas de Tempo** | ✅ NOVO | ✅ | ✅ | ✅ | ✅ |
+| **Prioridade Entregas** | ✅ NOVO | ✅ | ✅ | ✅ | ✅ |
+| **Compartilhar WhatsApp** | ✅ NOVO | ❌ | ❌ | ❌ | ❌ |
 | **Multi-driver** | ❌ | ✅ | ✅ | ✅ | ✅ |
-| **POD (Proof of Delivery)** | ❌ | ✅ | ✅ | ✅ | ✅ |
+| **POD (Proof of Delivery)** | ✅ NOVO | ✅ | ✅ | ✅ | ✅ |
 | **Integração ERP/TMS** | ❌ | ✅ | ✅ | ✅ | ✅ |
 | **Analytics Avançados** | ❌ | ✅ | ✅ | ✅ | ✅ |
 | **Geofencing** | ❌ | ✅ | ✅ | ❌ | ✅ |
@@ -27,23 +29,23 @@
 
 ### 2.1 Gaps de Alta Prioridade (Impacto Direto na Conversão)
 
-| Gap | Impacto | Complexidade | Prioridade |
-|-----|---------|--------------|------------|
-| **Tráfego Real-time** | ALTO - Rotas imprecisas | Média | P0 |
-| **Janelas de Tempo** | ALTO - Entregas agendadas | Baixa | P0 |
-| **POD (Proof of Delivery)** | ALTO - Comprovação | Média | P1 |
-| **Re-otimização Dinâmica** | MÉDIO - Mudanças em rota | Alta | P1 |
-| **Multi-driver/Frota** | ALTO - Escalar clientes | Alta | P2 |
+| Gap | Impacto | Complexidade | Status |
+|-----|---------|--------------|--------|
+| **Tráfego Real-time** | ALTO - Rotas imprecisas | Média | ❌ P0 |
+| ~~Janelas de Tempo~~ | ~~ALTO - Entregas agendadas~~ | ~~Baixa~~ | ✅ FEITO |
+| **POD (Proof of Delivery)** | ALTO - Comprovação | Média | ✅ FEITO |
+| **Re-otimização Dinâmica** | MÉDIO - Mudanças em rota | Alta | ❌ P1 |
+| **Multi-driver/Frota** | ALTO - Escalar clientes | Alta | ❌ P2 |
 
 ### 2.2 Gaps de Média Prioridade
 
-| Gap | Impacto | Complexidade | Prioridade |
-|-----|---------|--------------|------------|
-| **Capacidade Veículo** | MÉDIO | Baixa | P2 |
-| **Analytics/Relatórios** | MÉDIO | Média | P2 |
-| **Integração WhatsApp** | ALTO no Brasil | Média | P1 |
-| **API Pública** | ALTO para B2B | Alta | P3 |
-| **Geofencing** | BAIXO | Média | P3 |
+| Gap | Impacto | Complexidade | Status |
+|-----|---------|--------------|--------|
+| **Capacidade Veículo** | MÉDIO | Baixa | ❌ P2 |
+| **Analytics/Relatórios** | MÉDIO | Média | ❌ P2 |
+| ~~Integração WhatsApp~~ | ~~ALTO no Brasil~~ | ~~Média~~ | ✅ FEITO |
+| **API Pública** | ALTO para B2B | Alta | ❌ P3 |
+| **Geofencing** | BAIXO | Média | ❌ P3 |
 
 ---
 
@@ -324,18 +326,18 @@ MÊS 7-12: ESCALA B2B
 
 ## 🎯 6. ROADMAP TÉCNICO PRIORIZADO
 
-### Sprint 1-2 (Fevereiro 2026)
+### Sprint 1-2 (Fevereiro 2026) ✅ CONCLUÍDO
 ```
-[ ] Janelas de tempo nas paradas
-[ ] Prioridade de entrega (Alta/Média/Baixa)
-[ ] Compartilhar rota via WhatsApp
+[x] Janelas de tempo nas paradas ✅
+[x] Prioridade de entrega (Alta/Média/Baixa) ✅
+[x] Compartilhar rota via WhatsApp ✅
 [ ] Melhorar estimativa de tempo (fatores horário)
 ```
 
 ### Sprint 3-4 (Março 2026)
 ```
-[ ] POD - Foto de entrega
-[ ] POD - Assinatura digital
+[x] POD - Foto de entrega ✅ FEITO 05/02
+[x] POD - Código de entrega ✅ FEITO 05/02
 [ ] Analytics básico (entregas/km/custo)
 [ ] Notificações push
 ```
@@ -408,11 +410,29 @@ MÊS 7-12: ESCALA B2B
 
 ### Próximos Passos Imediatos:
 
-1. **HOJE**: Implementar janelas de tempo (quick win)
-2. **ESTA SEMANA**: Compartilhamento WhatsApp
-3. **ESTE MÊS**: POD básico + Analytics
+1. ~~**HOJE**: Implementar janelas de tempo (quick win)~~ ✅ FEITO
+2. ~~**ESTA SEMANA**: Compartilhamento WhatsApp~~ ✅ FEITO
+3. **AGORA**: POD básico + Analytics
 4. **PRÓXIMO MÊS**: Tráfego inteligente + Re-otimização
 
 ---
 
-*Documento criado em 04/02/2026 - SpeedRota Team*
+*Documento atualizado em 04/02/2026 - SpeedRota Team*
+
+---
+
+## 📝 CHANGELOG
+
+### 05/02/2026 - POD Implementado
+- ✅ **POD (Proof of Delivery)**: Foto, código ou assinatura com geolocalização
+- ✅ **Modelo ProofOfDelivery**: Schema Prisma com relação 1:1 para Parada
+- ✅ **API REST**: 4 endpoints (registrar, buscar, listar, verificar plano)
+- ✅ **UI Web**: ModalPOD integrado na TelaRota
+- ✅ **UI Android**: PODBottomSheet com câmera e geolocalização
+- ✅ **Feature Flag**: Apenas planos FULL/FROTA/ENTERPRISE
+
+### 04/02/2026 - Quick Wins Implementados
+- ✅ **Janelas de Tempo**: Campos `janelaInicio` e `janelaFim` no DB + UI Web/Android
+- ✅ **Prioridade de Entregas**: Enum ALTA/MÉDIA/BAIXA com ordenação no algoritmo
+- ✅ **Compartilhar WhatsApp**: Botão em Web e Android com rota formatada
+- 🔧 **Banco de Dados**: Schema atualizado no Neon (produção)

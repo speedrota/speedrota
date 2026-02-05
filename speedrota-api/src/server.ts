@@ -18,6 +18,7 @@ import { env } from './config/env.js';
 import { authRoutes } from './routes/auth.routes.js';
 import { userRoutes } from './routes/user.routes.js';
 import { rotaRoutes } from './routes/rota.routes.js';
+import { podRoutes } from './routes/pod.routes.js';
 import { mercadoPagoRoutes } from './routes/mercadopago.routes.js';
 import { healthRoutes } from './routes/health.routes.js';
 
@@ -163,6 +164,7 @@ app.register(healthRoutes, { prefix: '/api/v1' });
 app.register(authRoutes, { prefix: '/api/v1/auth' });
 app.register(userRoutes, { prefix: '/api/v1/users' });
 app.register(rotaRoutes, { prefix: '/api/v1/rotas' });
+app.register(podRoutes, { prefix: '/api/v1/pod' });
 app.register(mercadoPagoRoutes, { prefix: '/api/v1/pagamentos' });
 
 // ==========================================

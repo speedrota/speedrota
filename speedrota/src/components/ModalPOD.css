@@ -1,0 +1,292 @@
+/**
+ * @file ModalPOD.css
+ * @description Estilos para o modal de Proof of Delivery
+ */
+
+/* Overlay */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+/* Modal Container */
+.modal-pod {
+  background: white;
+  border-radius: 12px;
+  max-width: 400px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+}
+
+/* Header */
+.modal-pod-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid #e0e0e0;
+  background: #f8f9fa;
+  border-radius: 12px 12px 0 0;
+}
+
+.modal-pod-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: #666;
+  padding: 0.25rem;
+  border-radius: 50%;
+  transition: background 0.2s;
+}
+
+.modal-close:hover {
+  background: #e0e0e0;
+}
+
+/* Parada Info */
+.modal-pod-parada {
+  padding: 1rem;
+  background: #e3f2fd;
+  border-bottom: 1px solid #bbdefb;
+}
+
+.pod-parada-nome {
+  font-weight: 600;
+  font-size: 1rem;
+  color: #1565c0;
+}
+
+.pod-parada-endereco {
+  font-size: 0.85rem;
+  color: #555;
+  margin-top: 0.25rem;
+}
+
+/* Tipo Selector */
+.pod-tipo-selector {
+  display: flex;
+  gap: 0.5rem;
+  padding: 1rem;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.pod-tipo-btn {
+  flex: 1;
+  padding: 0.75rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  background: white;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pod-tipo-btn:hover {
+  border-color: #2196f3;
+  background: #e3f2fd;
+}
+
+.pod-tipo-btn.active {
+  border-color: #2196f3;
+  background: #2196f3;
+  color: white;
+}
+
+/* Content */
+.pod-content {
+  padding: 1rem;
+}
+
+/* Foto Section */
+.pod-foto-section {
+  margin-bottom: 1rem;
+}
+
+.pod-foto-capturar {
+  width: 100%;
+  padding: 2rem;
+  border: 2px dashed #ccc;
+  border-radius: 8px;
+  background: #f5f5f5;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+}
+
+.pod-foto-capturar:hover {
+  border-color: #2196f3;
+  background: #e3f2fd;
+}
+
+.pod-foto-icon {
+  font-size: 2.5rem;
+}
+
+.pod-foto-preview {
+  position: relative;
+}
+
+.pod-foto-preview img {
+  width: 100%;
+  border-radius: 8px;
+  max-height: 200px;
+  object-fit: cover;
+}
+
+.pod-foto-refazer {
+  position: absolute;
+  bottom: 0.5rem;
+  right: 0.5rem;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  border: none;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+/* Codigo Section */
+.pod-codigo-section {
+  margin-bottom: 1rem;
+}
+
+.pod-codigo-section .form-control {
+  text-transform: uppercase;
+  font-size: 1.1rem;
+  letter-spacing: 2px;
+  text-align: center;
+}
+
+.form-hint {
+  display: block;
+  font-size: 0.75rem;
+  color: #888;
+  margin-top: 0.25rem;
+}
+
+/* Observação */
+.pod-observacao-section {
+  margin-bottom: 1rem;
+}
+
+.pod-observacao-section .form-control {
+  resize: none;
+}
+
+/* Geo Status */
+.pod-geo-status {
+  padding: 0.75rem;
+  background: #f5f5f5;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.geo-loading {
+  color: #666;
+}
+
+.geo-ok {
+  color: #2e7d32;
+}
+
+.geo-error {
+  color: #c62828;
+}
+
+/* Error */
+.pod-error {
+  margin: 0 1rem 1rem;
+  padding: 0.75rem;
+  background: #ffebee;
+  color: #c62828;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+/* Footer */
+.modal-pod-footer {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-top: 1px solid #e0e0e0;
+  background: #f8f9fa;
+  border-radius: 0 0 12px 12px;
+}
+
+.modal-pod-footer .btn {
+  flex: 1;
+  padding: 0.75rem;
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+.btn-success {
+  background: #4caf50;
+  color: white;
+  border: none;
+}
+
+.btn-success:hover {
+  background: #43a047;
+}
+
+.btn-success:disabled {
+  background: #a5d6a7;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: #e0e0e0;
+  color: #333;
+  border: none;
+}
+
+.btn-secondary:hover {
+  background: #d0d0d0;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 480px) {
+  .modal-overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+  
+  .modal-pod {
+    max-width: 100%;
+    border-radius: 16px 16px 0 0;
+    max-height: 85vh;
+  }
+  
+  .modal-pod-header {
+    border-radius: 16px 16px 0 0;
+  }
+  
+  .modal-pod-footer {
+    border-radius: 0;
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+  }
+}

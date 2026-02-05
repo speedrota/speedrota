@@ -7,10 +7,14 @@
  * - Lista de paradas ordenadas com distâncias entre pontos
  * - Distância de retorno
  * - Total de km da rota
+ * - Botão de POD (Proof of Delivery) para cada parada
  */
 
+import { useState, useEffect } from 'react';
 import { useRouteStore } from '../store/routeStore';
 import { MapaRota } from './Mapa';
+import { ModalPOD } from './ModalPOD';
+import { usePOD } from '../hooks/usePOD';
 import { formatarDistancia, formatarTempo, formatarMoeda } from '../utils/calculos';
 
 export function TelaRota() {
@@ -22,6 +26,27 @@ export function TelaRota() {
     irPara,
     novaRota
   } = useRouteStore();
+
+  // Estado POD
+  const { podHabilitado, verificarPlano } = usePOD();
+  const [paradaSelecionadaPOD, setParadaSelecionadaPOD] = useState<{
+    id: string;
+    nome: string;
+    endereco: string;
+    cidade: string;
+    uf: string;
+  } | null>(null);
+  const [paradasEntregues, setParadasEntregues] = useState<Set<string>>(new Set());
+
+  // Verificar plano ao montar
+  useEffect(() => {
+    verificarPlano();
+  }, [verificarPlano]);
+
+  // Handler para sucesso do POD
+  const handlePODSuccess = (paradaId: string) => {
+    setParadasEntregues(prev => new Set([...prev, paradaId]));
+  };
   
   if (!rotaOtimizada) {
     return (
@@ -233,10 +258,17 @@ export function TelaRota() {
                 </div>
                 
                 {/* Parada */}
-                <div className="roteiro-item">
-                  <div className="roteiro-numero">{parada.ordem}</div>
+                <div className={`roteiro-item ${paradasEntregues.has(parada.id) ? 'roteiro-entregue' : ''}`}>
+                  <div className="roteiro-numero">
+                    {paradasEntregues.has(parada.id) ? '✅' : parada.ordem}
+                  </div>
                   <div className="roteiro-content">
-                    <div className="roteiro-titulo">{parada.nome}</div>
+                    <div className="roteiro-titulo">
+                      {parada.nome}
+                      {paradasEntregues.has(parada.id) && (
+                        <span className="badge-entregue">ENTREGUE</span>
+                      )}
+                    </div>
                     <div className="roteiro-endereco">
                       {parada.endereco}, {parada.cidade}-{parada.uf}
                     </div>
@@ -251,6 +283,22 @@ export function TelaRota() {
                     )}
                     {parada.telefone && (
                       <div className="roteiro-ref">📞 {parada.telefone}</div>
+                    )}
+                    
+                    {/* Botão POD - só mostra se plano permite e não foi entregue */}
+                    {podHabilitado && !paradasEntregues.has(parada.id) && (
+                      <button
+                        className="btn btn-sm btn-pod"
+                        onClick={() => setParadaSelecionadaPOD({
+                          id: parada.id,
+                          nome: parada.nome,
+                          endereco: parada.endereco,
+                          cidade: parada.cidade,
+                          uf: parada.uf,
+                        })}
+                      >
+                        📸 Confirmar Entrega
+                      </button>
                     )}
                   </div>
                 </div>
@@ -359,6 +407,15 @@ export function TelaRota() {
       >
         ➕ Nova Rota
       </button>
+      
+      {/* Modal POD - Confirmar Entrega */}
+      {paradaSelecionadaPOD && (
+        <ModalPOD
+          parada={paradaSelecionadaPOD}
+          onClose={() => setParadaSelecionadaPOD(null)}
+          onSuccess={handlePODSuccess}
+        />
+      )}
     </div>
   );
 }

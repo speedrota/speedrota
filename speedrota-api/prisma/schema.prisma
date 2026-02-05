@@ -168,8 +168,63 @@ model Parada {
   
   // Relacionamentos
   rota            Rota      @relation(fields: [rotaId], references: [id], onDelete: Cascade)
+  pod             ProofOfDelivery?  // Comprovante de entrega (opcional)
   
   @@map("paradas")
+}
+
+// ==========================================
+// PROOF OF DELIVERY (POD) - Comprovante de Entrega
+// ==========================================
+// @description Comprovante de entrega com foto, assinatura ou código
+// @pre Parada deve existir e não estar já entregue
+// @post Após criar POD, Parada.statusEntrega = ENTREGUE
+// @invariant 1 Parada = máximo 1 POD ativo
+
+model ProofOfDelivery {
+  id            String    @id @default(uuid())
+  paradaId      String    @unique @map("parada_id")
+  
+  // Tipo de comprovação
+  tipo          TipoPOD
+  
+  // Dados conforme tipo (apenas um preenchido)
+  fotoUrl       String?   @map("foto_url")        // URL S3/Cloudinary ou base64
+  assinaturaUrl String?   @map("assinatura_url")  // SVG/PNG base64 ou URL
+  codigo        String?                            // Código informado pelo cliente
+  
+  // Geolocalização da confirmação
+  latitude      Float
+  longitude     Float
+  precisaoGps   Float?    @map("precisao_gps")    // Precisão em metros
+  
+  // Distância do local de entrega (calculado)
+  distanciaMetros Int?    @map("distancia_metros")
+  alertaDistancia Boolean @default(false) @map("alerta_distancia")
+  
+  // Metadados
+  timestamp     DateTime  @default(now())
+  observacao    String?
+  
+  // Integração com fornecedores (futuro)
+  sincronizadoFornecedor Boolean @default(false) @map("sincronizado_fornecedor")
+  protocoloFornecedor    String? @map("protocolo_fornecedor")
+  
+  // Auditoria
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  
+  // Relacionamentos
+  parada        Parada    @relation(fields: [paradaId], references: [id], onDelete: Cascade)
+  
+  @@map("proof_of_delivery")
+}
+
+// Tipo de comprovante de entrega
+enum TipoPOD {
+  FOTO
+  ASSINATURA
+  CODIGO
 }
 
 // Prioridade de entrega (NOVO)
