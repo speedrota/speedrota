@@ -1034,3 +1034,276 @@ data class HistoricoFornecedoresResponse(
 data class FornecedoresData(
     val fornecedores: List<String> = emptyList()
 )
+// ==================== CAPACIDADE DE VEÍCULO ====================
+
+/**
+ * Tipos de veículo suportados
+ */
+enum class TipoVeiculo {
+    MOTO, BIKE, CARRO, VAN, CAMINHAO_LEVE, CAMINHAO
+}
+
+/**
+ * Capacidade de um veículo
+ */
+@Serializable
+data class CapacidadeVeiculo(
+    val tipo: String,
+    val capacidadeKg: Double,
+    val capacidadeVolumes: Int,
+    val capacidadeM3: Double? = null
+)
+
+/**
+ * Carga atual do veículo
+ */
+@Serializable
+data class CargaAtual(
+    val pesoKg: Double,
+    val volumes: Int,
+    val m3: Double? = null
+)
+
+/**
+ * Alerta de capacidade
+ */
+@Serializable
+data class AlertaCapacidade(
+    val tipo: String, // SOBRECARGA_PESO, SOBRECARGA_VOLUME, LIMITE_PROXIMO, PESO_LEGAL_EXCEDIDO
+    val mensagem: String,
+    val severidade: String // warning, error
+)
+
+/**
+ * Resultado de validação de capacidade
+ */
+@Serializable
+data class ResultadoCapacidade(
+    val cabe: Boolean,
+    val percentualPeso: Double,
+    val percentualVolumes: Double,
+    val percentualM3: Double? = null,
+    val alertas: List<AlertaCapacidade> = emptyList(),
+    val margemPesoKg: Double,
+    val margemVolumes: Int
+)
+
+/**
+ * Request para validar capacidade
+ */
+@Serializable
+data class ValidarCapacidadeRequest(
+    val veiculo: CapacidadeVeiculo,
+    val carga: CargaAtual
+)
+
+/**
+ * Response de validação de capacidade
+ */
+@Serializable
+data class CapacidadeResponse(
+    val success: Boolean,
+    val data: ResultadoCapacidade? = null,
+    val error: String? = null
+)
+
+/**
+ * Response de capacidade padrão por tipo
+ */
+@Serializable
+data class CapacidadePadraoResponse(
+    val success: Boolean,
+    val data: CapacidadeVeiculo? = null,
+    val error: String? = null
+)
+
+/**
+ * Response de todos os tipos de veículo
+ */
+@Serializable
+data class TiposVeiculoResponse(
+    val success: Boolean,
+    val data: Map<String, CapacidadeVeiculo>? = null,
+    val error: String? = null
+)
+
+// ==================== GEOFENCING ====================
+
+/**
+ * Tipos de evento de geofence
+ */
+enum class TipoEventoGeofence {
+    ENTRADA, SAIDA, TEMPO_EXCEDIDO
+}
+
+/**
+ * Geometria de círculo
+ */
+@Serializable
+data class GeometriaCirculo(
+    val tipo: String = "CIRCULO",
+    val centro: Coordenada,
+    val raioKm: Double
+)
+
+/**
+ * Geometria de polígono
+ */
+@Serializable
+data class GeometriaPoligono(
+    val tipo: String = "POLIGONO",
+    val vertices: List<Coordenada>
+)
+
+/**
+ * Zona geofence
+ */
+@Serializable
+data class ZonaGeofence(
+    val id: String,
+    val nome: String,
+    val tipo: String, // CIRCULO ou POLIGONO
+    val centro: Coordenada? = null,
+    val raioKm: Double? = null,
+    val vertices: List<Coordenada>? = null
+)
+
+/**
+ * Evento de geofence
+ */
+@Serializable
+data class EventoGeofence(
+    val tipo: String, // ENTRADA, SAIDA, TEMPO_EXCEDIDO
+    val motoristaId: String,
+    val zonaId: String,
+    val lat: Double,
+    val lng: Double,
+    val timestamp: String
+)
+
+/**
+ * Configuração de alertas por zona
+ */
+@Serializable
+data class ConfiguracaoGeofence(
+    val alertaEntrada: Boolean = true,
+    val alertaSaida: Boolean = true,
+    val alertaTempoExcedido: Boolean = false,
+    val tempoMaximoMin: Int? = null,
+    val debounceSegundos: Int = 30,
+    val toleranciaMetros: Int = 50,
+    val webhookUrl: String? = null
+)
+
+/**
+ * Request para processar posição
+ */
+@Serializable
+data class PosicaoGeofenceRequest(
+    val motoristaId: String,
+    val lat: Double,
+    val lng: Double
+)
+
+/**
+ * Resultado de verificação de zona
+ */
+@Serializable
+data class ResultadoVerificacaoZona(
+    val zona: String,
+    val dentroZona: Boolean,
+    val distanciaBordaMetros: Int? = null
+)
+
+/**
+ * Response de verificação de zonas
+ */
+@Serializable
+data class VerificacaoZonasResponse(
+    val success: Boolean,
+    val data: VerificacaoZonasData? = null,
+    val error: String? = null
+)
+
+@Serializable
+data class VerificacaoZonasData(
+    val ponto: Coordenada,
+    val totalZonas: Int,
+    val resultados: List<ResultadoVerificacaoZona>
+)
+
+/**
+ * Response de processamento de posição
+ */
+@Serializable
+data class ProcessarPosicaoResponse(
+    val success: Boolean,
+    val data: ProcessarPosicaoData? = null,
+    val error: String? = null
+)
+
+@Serializable
+data class ProcessarPosicaoData(
+    val motoristaId: String,
+    val posicao: Coordenada,
+    val eventosGerados: Int,
+    val eventos: List<EventoGeofenceSimples> = emptyList()
+)
+
+@Serializable
+data class EventoGeofenceSimples(
+    val tipo: String,
+    val zonaId: String,
+    val timestamp: String
+)
+
+/**
+ * Response de eventos de geofence
+ */
+@Serializable
+data class EventosGeofenceResponse(
+    val success: Boolean,
+    val data: EventosGeofenceData? = null,
+    val error: String? = null
+)
+
+@Serializable
+data class EventosGeofenceData(
+    val motoristaId: String,
+    val periodo: PeriodoEventos,
+    val total: Int,
+    val eventos: List<EventoGeofence>
+)
+
+@Serializable
+data class PeriodoEventos(
+    val inicio: String,
+    val fim: String
+)
+
+/**
+ * Response de conformidade (motorista na zona?)
+ */
+@Serializable
+data class ConformidadeResponse(
+    val success: Boolean,
+    val data: ConformidadeData? = null,
+    val error: String? = null
+)
+
+@Serializable
+data class ConformidadeData(
+    val conforme: Boolean,
+    val zonasAtribuidas: List<String>,
+    val zonaAtual: String? = null
+)
+
+/**
+ * Response de configuração de geofence
+ */
+@Serializable
+data class ConfiguracaoGeofenceResponse(
+    val success: Boolean,
+    val data: ConfiguracaoGeofence? = null,
+    val error: String? = null
+)

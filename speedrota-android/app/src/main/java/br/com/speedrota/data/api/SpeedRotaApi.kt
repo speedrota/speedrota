@@ -272,4 +272,72 @@ interface SpeedRotaApi {
      */
     @GET("historico/fornecedores")
     suspend fun getHistoricoFornecedores(): HistoricoFornecedoresResponse
-}
+
+    // ==================== CAPACIDADE DE VEÍCULO ====================
+
+    /**
+     * Obtém capacidade padrão por tipo de veículo
+     */
+    @GET("capacidade/padrao/{tipo}")
+    suspend fun getCapacidadePadrao(
+        @Path("tipo") tipo: String
+    ): CapacidadePadraoResponse
+
+    /**
+     * Lista todos os tipos de veículo e capacidades
+     */
+    @GET("capacidade/tipos")
+    suspend fun getTiposVeiculo(): TiposVeiculoResponse
+
+    /**
+     * Valida se carga cabe no veículo
+     */
+    @POST("capacidade/validar")
+    suspend fun validarCapacidade(
+        @Body request: ValidarCapacidadeRequest
+    ): CapacidadeResponse
+
+    // ==================== GEOFENCING ====================
+
+    /**
+     * Processa posição e detecta eventos entrada/saída
+     */
+    @POST("geofencing/posicao")
+    suspend fun processarPosicaoGeofence(
+        @Body request: PosicaoGeofenceRequest
+    ): ProcessarPosicaoResponse
+
+    /**
+     * Lista eventos de geofence do motorista
+     */
+    @GET("geofencing/eventos/{motoristaId}")
+    suspend fun getEventosGeofence(
+        @Path("motoristaId") motoristaId: String,
+        @Query("inicio") inicio: String? = null,
+        @Query("fim") fim: String? = null
+    ): EventosGeofenceResponse
+
+    /**
+     * Verifica conformidade (motorista na zona atribuída?)
+     */
+    @GET("geofencing/conformidade/{motoristaId}")
+    suspend fun verificarConformidade(
+        @Path("motoristaId") motoristaId: String
+    ): ConformidadeResponse
+
+    /**
+     * Obtém configuração de alertas de uma zona
+     */
+    @GET("geofencing/configuracao/{zonaId}")
+    suspend fun getConfiguracaoGeofence(
+        @Path("zonaId") zonaId: String
+    ): ConfiguracaoGeofenceResponse
+
+    /**
+     * Salva configuração de alertas de uma zona
+     */
+    @PUT("geofencing/configuracao/{zonaId}")
+    suspend fun salvarConfiguracaoGeofence(
+        @Path("zonaId") zonaId: String,
+        @Body config: ConfiguracaoGeofence
+    ): ApiResponse
