@@ -155,20 +155,36 @@ object ReotimizacaoService {
     }
     
     /**
+     * Obtém fator de tráfego local (replica lógica do TrafegoService)
+     * Necessário porque ReotimizacaoService é object e não pode injetar dependências
+     */
+    private fun obterFatorTrafegoLocal(): Triple<Float, String, String> {
+        val horaAtual = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
+
+        return when (horaAtual) {
+            in 7..9 -> Triple(1.5f, "pico_manha", "Horário de pico manhã")
+            in 11..13 -> Triple(1.2f, "almoco", "Horário de almoço")
+            in 17..19 -> Triple(1.6f, "pico_tarde", "Horário de pico tarde")
+            in 22..23, in 0..5 -> Triple(0.8f, "madrugada", "Madrugada")
+            else -> Triple(1.0f, "normal", "Trânsito normal")
+        }
+    }
+
+    /**
      * Verifica se deve sugerir re-otimização por tráfego
-     * Usa TrafegoService para obter fator atual
-     * 
+     * Usa cálculo local para obter fator atual
+     *
      * @pre Nenhum
      * @post Sugestão baseada no fator de tráfego atual
      */
     fun verificarTrafegoLocal(): VerificacaoTrafego {
-        val trafego = TrafegoService.obterFatorTrafegoAtual()
-        val requer = trafego.fator >= 1.4
-        
+        val (fator, periodo, _) = obterFatorTrafegoLocal()
+        val requer = fator >= 1.4f
+
         return VerificacaoTrafego(
             requerReotimizacao = requer,
-            fatorTrafego = trafego.fator,
-            periodo = trafego.periodo.name,
+            fatorTrafego = fator.toDouble(),
+            periodo = periodo,
             sugestao = if (requer) {
                 "Recomendamos re-otimizar a rota devido ao tráfego intenso"
             } else {
