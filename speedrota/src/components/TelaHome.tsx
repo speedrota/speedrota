@@ -1,17 +1,33 @@
 /**
  * @fileoverview Tela Home
+ * 
+ * DESIGN POR CONTRATO:
+ * @pre Usuário autenticado com tipoUsuario definido
+ * @post Exibe botões relevantes para o perfil do usuário
+ * 
+ * REGRAS:
+ * - ENTREGADOR: Nova Rota, Histórico, Dashboard, Gamificação, QR Code
+ * - GESTOR_FROTA: Gestão de Frota, E-commerce, Dashboard, Previsão
  */
 
 import { useRouteStore } from '../store/routeStore';
+import { useAuthStore } from '../store/authStore';
 
 interface TelaHomeProps {
   onAbrirHistorico?: () => void;
+  onAbrirPlanos?: () => void;
 }
 
-export function TelaHome({ onAbrirHistorico }: TelaHomeProps) {
+export function TelaHome({ onAbrirHistorico, onAbrirPlanos }: TelaHomeProps) {
   const novaRota = useRouteStore((state) => state.novaRota);
   const carregarHistorico = useRouteStore((state) => state.carregarHistorico);
   const irPara = useRouteStore((state) => state.irPara);
+  const { user } = useAuthStore();
+  
+  // Tipo do usuário (default: ENTREGADOR para compatibilidade)
+  const tipoUsuario = user?.tipoUsuario || 'ENTREGADOR';
+  const isEntregador = tipoUsuario === 'ENTREGADOR';
+  const isGestorFrota = tipoUsuario === 'GESTOR_FROTA';
 
   const handleNovaRota = () => {
     novaRota();
@@ -21,7 +37,6 @@ export function TelaHome({ onAbrirHistorico }: TelaHomeProps) {
     if (onAbrirHistorico) {
       onAbrirHistorico();
     } else {
-      // Fallback: carregar histórico e mostrar na mesma página
       carregarHistorico();
     }
   };
@@ -56,98 +71,123 @@ export function TelaHome({ onAbrirHistorico }: TelaHomeProps) {
         <img src="/logo.png" alt="SpeedRota" className="home-logo" />
       </div>
       <p className="home-subtitle">
-        Suas entregas, uma rota inteligente
+        {isEntregador ? 'Suas entregas, uma rota inteligente' : 'Gerencie sua frota com eficiência'}
       </p>
 
       <div className="home-actions">
-        <button className="btn btn-primary btn-lg" onClick={handleNovaRota}>
-          ➕ Nova Rota
-        </button>
+        {/* Botões para ENTREGADOR */}
+        {isEntregador && (
+          <>
+            <button className="btn btn-primary btn-lg" onClick={handleNovaRota}>
+              ➕ Nova Rota
+            </button>
 
-        <button
-          className="btn btn-secondary"
-          onClick={handleHistorico}
-        >
-          📋 Histórico de Rotas
-        </button>
+            <button className="btn btn-secondary" onClick={handleHistorico}>
+              📋 Histórico de Rotas
+            </button>
 
-        <button
-          className="btn btn-secondary"
-          onClick={handleDashboard}
-          style={{
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            color: 'white',
-            border: 'none'
-          }}
-        >
-          📊 Dashboard Analytics
-        </button>
+            <button
+              className="btn btn-secondary"
+              onClick={handleDashboard}
+              style={{
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                color: 'white',
+                border: 'none'
+              }}
+            >
+              📊 Meu Dashboard
+            </button>
 
-        <button
-          className="btn btn-secondary"
-          onClick={handleFrota}
-          style={{
-            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-            color: 'white',
-            border: 'none'
-          }}
-        >
-          🚚 Gestão de Frota
-        </button>
+            <button
+              className="btn btn-secondary"
+              onClick={handleGamificacao}
+              style={{
+                background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+                color: 'white',
+                border: 'none'
+              }}
+            >
+              🎮 Conquistas
+            </button>
 
-        <button
-          className="btn btn-secondary"
-          onClick={handlePrevisao}
-          style={{
-            background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-            color: 'white',
-            border: 'none'
-          }}
-        >
-          🔮 Previsão de Demanda
-        </button>
+            <button
+              className="btn btn-secondary"
+              onClick={handleQrCode}
+              style={{
+                background: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
+                color: 'white',
+                border: 'none'
+              }}
+            >
+              📱 QR Code NF-e
+            </button>
+          </>
+        )}
 
-        <button
-          className="btn btn-secondary"
-          onClick={handleGamificacao}
-          style={{
-            background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
-            color: 'white',
-            border: 'none'
-          }}
-        >
-          🎮 Conquistas
-        </button>
+        {/* Botões para GESTOR_FROTA */}
+        {isGestorFrota && (
+          <>
+            <button className="btn btn-primary btn-lg" onClick={handleFrota}>
+              🚚 Gestão de Frota
+            </button>
 
-        <button
-          className="btn btn-secondary"
-          onClick={handleEcommerce}
-          style={{
-            background: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)',
-            color: 'white',
-            border: 'none'
-          }}
-        >
-          🛒 E-commerce
-        </button>
+            <button
+              className="btn btn-secondary"
+              onClick={handleDashboard}
+              style={{
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                color: 'white',
+                border: 'none'
+              }}
+            >
+              📊 Dashboard Analytics
+            </button>
 
-        <button
-          className="btn btn-secondary"
-          onClick={handleQrCode}
-          style={{
-            background: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
-            color: 'white',
-            border: 'none'
-          }}
-        >
-          📱 QR Code NF-e
-        </button>
+            <button
+              className="btn btn-secondary"
+              onClick={handlePrevisao}
+              style={{
+                background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                color: 'white',
+                border: 'none'
+              }}
+            >
+              🔮 Previsão de Demanda
+            </button>
+
+            <button
+              className="btn btn-secondary"
+              onClick={handleEcommerce}
+              style={{
+                background: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)',
+                color: 'white',
+                border: 'none'
+              }}
+            >
+              🛒 E-commerce
+            </button>
+
+            <button className="btn btn-secondary" onClick={handleHistorico}>
+              📋 Histórico de Rotas
+            </button>
+          </>
+        )}
       </div>
 
       <div className="mt-4 text-sm text-muted">
-        <p>✓ Capture origem via GPS ou manualmente</p>
-        <p>✓ Extraia destinos de NF-e via OCR</p>
-        <p>✓ Calcule a rota mais eficiente</p>
+        {isEntregador ? (
+          <>
+            <p>✓ Capture origem via GPS ou manualmente</p>
+            <p>✓ Extraia destinos de NF-e via OCR</p>
+            <p>✓ Calcule a rota mais eficiente</p>
+          </>
+        ) : (
+          <>
+            <p>✓ Gerencie motoristas e veículos</p>
+            <p>✓ Distribua entregas automaticamente</p>
+            <p>✓ Acompanhe métricas em tempo real</p>
+          </>
+        )}
       </div>
     </div>
   );

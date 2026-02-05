@@ -43,13 +43,20 @@ const getDicaDoDia = (economia: number, melhorFornecedor: string): { titulo: str
   };
 };
 
-export function DashboardEssencial() {
+interface DashboardEssencialProps {
+  onAbrirPlanos?: () => void;
+}
+
+export function DashboardEssencial({ onAbrirPlanos }: DashboardEssencialProps) {
   const { irPara } = useRouteStore();
   const { loading, error, overview, deliveries, suppliers } = useAnalytics();
 
   const handleUpgrade = () => {
-    irPara('home');
-    // O modal de planos será aberto via TelaHome
+    if (onAbrirPlanos) {
+      onAbrirPlanos();
+    } else {
+      irPara('home');
+    }
   };
 
   if (loading) {

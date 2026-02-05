@@ -12,21 +12,25 @@ import { DashboardEssencial } from './DashboardEssencial';
 import { DashboardAvancado } from './DashboardAvancado';
 import { DashboardCompleto } from './DashboardCompleto';
 
-export function TelaDashboard() {
+interface TelaDashboardProps {
+  onAbrirPlanos?: () => void;
+}
+
+export function TelaDashboard({ onAbrirPlanos }: TelaDashboardProps) {
   const { user } = useAuthStore();
   const plano = user?.plano || 'FREE';
 
   // Renderiza dashboard baseado no plano
   switch (plano) {
     case 'FREE':
-      return <DashboardEssencial />;
+      return <DashboardEssencial onAbrirPlanos={onAbrirPlanos} />;
     case 'PRO':
-      return <DashboardAvancado />;
+      return <DashboardAvancado onAbrirPlanos={onAbrirPlanos} />;
     case 'FULL':
     case 'ENTERPRISE':
       return <DashboardCompleto />;
     default:
-      return <DashboardEssencial />;
+      return <DashboardEssencial onAbrirPlanos={onAbrirPlanos} />;
   }
 }
 

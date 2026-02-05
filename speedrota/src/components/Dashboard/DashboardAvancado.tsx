@@ -22,7 +22,11 @@ import {
 } from './components';
 import '../../styles/Dashboard.css';
 
-export function DashboardAvancado() {
+interface DashboardAvancadoProps {
+  onAbrirPlanos?: () => void;
+}
+
+export function DashboardAvancado({ onAbrirPlanos }: DashboardAvancadoProps) {
   const { irPara } = useRouteStore();
   const {
     loading,
@@ -37,7 +41,11 @@ export function DashboardAvancado() {
   } = useAnalytics();
 
   const handleUpgrade = () => {
-    irPara('home');
+    if (onAbrirPlanos) {
+      onAbrirPlanos();
+    } else {
+      irPara('home');
+    }
   };
 
   if (loading) {

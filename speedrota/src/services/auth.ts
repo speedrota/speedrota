@@ -20,6 +20,7 @@ export interface User {
   nome: string;
   telefone?: string;
   plano: Plano;
+  tipoUsuario: 'ENTREGADOR' | 'GESTOR_FROTA';
   rotasNoMes: number;
   createdAt: string;
 }
@@ -35,6 +36,7 @@ export interface RegisterData {
   senha: string;
   nome: string;
   telefone?: string;
+  tipoUsuario?: 'ENTREGADOR' | 'GESTOR_FROTA';
 }
 
 export interface LoginData {

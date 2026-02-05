@@ -13,6 +13,15 @@
 
 export type Plano = 'FREE' | 'PRO' | 'FULL' | 'ENTERPRISE';
 
+/**
+ * Tipo de usuário - define quais funcionalidades são exibidas
+ * 
+ * REGRA DE NEGÓCIO:
+ * - ENTREGADOR: Foco em rotas, OCR, QR Code, Dashboard pessoal
+ * - GESTOR_FROTA: Foco em gestão de motoristas, veículos, distribuição
+ */
+export type TipoUsuario = 'ENTREGADOR' | 'GESTOR_FROTA';
+
 export const PLANOS_CONFIG: Record<Plano, { 
   nome: string; 
   rotasPorMes: number; 

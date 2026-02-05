@@ -19,6 +19,7 @@ export function TelaAuth({ onSuccess }: TelaAuthProps) {
   const [senha, setSenha] = useState('');
   const [nome, setNome] = useState('');
   const [telefone, setTelefone] = useState('');
+  const [tipoUsuario, setTipoUsuario] = useState<'ENTREGADOR' | 'GESTOR_FROTA'>('ENTREGADOR');
   
   // Campos de recuperação de senha
   const [codigo, setCodigo] = useState('');
@@ -40,7 +41,7 @@ export function TelaAuth({ onSuccess }: TelaAuthProps) {
     if (modo === 'login') {
       success = await login(email, senha);
     } else if (modo === 'registro') {
-      success = await register({ email, senha, nome, telefone: telefone || undefined });
+      success = await register({ email, senha, nome, telefone: telefone || undefined, tipoUsuario });
     }
     
     if (success && onSuccess) {
@@ -227,6 +228,30 @@ export function TelaAuth({ onSuccess }: TelaAuthProps) {
                   placeholder="(11) 99999-9999"
                   autoComplete="tel"
                 />
+              </div>
+            )}
+            
+            {modo === 'registro' && (
+              <div className="form-group">
+                <label>Você é:</label>
+                <div className="tipo-usuario-selector">
+                  <button
+                    type="button"
+                    className={`tipo-usuario-btn ${tipoUsuario === 'ENTREGADOR' ? 'active' : ''}`}
+                    onClick={() => setTipoUsuario('ENTREGADOR')}
+                  >
+                    🚴 Entregador
+                    <small>Faço minhas próprias entregas</small>
+                  </button>
+                  <button
+                    type="button"
+                    className={`tipo-usuario-btn ${tipoUsuario === 'GESTOR_FROTA' ? 'active' : ''}`}
+                    onClick={() => setTipoUsuario('GESTOR_FROTA')}
+                  >
+                    🚚 Gestor de Frota
+                    <small>Gerencio uma equipe de entregadores</small>
+                  </button>
+                </div>
               </div>
             )}
             

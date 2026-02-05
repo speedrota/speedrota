@@ -169,7 +169,7 @@ export default function App() {
         {etapaAtual === 'origem' && <TelaOrigem />}
         {etapaAtual === 'destinos' && <TelaDestinos />}
         {etapaAtual === 'rota' && <TelaRota />}
-        {etapaAtual === 'dashboard' && <TelaDashboard />}
+        {etapaAtual === 'dashboard' && <TelaDashboard onAbrirPlanos={() => setMostrarPlanos(true)} />}
         {etapaAtual === 'frota' && <TelaFrota />}
         {etapaAtual === 'previsao' && <TelaPrevisaoDemanda />}
         {etapaAtual === 'gamificacao' && <TelaGamificacao />}
