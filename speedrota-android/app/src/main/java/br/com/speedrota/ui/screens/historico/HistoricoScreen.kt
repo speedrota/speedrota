@@ -86,9 +86,9 @@ fun HistoricoScreen(
             uiState.resumo?.let { resumo ->
                 ResumoCard(
                     totalRotas = resumo.totais?.rotas ?: 0,
-                    totalEntregas = resumo.totais?.entregas ?: 0,
-                    distanciaTotal = resumo.distancia?.total ?: 0.0,
-                    tempoTotal = resumo.tempo?.total ?: 0.0
+                    totalEntregas = resumo.totais?.entregasRealizadas ?: 0,
+                    distanciaTotal = resumo.distancia?.totalKm ?: 0.0,
+                    tempoTotal = resumo.tempo?.totalMin?.toDouble() ?: 0.0
                 )
             }
             
@@ -175,6 +175,7 @@ fun HistoricoScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun FiltrosSection(
     filtros: FiltrosHistorico,
@@ -233,7 +234,7 @@ private fun FiltrosSection(
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandirFornecedor) },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .menuAnchor()
+                        .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true)
                 )
                 ExposedDropdownMenu(
                     expanded = expandirFornecedor,
@@ -369,17 +370,17 @@ private fun RotaHistoricoCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = rota.nome,
+                    text = rota.origemEndereco,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f)
                 )
-                rota.fornecedor?.let { fornecedor ->
+                if (rota.fornecedores.isNotEmpty()) {
                     AssistChip(
                         onClick = {},
-                        label = { Text(fornecedor) },
+                        label = { Text(rota.fornecedores.first()) },
                         modifier = Modifier.padding(start = 8.dp)
                     )
                 }
@@ -399,7 +400,7 @@ private fun RotaHistoricoCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                InfoChip(label = "${rota.entregas} entregas")
+                InfoChip(label = "${rota.entregasRealizadas} entregas")
                 InfoChip(label = String.format(Locale.getDefault(), "%.1f km", rota.distanciaKm))
                 InfoChip(label = formatarTempo(rota.tempoMin))
             }

@@ -10,19 +10,26 @@
 |---------|-----------|----------|------|-------------|---------|
 | **Preço (BRL/mês)** | R$29-99 | ~R$1.200+ | ~R$150/driver | ~R$210/driver | ~R$3.100+ |
 | **OCR de NF-e** | ✅ ÚNICO | ❌ | ❌ | ❌ | ❌ |
-| **Tráfego Real-time** | ✅ NOVO | ✅ | ✅ | ✅ | ✅ |
-| **Janelas de Tempo** | ✅ NOVO | ✅ | ✅ | ✅ | ✅ |
-| **Prioridade Entregas** | ✅ NOVO | ✅ | ✅ | ✅ | ✅ |
+| **Tráfego Real-time** | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Janelas de Tempo** | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Prioridade Entregas** | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **Compartilhar WhatsApp** | ✅ ÚNICO | ❌ | ❌ | ❌ | ❌ |
-| **Re-otimização Dinâmica** | ✅ NOVO (7 cenários) | ✅ | ✅ | ✅ | ✅ |
-| **Multi-driver** | ✅ NOVO | ✅ | ✅ | ✅ | ✅ |
-| **POD (Proof of Delivery)** | ✅ NOVO | ✅ | ✅ | ✅ | ✅ |
+| **Re-otimização Dinâmica** | ✅ (7 cenários) | ✅ | ✅ | ✅ | ✅ |
+| **Multi-driver/Frota** | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **POD (Proof of Delivery)** | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Status Tempo Real (SSE)** | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Notificações Push** | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Histórico + Export PDF/Excel** | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Analytics Avançados** | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Dashboard Gestor Frota** | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Distribuição Inteligente** | ✅ (Score-based) | ✅ | ✅ | ✅ | ✅ |
 | **Integração ERP/TMS** | ❌ | ✅ | ✅ | ✅ | ✅ |
-| **Analytics Avançados** | ✅ NOVO | ✅ | ✅ | ✅ | ✅ |
 | **Geofencing** | ❌ | ✅ | ✅ | ❌ | ✅ |
 | **API Pública** | ❌ | ✅ | ✅ | ✅ | ✅ |
 | **Suporte PT-BR** | ✅ ÚNICO | ❌ | ❌ | ❌ | ❌ |
 | **Pagamento PIX/Boleto** | ✅ ÚNICO | ❌ | ❌ | ❌ | ❌ |
+| **App Android Nativo** | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **PWA (Web App)** | ✅ | ✅ | ✅ | ✅ | ✅ |
 
 ---
 
@@ -357,11 +364,11 @@ MÊS 7-12: ESCALA B2B
 [x] Notificações push (API + Web Push + Android FCM) ✅ FEITO 05/02
 ```
 
-### Sprint 5-6 (Abril 2026)
+### Sprint 5-6 (Abril 2026) ✅ CONCLUÍDO
 ```
 [x] Status de entrega em tempo real ✅ FEITO 05/02
-[ ] Histórico detalhado com filtros
-[ ] Export PDF/Excel
+[x] Histórico detalhado com filtros ✅ FEITO 06/02
+[x] Export PDF/Excel ✅ FEITO 06/02
 [x] Multi-driver completo ✅ FEITO 06/02
 ```
 
@@ -433,8 +440,8 @@ MÊS 7-12: ESCALA B2B
 6. ~~**AGORA**: Notificações push (API + Web + Android)~~ ✅ FEITO
 7. ~~**AGORA**: Status tempo real (SSE + tracking)~~ ✅ FEITO
 8. ~~**AGORA**: Multi-motorista completo (Gestão de Frota)~~ ✅ FEITO
-9. **PRÓXIMO**: Histórico com filtros + Export PDF/Excel
-10. **FUTURO**: API Pública v1 + Integração Bling
+9. ~~**AGORA**: Histórico com filtros + Export PDF/Excel~~ ✅ FEITO
+10. **PRÓXIMO**: API Pública v1 + Integração Bling
 
 ---
 
@@ -443,6 +450,19 @@ MÊS 7-12: ESCALA B2B
 ---
 
 ## 📝 CHANGELOG
+
+### 06/02/2026 - Histórico com Filtros + Export PDF/Excel
+- ✅ **API Histórico**: 5 endpoints REST (GET /, /resumo, /export/pdf, /export/excel, /fornecedores)
+- ✅ **Service historico.ts**: Design por Contrato com pre/post conditions documentadas
+- ✅ **Filtros Avançados**: Por período (dataInicio/dataFim), fornecedor, status, paginação
+- ✅ **Export PDF**: pdfkit com layout A4, tabelas formatadas, resumo estatístico
+- ✅ **Export Excel**: exceljs com 4 worksheets (Resumo, Rotas, Por Dia, Fornecedores)
+- ✅ **Web TelaHistorico**: Filtros interativos, cards de resumo, botões export PDF/Excel
+- ✅ **Android Models**: 14 data classes (RotaHistoricoItem, ResumoHistorico, PaginacaoHistorico, etc.)
+- ✅ **Android API**: 3 endpoints Retrofit (getHistoricoRotas, getHistoricoResumo, getHistoricoFornecedores)
+- ✅ **Android ViewModel**: FiltrosHistorico state, paginação, formatação tempo
+- ✅ **Android Screen**: FiltrosSection, ResumoCard, PaginacaoBar, RotaHistoricoCard
+- 🎯 **Sprint 5-6 Completa**: Todas as features do sprint implementadas
 
 ### 06/02/2026 - Multi-motorista / Gestão de Frota Completa
 - ✅ **Prisma Models**: 12 novos models (Empresa, Motorista, Veiculo, Equipe, ZonaAtuacao, etc.)
