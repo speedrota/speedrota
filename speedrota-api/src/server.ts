@@ -28,6 +28,9 @@ import { notificacoesRoutes } from './routes/notificacoes.routes.js';
 import { statusRoutes } from './routes/status.routes.js';
 import frotaRoutes from './routes/frota.routes.js';
 import historicoRoutes from './routes/historico.routes.js';
+import publicApiRoutes from './routes/public.routes.js';
+import webhookErpRoutes from './routes/webhook.erp.routes.js';
+import apiKeysRoutes from './routes/apikeys.routes.js';
 
 // ==========================================
 // CRIAR SERVIDOR FASTIFY
@@ -166,6 +169,8 @@ app.get('/api/v1', async () => ({
     analytics: '/api/v1/analytics',
     trafego: '/api/v1/trafego',
     frota: '/api/v1/frota',
+    historico: '/api/v1/historico',
+    public: '/api/v1/public (API Key required)',
   },
 }));
 
@@ -183,6 +188,15 @@ app.register(notificacoesRoutes, { prefix: '/api/v1/notificacoes' });
 app.register(statusRoutes, { prefix: '/api/v1/status' });
 app.register(frotaRoutes, { prefix: '/api/v1/frota' });
 app.register(historicoRoutes, { prefix: '/api/v1/historico' });
+
+// API Pública (usa API Key ao invés de JWT)
+app.register(publicApiRoutes, { prefix: '/api/v1/public' });
+
+// Webhooks de ERPs (Bling, Tiny, etc.)
+app.register(webhookErpRoutes, { prefix: '/api/v1/webhooks/erp' });
+
+// Gestão de API Keys e Integrações (protegido por JWT)
+app.register(apiKeysRoutes, { prefix: '/api/v1/developer' });
 
 // ==========================================
 // ERROR HANDLER GLOBAL
