@@ -19,7 +19,6 @@
  */
 
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { z } from 'zod';
 import {
   registrarClienteSSE,
   removerClienteSSE,
@@ -42,44 +41,85 @@ import { randomUUID } from 'crypto';
 const prisma = new PrismaClient();
 
 // ==========================================
-// SCHEMAS DE VALIDAÇÃO
+// JSON SCHEMAS DE VALIDAÇÃO
 // ==========================================
 
-const atualizarStatusParadaSchema = z.object({
-  status: z.enum([
-    'PENDENTE',
-    'EM_TRANSITO',
-    'CHEGOU',
-    'ENTREGUE',
-    'FALHA',
-    'CANCELADO',
-    'PULADO',
-  ]),
-  motivoFalha: z
-    .enum([
-      'CLIENTE_AUSENTE',
-      'ENDERECO_NAO_ENCONTRADO',
-      'RECUSADO',
-      'AVARIADO',
-      'OUTRO',
-    ])
-    .optional(),
-  observacao: z.string().max(500).optional(),
-  posicao: z
-    .object({
-      lat: z.number().min(-90).max(90),
-      lng: z.number().min(-180).max(180),
-    })
-    .optional(),
-});
+const rotaIdParamsSchema = {
+  type: 'object',
+  required: ['rotaId'],
+  properties: {
+    rotaId: { type: 'string', format: 'uuid' },
+  },
+};
 
-const atualizarPosicaoSchema = z.object({
-  lat: z.number().min(-90).max(90),
-  lng: z.number().min(-180).max(180),
-  heading: z.number().min(0).max(360).optional(),
-  velocidade: z.number().min(0).max(300).optional(),
-  precisao: z.number().min(0).optional(),
-});
+const paradaIdParamsSchema = {
+  type: 'object',
+  required: ['paradaId'],
+  properties: {
+    paradaId: { type: 'string', format: 'uuid' },
+  },
+};
+
+const atualizarStatusParadaBodySchema = {
+  type: 'object',
+  required: ['status'],
+  properties: {
+    status: {
+      type: 'string',
+      enum: ['PENDENTE', 'EM_TRANSITO', 'CHEGOU', 'ENTREGUE', 'FALHA', 'CANCELADO', 'PULADO'],
+    },
+    motivoFalha: {
+      type: 'string',
+      enum: ['CLIENTE_AUSENTE', 'ENDERECO_NAO_ENCONTRADO', 'RECUSADO', 'AVARIADO', 'OUTRO'],
+    },
+    observacao: { type: 'string', maxLength: 500 },
+    posicao: {
+      type: 'object',
+      properties: {
+        lat: { type: 'number', minimum: -90, maximum: 90 },
+        lng: { type: 'number', minimum: -180, maximum: 180 },
+      },
+    },
+  },
+};
+
+const atualizarPosicaoBodySchema = {
+  type: 'object',
+  required: ['lat', 'lng'],
+  properties: {
+    lat: { type: 'number', minimum: -90, maximum: 90 },
+    lng: { type: 'number', minimum: -180, maximum: 180 },
+    heading: { type: 'number', minimum: 0, maximum: 360 },
+    velocidade: { type: 'number', minimum: 0, maximum: 300 },
+    precisao: { type: 'number', minimum: 0 },
+  },
+};
+
+const posicoesQuerySchema = {
+  type: 'object',
+  properties: {
+    limite: { type: 'string', default: '100' },
+  },
+};
+
+// ==========================================
+// TIPOS
+// ==========================================
+
+interface AtualizarStatusParadaBody {
+  status: string;
+  motivoFalha?: string;
+  observacao?: string;
+  posicao?: { lat: number; lng: number };
+}
+
+interface AtualizarPosicaoBody {
+  lat: number;
+  lng: number;
+  heading?: number;
+  velocidade?: number;
+  precisao?: number;
+}
 
 // ==========================================
 // ROTAS
@@ -97,12 +137,7 @@ export async function statusRoutes(app: FastifyInstance) {
         tags: ['Status Tempo Real'],
         summary: 'Stream SSE de eventos da rota',
         description: 'Conexão SSE para receber atualizações em tempo real',
-        params: z.object({
-          rotaId: z.string().uuid(),
-        }),
-        response: {
-          200: z.any(),
-        },
+        params: rotaIdParamsSchema,
       },
     },
     async (request: FastifyRequest<{ Params: { rotaId: string } }>, reply: FastifyReply) => {
@@ -181,9 +216,7 @@ export async function statusRoutes(app: FastifyInstance) {
       schema: {
         tags: ['Status Tempo Real'],
         summary: 'Obtém status atual da rota',
-        params: z.object({
-          rotaId: z.string().uuid(),
-        }),
+        params: rotaIdParamsSchema,
       },
     },
     async (request: FastifyRequest<{ Params: { rotaId: string } }>, reply: FastifyReply) => {
@@ -226,9 +259,7 @@ export async function statusRoutes(app: FastifyInstance) {
       schema: {
         tags: ['Status Tempo Real'],
         summary: 'Inicia uma rota',
-        params: z.object({
-          rotaId: z.string().uuid(),
-        }),
+        params: rotaIdParamsSchema,
       },
     },
     async (request: FastifyRequest<{ Params: { rotaId: string } }>, reply: FastifyReply) => {
@@ -274,9 +305,7 @@ export async function statusRoutes(app: FastifyInstance) {
       schema: {
         tags: ['Status Tempo Real'],
         summary: 'Pausa uma rota em andamento',
-        params: z.object({
-          rotaId: z.string().uuid(),
-        }),
+        params: rotaIdParamsSchema,
       },
     },
     async (request: FastifyRequest<{ Params: { rotaId: string } }>, reply: FastifyReply) => {
@@ -319,9 +348,7 @@ export async function statusRoutes(app: FastifyInstance) {
       schema: {
         tags: ['Status Tempo Real'],
         summary: 'Finaliza uma rota',
-        params: z.object({
-          rotaId: z.string().uuid(),
-        }),
+        params: rotaIdParamsSchema,
       },
     },
     async (request: FastifyRequest<{ Params: { rotaId: string } }>, reply: FastifyReply) => {
@@ -366,16 +393,14 @@ export async function statusRoutes(app: FastifyInstance) {
       schema: {
         tags: ['Status Tempo Real'],
         summary: 'Atualiza status de uma parada',
-        params: z.object({
-          paradaId: z.string().uuid(),
-        }),
-        body: atualizarStatusParadaSchema,
+        params: paradaIdParamsSchema,
+        body: atualizarStatusParadaBodySchema,
       },
     },
     async (
       request: FastifyRequest<{
         Params: { paradaId: string };
-        Body: z.infer<typeof atualizarStatusParadaSchema>;
+        Body: AtualizarStatusParadaBody;
       }>,
       reply: FastifyReply
     ) => {
@@ -432,16 +457,14 @@ export async function statusRoutes(app: FastifyInstance) {
       schema: {
         tags: ['Status Tempo Real'],
         summary: 'Atualiza posição do entregador',
-        params: z.object({
-          rotaId: z.string().uuid(),
-        }),
-        body: atualizarPosicaoSchema,
+        params: rotaIdParamsSchema,
+        body: atualizarPosicaoBodySchema,
       },
     },
     async (
       request: FastifyRequest<{
         Params: { rotaId: string };
-        Body: z.infer<typeof atualizarPosicaoSchema>;
+        Body: AtualizarPosicaoBody;
       }>,
       reply: FastifyReply
     ) => {
@@ -486,9 +509,7 @@ export async function statusRoutes(app: FastifyInstance) {
       schema: {
         tags: ['Status Tempo Real'],
         summary: 'Obtém histórico de status da rota',
-        params: z.object({
-          rotaId: z.string().uuid(),
-        }),
+        params: rotaIdParamsSchema,
       },
     },
     async (request: FastifyRequest<{ Params: { rotaId: string } }>, reply: FastifyReply) => {
@@ -540,18 +561,14 @@ export async function statusRoutes(app: FastifyInstance) {
       schema: {
         tags: ['Status Tempo Real'],
         summary: 'Obtém histórico de posições da rota',
-        params: z.object({
-          rotaId: z.string().uuid(),
-        }),
-        querystring: z.object({
-          limite: z.string().transform(Number).default('100'),
-        }),
+        params: rotaIdParamsSchema,
+        querystring: posicoesQuerySchema,
       },
     },
     async (
       request: FastifyRequest<{
         Params: { rotaId: string };
-        Querystring: { limite: string };
+        Querystring: { limite?: string };
       }>,
       reply: FastifyReply
     ) => {
@@ -562,7 +579,7 @@ export async function statusRoutes(app: FastifyInstance) {
         }
 
         const { rotaId } = request.params;
-        const limite = parseInt(request.query.limite) || 100;
+        const limite = parseInt(request.query.limite || '100') || 100;
 
         // Verificar propriedade
         const rota = await prisma.rota.findFirst({
