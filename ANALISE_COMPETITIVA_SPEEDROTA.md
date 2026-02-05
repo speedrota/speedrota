@@ -471,6 +471,23 @@ MÊS 7-12: ESCALA B2B
 
 ## 📝 CHANGELOG
 
+### 05/02/2026 - Android: Geofencing + Capacidade Services
+- ✅ **GeofencingService.kt**: Monitoramento de zonas com FusedLocationProviderClient
+- ✅ **Algoritmo Haversine**: Cálculo de distância para zonas circulares
+- ✅ **Ray Casting**: Detecção de ponto em polígono para zonas complexas
+- ✅ **Debounce 30s**: Evita eventos duplicados de ENTRADA/SAIDA
+- ✅ **CapacidadeService.kt**: Validação offline de peso/volumes por tipo de veículo
+- ✅ **Alertas Inteligentes**: PESO_EXCEDIDO, PESO_CRITICO, VOLUME_ALERTA
+- ✅ **Sugestão de Veículo**: Recomenda menor veículo que comporta a carga
+- ✅ **Models.kt**: 15+ data classes para Capacidade e Geofencing
+- ✅ **SpeedRotaApi.kt**: 8 novos endpoints (capacidade + geofencing)
+- 🎯 **Pattern**: Segue StatusTempoRealService como referência
+
+### 05/02/2026 - Fix: Prisma Default Export
+- ✅ **prisma.ts**: Adicionado `export default prisma` para compatibilidade
+- ✅ **Deploy Render**: Corrigido erro de import em produção
+- 🎯 **OODA Loop**: Observe → Orient → Decide → Act aplicado
+
 ### 05/02/2026 - Sprint 9-10: Capacidade, Geofencing, SEFAZ
 - ✅ **Capacidade de Veículo**: Validação de peso/volumes por tipo (MOTO 25kg, VAN 1200kg, CAMINHAO 8000kg)
 - ✅ **Alertas Sobrecarga**: Detecta quando carga excede capacidade ou limite legal
