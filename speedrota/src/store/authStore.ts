@@ -25,7 +25,7 @@ interface AuthState {
   
   // Actions
   login: (email: string, senha: string) => Promise<boolean>;
-  register: (data: { email: string; senha: string; nome: string; telefone?: string }) => Promise<boolean>;
+  register: (data: { email: string; senha: string; nome: string; telefone?: string; tipoUsuario?: 'ENTREGADOR' | 'GESTOR_FROTA' }) => Promise<boolean>;
   logout: () => void;
   loadUser: () => Promise<void>;
   updateProfile: (data: { nome?: string; telefone?: string }) => Promise<boolean>;

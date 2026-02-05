@@ -15,10 +15,9 @@ import { useAuthStore } from '../store/authStore';
 
 interface TelaHomeProps {
   onAbrirHistorico?: () => void;
-  onAbrirPlanos?: () => void;
 }
 
-export function TelaHome({ onAbrirHistorico, onAbrirPlanos }: TelaHomeProps) {
+export function TelaHome({ onAbrirHistorico }: TelaHomeProps) {
   const novaRota = useRouteStore((state) => state.novaRota);
   const carregarHistorico = useRouteStore((state) => state.carregarHistorico);
   const irPara = useRouteStore((state) => state.irPara);
