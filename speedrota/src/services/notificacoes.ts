@@ -157,9 +157,10 @@ export async function registrarSubscription(): Promise<boolean> {
     let subscription = await registration.pushManager.getSubscription();
 
     if (!subscription) {
+      const serverKey = urlBase64ToUint8Array(vapidKey);
       subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(vapidKey),
+        applicationServerKey: serverKey.buffer as ArrayBuffer,
       });
     }
 
@@ -198,10 +199,9 @@ export async function removerSubscription(): Promise<boolean> {
     const subscription = await registration.pushManager.getSubscription();
 
     if (subscription) {
-      // Remover do servidor
-      await api.delete('/notificacoes/unsubscribe', {
-        body: JSON.stringify({ endpoint: subscription.endpoint }),
-      });
+      // Remover do servidor (endpoint como parâmetro de query)
+      const encodedEndpoint = encodeURIComponent(subscription.endpoint);
+      await api.delete(`/notificacoes/unsubscribe?endpoint=${encodedEndpoint}`);
 
       // Cancelar localmente
       await subscription.unsubscribe();

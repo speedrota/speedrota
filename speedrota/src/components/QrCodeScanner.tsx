@@ -104,11 +104,12 @@ async function consultarQrCode(conteudo: string): Promise<{
 }
 
 /**
- * Importa QR Code como parada na rota
+ * Importa QR Code como parada na rota (reservado para uso futuro)
  * @pre QR Code válido e rotaId existente
  * @post Parada criada com geocoding
  */
-async function importarQrCode(conteudo: string, rotaId: string): Promise<{
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+async function _importarQrCode(conteudo: string, rotaId: string): Promise<{
   success: boolean;
   data?: {
     paradaId: string;
@@ -132,6 +133,13 @@ async function importarQrCode(conteudo: string, rotaId: string): Promise<{
 
 export function TelaQrCodeScanner() {
   const { irPara, destinos, adicionarDestino } = useRouteStore();
+  
+  // Aliases para compatibilidade
+  const setEtapa = irPara;
+  const addDestino = adicionarDestino;
+  
+  // Suprimir warnings de variáveis para uso futuro
+  void destinos;
   
   const [modo, setModo] = useState<ModoScanner>('manual');
   const [inputQrCode, setInputQrCode] = useState('');

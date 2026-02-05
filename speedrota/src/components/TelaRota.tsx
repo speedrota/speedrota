@@ -417,6 +417,7 @@ export function TelaRota() {
       {paradaSelecionadaPOD && (
         <ModalPOD
           parada={paradaSelecionadaPOD}
+          isOpen={!!paradaSelecionadaPOD}
           onClose={() => setParadaSelecionadaPOD(null)}
           onSuccess={handlePODSuccess}
         />

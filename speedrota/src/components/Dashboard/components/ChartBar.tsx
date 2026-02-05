@@ -4,6 +4,7 @@
 
 import { ResponsiveBar } from '@nivo/bar';
 import type { BarChartDatum } from '../../../types/analytics';
+import type { BarDatum } from '@nivo/bar';
 
 interface ChartBarProps {
   data: BarChartDatum[];
@@ -26,9 +27,15 @@ export function ChartBar({
     );
   }
 
+  // Converter para formato compatível com @nivo/bar
+  const nivoData: BarDatum[] = data.map(d => ({
+    ...d,
+    [indexBy]: d.fornecedor,
+  })) as unknown as BarDatum[];
+
   return (
     <ResponsiveBar
-      data={data}
+      data={nivoData}
       keys={keys}
       indexBy={indexBy}
       layout={layout}

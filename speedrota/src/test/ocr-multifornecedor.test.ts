@@ -13,9 +13,8 @@
  * - E-commerce genérico
  */
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { parsearNFe, validarDadosExtraidos } from '../services/ocr';
-import type { DadosNFe } from '../types';
 
 // ==========================================
 // AMOSTRAS DE NOTAS POR FORNECEDOR

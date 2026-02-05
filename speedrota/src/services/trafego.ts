@@ -190,7 +190,7 @@ export function formatarTempoComTrafego(duracaoMinutos: number): {
  */
 export async function obterPrevisaoTrafego(): Promise<PrevisaoHora[]> {
   try {
-    const response = await api.get('/trafego/previsao');
+    const response = await api.get('/trafego/previsao') as { data?: { data?: { previsao?: PrevisaoHora[] } } };
     return response.data?.data?.previsao || [];
   } catch (error) {
     // Fallback local
@@ -217,7 +217,7 @@ export async function obterPrevisaoTrafego(): Promise<PrevisaoHora[]> {
  */
 export async function obterStatusTrafegoAPI(): Promise<ResumoTrafego> {
   try {
-    const response = await api.get('/trafego/atual');
+    const response = await api.get('/trafego/atual') as { data?: { data?: ResumoTrafego } };
     return response.data?.data || obterResumoTrafego();
   } catch (error) {
     return obterResumoTrafego();

@@ -59,7 +59,8 @@ interface UsePODReturn {
 // CONSTANTES
 // ==========================================
 
-const PLANOS_COM_POD = ['FULL', 'FROTA', 'ENTERPRISE'];
+const _PLANOS_COM_POD = ['FULL', 'FROTA', 'ENTERPRISE'];
+void _PLANOS_COM_POD; // Reservado para uso futuro
 
 // ==========================================
 // HOOK

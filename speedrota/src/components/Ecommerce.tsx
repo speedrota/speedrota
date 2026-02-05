@@ -21,6 +21,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouteStore } from '../store/routeStore';
 import './Ecommerce.css';
 
+// Alias para consistência de nomes
+const useRotaStore = useRouteStore;
+
 // ==========================================
 // TIPOS
 // ==========================================

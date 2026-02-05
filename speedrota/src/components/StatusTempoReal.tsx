@@ -15,7 +15,7 @@
  * - PainelTracking: Painel completo de tracking
  */
 
-import React, { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import {
   conectarSSE,
   desconectarSSE,
@@ -31,12 +31,11 @@ import {
   corPorStatus,
   emojiPorStatus,
   formatarMotivoFalha,
-  StatusParada,
-  StatusRota,
-  MotivoFalha,
-  MetricasTempoReal,
-  EventoStatus,
-  Posicao,
+  type StatusParada,
+  type StatusRota,
+  type MotivoFalha,
+  type MetricasTempoReal,
+  type Posicao,
 } from '../services/statusTempoReal';
 import './StatusTempoReal.css';
 
