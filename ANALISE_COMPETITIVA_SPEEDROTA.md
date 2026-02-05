@@ -26,6 +26,8 @@
 | **Integração ERP/TMS** | ✅ (Bling/Tiny) | ✅ | ✅ | ✅ | ✅ |
 | **Geofencing** | ✅ | ✅ | ✅ | ❌ | ✅ |
 | **Consulta SEFAZ NF-e** | ✅ ÚNICO | ❌ | ❌ | ❌ | ❌ |
+| **ML Previsão de Demanda** | ✅ ÚNICO | ❌ | ❌ | ❌ | ❌ |
+| **Gamificação/Badges** | ✅ ÚNICO | ❌ | ❌ | ❌ | ❌ |
 | **Capacidade Veículo** | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **API Pública** | ✅ (v1) | ✅ | ✅ | ✅ | ✅ |
 | **Suporte PT-BR** | ✅ ÚNICO | ❌ | ❌ | ❌ | ❌ |
@@ -70,6 +72,8 @@
 | **🇧🇷 100% Brasileiro** | Suporte PT-BR, PIX, Boleto, horários BR | Confiança e facilidade |
 | **📱 Foco Mobile-first** | Pensado para entregador no celular | UX otimizada para campo |
 | **🏍️ Multi-fornecedor** | Natura + ML + Shopee na mesma rota | Maximiza ganho por km |
+| **🔮 ML Previsão Demanda** | Saber onde e quando haverá mais entregas | Planejar dia com antecedência |
+| **🎮 Gamificação** | Badges, ranking, conquistar objetivos | Engajamento e motivação |
 
 ### 3.2 Público-Alvo Único (Blue Ocean)
 
@@ -390,12 +394,21 @@ MÊS 7-12: ESCALA B2B
 [ ] App iOS (React Native ou Flutter) → Sprint 11-12
 ```
 
-### Sprint 11-12 (Julho 2026) 📋 PLANEJADO
+### Sprint 11-12 (Julho 2026) ✅ CONCLUÍDO
+```
+[x] Machine Learning: Previsão de demanda por zona ✅ FEITO 05/02
+[x] Gamificação: Badges e ranking de entregadores ✅ FEITO 05/02
+[ ] App iOS (React Native ou Flutter) → Sprint 13-14
+[ ] Integração VTEX/Shopify Brasil → Sprint 13-14
+```
+
+### Sprint 13-14 (Agosto 2026) 📋 PLANEJADO
 ```
 [ ] App iOS (React Native ou Flutter)
-[ ] Machine Learning: Previsão de demanda por zona
-[ ] Gamificação: Badges e ranking de entregadores
 [ ] Integração VTEX/Shopify Brasil
+[ ] SEFAZ: QR Code + Barcode Scanner fallback para OCR
+[ ] ML: Otimização de previsão com dados reais
+[ ] Gamificação: Eventos especiais e badges sazonais
 ```
 
 ---
@@ -461,7 +474,8 @@ MÊS 7-12: ESCALA B2B
 9. ~~**AGORA**: Histórico com filtros + Export PDF/Excel~~ ✅ FEITO
 10. ~~**AGORA**: API Pública v1 + Integração Bling~~ ✅ FEITO
 11. ~~**AGORA**: Geofencing + Capacidade de Veículo + SEFAZ~~ ✅ FEITO
-12. **PRÓXIMO**: App iOS + Machine Learning
+12. ~~**AGORA**: ML Previsão de Demanda + Gamificação~~ ✅ FEITO
+13. **PRÓXIMO**: App iOS + VTEX/Shopify + SEFAZ QR Code
 
 ---
 
@@ -470,6 +484,25 @@ MÊS 7-12: ESCALA B2B
 ---
 
 ## 📝 CHANGELOG
+
+### 05/02/2026 - Sprint 11-12: ML Previsão de Demanda + Gamificação
+- ✅ **Prisma Models**: AgregacaoDemanda, PrevisaoDemanda, InsightDemanda, Badge, UsuarioBadge, Ranking, Conquista
+- ✅ **ML Service (previsao-demanda.ts)**: Média Móvel Ponderada (7/14/30 dias)
+- ✅ **Fatores ML**: diaSemana, horário (14h-17h +40%), sazonalidade (Black Friday 2.5x, Natal 2.2x)
+- ✅ **Mapa de Calor**: Zonas com intensidade e melhor horário
+- ✅ **Insights Inteligentes**: PICO_DEMANDA, MELHOR_HORARIO, TENDENCIA, ZONA_EVITAR, OPORTUNIDADE
+- ✅ **Gamificação Service**: 25+ badges configurados em 8 categorias
+- ✅ **Tipos de Badge**: ENTREGAS, STREAK, DISTANCIA, VELOCIDADE, PRECISAO, FORNECEDOR, ZONA, ESPECIAL
+- ✅ **Raridade**: COMUM, INCOMUM, RARO, EPICO, LENDARIO
+- ✅ **Ranking Semanal**: Sistema de níveis (1-10) com pontos progressivos
+- ✅ **API ML**: /previsao/:zona, /mapa-calor, /insights, /metricas, /agregar, /validar
+- ✅ **API Gamificação**: /perfil, /badges, /ranking, /conquistas, /resumo-semanal, /leaderboard
+- ✅ **Web Components**: PrevisaoDemanda.tsx (mapa calor, cards, insights), Gamificacao.tsx (badges, ranking, resumo)
+- ✅ **Android Screens**: PrevisaoScreen.kt, GamificacaoScreen.kt com ViewModels e Repositories
+- ✅ **Android Models**: 15+ data classes (PrevisaoDemandaData, ZonaCalor, Badge, RankingItem, etc.)
+- ✅ **Navegação**: EtapaFluxo + Screen.kt atualizados com novas telas
+- ✅ **HomeScreen**: Botões 🔮 Previsão e 🎮 Conquistas
+- 🎯 **Commits**: 156a48e (Web) + 441a138 (Android)
 
 ### 05/02/2026 - Android: Geofencing + Capacidade Services
 - ✅ **GeofencingService.kt**: Monitoramento de zonas com FusedLocationProviderClient
