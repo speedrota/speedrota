@@ -26,6 +26,7 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
     onNovaRota: () -> Unit,
     onHistorico: () -> Unit,
+    onDashboard: () -> Unit,
     onVerPlanos: () -> Unit,
     onLogout: () -> Unit
 ) {
@@ -166,6 +167,31 @@ fun HomeScreen(
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "Histórico de Rotas",
+                    style = MaterialTheme.typography.titleMedium
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            // Botão Dashboard Analytics
+            OutlinedButton(
+                onClick = onDashboard,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = Primary
+                )
+            ) {
+                Icon(
+                    Icons.Default.Analytics,
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Dashboard Analytics",
                     style = MaterialTheme.typography.titleMedium
                 )
             }

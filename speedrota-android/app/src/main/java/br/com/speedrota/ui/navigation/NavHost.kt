@@ -12,6 +12,7 @@ import androidx.navigation.navArgument
 import br.com.speedrota.ui.screens.auth.LoginScreen
 import br.com.speedrota.ui.screens.auth.RegisterScreen
 import br.com.speedrota.ui.screens.auth.ForgotPasswordScreen
+import br.com.speedrota.ui.screens.dashboard.DashboardScreen
 import br.com.speedrota.ui.screens.home.HomeScreen
 import br.com.speedrota.ui.screens.historico.HistoricoScreen
 import br.com.speedrota.ui.screens.origem.OrigemScreen
@@ -83,6 +84,9 @@ fun SpeedRotaNavHost() {
                 onHistorico = {
                     navController.navigate(Screen.Historico.route)
                 },
+                onDashboard = {
+                    navController.navigate(Screen.Dashboard.route)
+                },
                 onVerPlanos = {
                     navController.navigate(Screen.Planos.route)
                 },
@@ -101,6 +105,15 @@ fun SpeedRotaNavHost() {
                 },
                 onRotaSelecionada = { rotaId ->
                     navController.navigate(Screen.Rota.createRoute(rotaId))
+                }
+            )
+        }
+        
+        // Dashboard Analytics
+        composable(Screen.Dashboard.route) {
+            DashboardScreen(
+                onBack = {
+                    navController.popBackStack()
                 }
             )
         }

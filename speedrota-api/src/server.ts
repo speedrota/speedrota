@@ -21,6 +21,7 @@ import { rotaRoutes } from './routes/rota.routes.js';
 import { podRoutes } from './routes/pod.routes.js';
 import { mercadoPagoRoutes } from './routes/mercadopago.routes.js';
 import { healthRoutes } from './routes/health.routes.js';
+import { analyticsRoutes } from './routes/analytics.routes.js';
 
 // ==========================================
 // CRIAR SERVIDOR FASTIFY
@@ -156,6 +157,7 @@ app.get('/api/v1', async () => ({
     users: '/api/v1/users',
     rotas: '/api/v1/rotas',
     pagamentos: '/api/v1/pagamentos',
+    analytics: '/api/v1/analytics',
   },
 }));
 
@@ -166,6 +168,7 @@ app.register(userRoutes, { prefix: '/api/v1/users' });
 app.register(rotaRoutes, { prefix: '/api/v1/rotas' });
 app.register(podRoutes, { prefix: '/api/v1/pod' });
 app.register(mercadoPagoRoutes, { prefix: '/api/v1/pagamentos' });
+app.register(analyticsRoutes, { prefix: '/api/v1/analytics' });
 
 // ==========================================
 // ERROR HANDLER GLOBAL

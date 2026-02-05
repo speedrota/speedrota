@@ -406,6 +406,169 @@ data class StatusPagamentoResponse(
     val error: String? = null
 )
 
+// ==================== ANALYTICS ====================
+
+/**
+ * Request para endpoints de analytics
+ * @pre periodo válido: 7d, 30d, 90d, 365d
+ */
+@Serializable
+data class AnalyticsParams(
+    val periodo: String = "30d",
+    val dataInicio: String? = null,
+    val dataFim: String? = null,
+    val fornecedor: String? = null
+)
+
+/**
+ * KPIs principais do dashboard
+ */
+@Serializable
+data class AnalyticsKPIs(
+    val totalRotas: Int = 0,
+    val rotasFinalizadas: Int = 0,
+    val totalParadas: Int = 0,
+    val totalKm: Double = 0.0,
+    val taxaSucesso: Double = 0.0,
+    // PRO+
+    val tempoTotalMin: Int? = null,
+    val custoTotal: Double? = null,
+    val kmMedio: Double? = null,
+    val tempoMedio: Int? = null,
+    // FULL+
+    val paradasEntregues: Int? = null,
+    val economiaPercent: Double? = null
+)
+
+@Serializable
+data class AnalyticsPeriodo(
+    val inicio: String,
+    val fim: String
+)
+
+@Serializable
+data class ComparativoAnterior(
+    val rotas: Int = 0,
+    val km: Double = 0.0,
+    val custo: Double = 0.0
+)
+
+@Serializable
+data class FeaturesDisponiveis(
+    val filtrosPeriodo: Boolean = false,
+    val filtrosFornecedor: Boolean = false,
+    val exportCSV: Boolean = false,
+    val exportPDF: Boolean = false,
+    val heatmap: Boolean = false,
+    val insights: Boolean = false,
+    val trends: Boolean = false,
+    val suppliers: Boolean = false
+)
+
+@Serializable
+data class OverviewData(
+    val plano: String,
+    val dashboardNivel: String, // "essencial", "avancado", "completo"
+    val periodo: AnalyticsPeriodo,
+    val kpis: AnalyticsKPIs,
+    val comparativoAnterior: ComparativoAnterior? = null,
+    val featuresDisponiveis: FeaturesDisponiveis
+)
+
+@Serializable
+data class OverviewResponse(
+    val success: Boolean,
+    val data: OverviewData? = null,
+    val error: String? = null
+)
+
+/**
+ * Status das entregas
+ */
+@Serializable
+data class StatusTotais(
+    val total: Int = 0,
+    val entregues: Int = 0,
+    val pendentes: Int = 0,
+    val ausentes: Int = 0,
+    val recusados: Int = 0
+)
+
+@Serializable
+data class PieChartItem(
+    val name: String,
+    val value: Int,
+    val color: String,
+    val percent: Double
+)
+
+@Serializable
+data class DeliveriesData(
+    val totais: StatusTotais,
+    val pieChartData: List<PieChartItem>
+)
+
+@Serializable
+data class DeliveriesResponse(
+    val success: Boolean,
+    val data: DeliveriesData? = null,
+    val error: String? = null
+)
+
+/**
+ * Tendências por período (PRO+)
+ */
+@Serializable
+data class TrendPoint(
+    val data: String,
+    val label: String,
+    val rotas: Int,
+    val km: Double,
+    val entregas: Int
+)
+
+@Serializable
+data class TrendsData(
+    val periodo: AnalyticsPeriodo,
+    val groupBy: String,
+    val dados: List<TrendPoint>
+)
+
+@Serializable
+data class TrendsResponse(
+    val success: Boolean,
+    val data: TrendsData? = null,
+    val error: String? = null
+)
+
+/**
+ * Dados por fornecedor (PRO+)
+ */
+@Serializable
+data class SupplierData(
+    val fornecedor: String,
+    val nome: String,
+    val cor: String,
+    val emoji: String,
+    val entregas: Int,
+    val km: Double,
+    val custo: Double,
+    val percentual: Double
+)
+
+@Serializable
+data class SuppliersData(
+    val total: Int,
+    val por_fornecedor: List<SupplierData>
+)
+
+@Serializable
+data class SuppliersResponse(
+    val success: Boolean,
+    val data: SuppliersData? = null,
+    val error: String? = null
+)
+
 // ==================== FORNECEDORES ====================
 
 enum class Fornecedor(

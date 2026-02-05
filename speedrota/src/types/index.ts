@@ -317,7 +317,7 @@ export interface GeocodingResult {
 /**
  * Etapas do fluxo
  */
-export type EtapaFluxo = 'home' | 'origem' | 'destinos' | 'rota' | 'navegacao';
+export type EtapaFluxo = 'home' | 'origem' | 'destinos' | 'rota' | 'navegacao' | 'dashboard';
 
 /**
  * Estado global da aplicação

@@ -13,6 +13,7 @@ import { TelaRota } from './components/TelaRota';
 import { TelaPlanos } from './components/TelaPlanos';
 import { TelaPagamentoRetorno } from './components/TelaPagamentoRetorno';
 import TelaHistorico from './components/TelaHistorico';
+import { TelaDashboard } from './components/Dashboard';
 import './styles/global.css';
 
 const TITULOS: Record<string, string> = {
@@ -21,6 +22,7 @@ const TITULOS: Record<string, string> = {
   destinos: 'Adicionar Destinos',
   rota: 'Rota Otimizada',
   navegacao: 'Navegação',
+  dashboard: 'Dashboard Analytics',
 };
 
 // Verificar se é página de retorno do pagamento
@@ -99,7 +101,7 @@ export default function App() {
   return (
     <div className="app">
       {/* Header */}
-      {etapaAtual !== 'home' && (
+      {etapaAtual !== 'home' && etapaAtual !== 'dashboard' && (
         <header className="header">
           <button className="header-back" onClick={handleVoltar}>
             ←
@@ -156,6 +158,7 @@ export default function App() {
         {etapaAtual === 'origem' && <TelaOrigem />}
         {etapaAtual === 'destinos' && <TelaDestinos />}
         {etapaAtual === 'rota' && <TelaRota />}
+        {etapaAtual === 'dashboard' && <TelaDashboard />}
       </main>
       
       {/* Footer com info da origem (se definida e não na home) */}

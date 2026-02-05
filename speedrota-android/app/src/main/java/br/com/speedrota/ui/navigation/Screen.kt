@@ -18,6 +18,9 @@ sealed class Screen(val route: String) {
     }
     data object Camera : Screen("camera")
     
+    // Analytics
+    data object Dashboard : Screen("dashboard")
+    
     // Outros
     data object Planos : Screen("planos")
     data object Pagamento : Screen("pagamento/{plano}") {

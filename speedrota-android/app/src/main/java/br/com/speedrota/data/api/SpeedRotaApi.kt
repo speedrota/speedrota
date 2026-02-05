@@ -71,4 +71,49 @@ interface SpeedRotaApi {
     
     @GET("pagamentos/public-key")
     suspend fun obterPublicKey(): PublicKeyResponse
+    
+    // ==================== ANALYTICS ====================
+    
+    /**
+     * Overview analytics - KPIs principais
+     * @pre Token válido
+     * @post Retorna métricas baseadas no plano
+     */
+    @GET("analytics/overview")
+    suspend fun getAnalyticsOverview(
+        @Query("periodo") periodo: String = "30d",
+        @Query("dataInicio") dataInicio: String? = null,
+        @Query("dataFim") dataFim: String? = null,
+        @Query("fornecedor") fornecedor: String? = null
+    ): OverviewResponse
+    
+    /**
+     * Status das entregas
+     */
+    @GET("analytics/deliveries")
+    suspend fun getAnalyticsDeliveries(
+        @Query("periodo") periodo: String = "30d",
+        @Query("dataInicio") dataInicio: String? = null,
+        @Query("dataFim") dataFim: String? = null,
+        @Query("fornecedor") fornecedor: String? = null
+    ): DeliveriesResponse
+    
+    /**
+     * Tendências (PRO+)
+     */
+    @GET("analytics/trends")
+    suspend fun getAnalyticsTrends(
+        @Query("periodo") periodo: String = "30d",
+        @Query("groupBy") groupBy: String = "day"
+    ): TrendsResponse
+    
+    /**
+     * Dados por fornecedor (PRO+)
+     */
+    @GET("analytics/suppliers")
+    suspend fun getAnalyticsSuppliers(
+        @Query("periodo") periodo: String = "30d",
+        @Query("dataInicio") dataInicio: String? = null,
+        @Query("dataFim") dataFim: String? = null
+    ): SuppliersResponse
 }

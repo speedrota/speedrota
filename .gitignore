@@ -59,3 +59,5 @@ coverage/
 # Cache
 .cache/
 *.cache
+*tmpclaude
+*tmpclaude*
