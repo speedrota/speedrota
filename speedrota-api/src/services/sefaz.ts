@@ -819,20 +819,61 @@ export async function consultarNfePorQrCode(
 
   console.log(`[SEFAZ QR] Tipo: ${dadosQr.tipo}, Chave: ${dadosQr.chaveAcesso.substring(0, 10)}...`);
 
-  // 2. Validar chave
+  // 2. Validar chave - apenas log de warning, não bloqueia
+  let chaveValida = true;
+  let avisoChave = '';
+  
   try {
     validarChaveAcesso(dadosQr.chaveAcesso);
   } catch (error) {
-    return {
-      sucesso: false,
-      erro: `Chave inválida: ${(error as Error).message}`,
-      cache: false,
-      consultaEm: new Date()
-    };
+    const msg = (error as Error).message;
+    chaveValida = false;
+    
+    // Se for apenas erro de DV, permitir continuar (scanner pode ter lido errado)
+    if (msg.includes('Dígito verificador')) {
+      console.warn(`[SEFAZ QR] Chave com DV inválido - pode ser erro de leitura: ${dadosQr.chaveAcesso}`);
+      avisoChave = 'Possível erro de leitura no código de barras';
+    } else {
+      // Outros erros (tamanho, UF inválida) são bloqueantes
+      return {
+        sucesso: false,
+        erro: `Chave inválida: ${msg}`,
+        cache: false,
+        consultaEm: new Date()
+      };
+    }
   }
 
-  // 3. Consultar usando a função existente
-  return consultarNfe(dadosQr.chaveAcesso);
+  // 3. Tentar consultar usando a função existente
+  const resultado = await consultarNfe(dadosQr.chaveAcesso);
+  
+  // Se a chave era inválida mas conseguimos dados, adicionar aviso
+  if (!chaveValida && resultado.sucesso) {
+    console.log('[SEFAZ QR] Consulta funcionou apesar de DV inválido - scanner leu 1 dígito errado');
+  }
+  
+  // Se consultarNfe falhou e a chave tem DV inválido, retornar a chave mesmo assim
+  if (!resultado.sucesso && !chaveValida) {
+    return {
+      sucesso: true,
+      cache: false,
+      consultaEm: new Date(),
+      dados: {
+        chaveAcesso: dadosQr.chaveAcesso,
+        tipoNfe: dadosQr.tipo === 'NFCE_PAULISTA' ? 'NFC-e' : 'NF-e',
+        destinatario: {
+          nome: undefined,
+          endereco: undefined,
+          cidade: undefined,
+          uf: obterUfDaChave(dadosQr.chaveAcesso),
+          cep: undefined
+        }
+      },
+      aviso: avisoChave || 'Não foi possível consultar dados no SEFAZ. Chave extraída.'
+    };
+  }
+  
+  return resultado;
 }
 
 /**
@@ -840,9 +881,10 @@ export async function consultarNfePorQrCode(
  * 
  * @description Código de barras Code-128 da DANFE contém a chave de 44 dígitos
  * @pre barcodeData é string de dígitos
- * @post Chave de acesso ou null se inválido
+ * @post Chave de acesso ou null se tamanho inválido
  * 
  * NOTA: Alguns DANFEs usam código de barras em vez de QR Code
+ * NOTA: Não rejeita por DV inválido - scanner pode ter lido errado
  */
 export function extrairChaveDeBarcode(barcodeData: string): string | null {
   // Limpar apenas dígitos
@@ -853,9 +895,10 @@ export function extrairChaveDeBarcode(barcodeData: string): string | null {
     return null;
   }
   
-  // Validar dígito verificador
+  // Validar dígito verificador - apenas log, não rejeita
   if (!validarDigitoVerificador(digitos)) {
-    return null;
+    console.warn(`[SEFAZ] Chave com DV inválido (pode ser erro de leitura): ${digitos.substring(0, 10)}...`);
+    // Retorna mesmo assim - melhor ter a chave para análise do que nada
   }
   
   return digitos;
