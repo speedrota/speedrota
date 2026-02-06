@@ -318,7 +318,7 @@ export async function sefazRoutes(fastify: FastifyInstance) {
       const { conteudo } = QrCodeSchema.parse(request.body);
       const resultado = extrairDadosQrCode(conteudo);
 
-      if (!resultado) {
+      if (!resultado.chaveAcesso) {
         return reply.status(400).send({
           success: false,
           error: 'Formato de QR Code não reconhecido',
@@ -335,12 +335,12 @@ export async function sefazRoutes(fastify: FastifyInstance) {
         success: true,
         data: {
           tipo: resultado.tipo,
-          chaveAcesso: resultado.chave,
-          urlOrigem: resultado.urlOrigem || null,
-          parametrosExtras: resultado.parametros || null,
+          chaveAcesso: resultado.chaveAcesso,
+          urlOrigem: resultado.url || null,
+          parametrosExtras: resultado.dados || null,
           componentes: {
-            uf: obterUfDaChave(resultado.chave),
-            modelo: resultado.chave.substring(20, 22) === '55' ? 'NF-e' : 'NFC-e'
+            uf: obterUfDaChave(resultado.chaveAcesso),
+            modelo: resultado.chaveAcesso.substring(20, 22) === '55' ? 'NF-e' : 'NFC-e'
           }
         }
       };
@@ -453,12 +453,12 @@ export async function sefazRoutes(fastify: FastifyInstance) {
   }>('/barcode/extrair', async (request, reply) => {
     try {
       const { barcode } = BarcodeSchema.parse(request.body);
-      const resultado = extrairChaveDeBarcode(barcode);
+      const chaveExtraida = extrairChaveDeBarcode(barcode);
 
-      if (!resultado.sucesso) {
+      if (!chaveExtraida) {
         return reply.status(400).send({
           success: false,
-          error: resultado.erro || 'Código de barras inválido',
+          error: 'Código de barras inválido',
           dica: 'O código de barras do DANFE deve conter 44 dígitos'
         });
       }
@@ -466,13 +466,13 @@ export async function sefazRoutes(fastify: FastifyInstance) {
       return {
         success: true,
         data: {
-          chaveAcesso: resultado.chave,
+          chaveAcesso: chaveExtraida,
           barcodeOriginal: barcode.substring(0, 20) + '...',
-          componentes: resultado.chave ? {
-            uf: obterUfDaChave(resultado.chave),
-            modelo: resultado.chave.substring(20, 22) === '55' ? 'NF-e' : 'NFC-e',
-            cnpjEmitente: resultado.chave.substring(6, 20)
-          } : null
+          componentes: {
+            uf: obterUfDaChave(chaveExtraida),
+            modelo: chaveExtraida.substring(20, 22) === '55' ? 'NF-e' : 'NFC-e',
+            cnpjEmitente: chaveExtraida.substring(6, 20)
+          }
         }
       };
     } catch (error) {
@@ -495,8 +495,8 @@ export async function sefazRoutes(fastify: FastifyInstance) {
       const { barcode, rotaId } = request.body;
       
       // Extrair e validar barcode
-      const extracao = extrairChaveDeBarcode(barcode);
-      if (!extracao.sucesso || !extracao.chave) {
+      const chaveExtraida = extrairChaveDeBarcode(barcode);
+      if (!chaveExtraida) {
         return reply.status(400).send({
           success: false,
           error: 'Código de barras inválido'
@@ -504,7 +504,7 @@ export async function sefazRoutes(fastify: FastifyInstance) {
       }
 
       // Importar usando a chave extraída
-      const resultado = await importarNfeComoParada(extracao.chave, rotaId);
+      const resultado = await importarNfeComoParada(chaveExtraida, rotaId);
 
       if (!resultado.sucesso) {
         return reply.status(400).send({
@@ -517,7 +517,7 @@ export async function sefazRoutes(fastify: FastifyInstance) {
         success: true,
         data: {
           paradaId: resultado.paradaId,
-          chaveNfe: extracao.chave,
+          chaveNfe: chaveExtraida,
           mensagem: 'Código de barras importado com sucesso'
         }
       };
