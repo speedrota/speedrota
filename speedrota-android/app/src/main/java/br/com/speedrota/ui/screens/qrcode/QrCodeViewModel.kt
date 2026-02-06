@@ -293,6 +293,10 @@ class QrCodeViewModel @Inject constructor(
 
             if (consultaResponse.isSuccessful && consultaResponse.body()?.success == true) {
                 val consultaData = consultaResponse.body()?.data
+                
+                // Verifica se endereço está vazio ou null
+                val enderecoRetornado = consultaData?.enderecoFormatado?.takeIf { it.isNotBlank() }
+                val precisaDigitarEndereco = enderecoRetornado.isNullOrBlank()
 
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
@@ -300,10 +304,12 @@ class QrCodeViewModel @Inject constructor(
                         chaveAcesso = consultaData?.chaveAcesso ?: extracaoData?.chaveAcesso ?: "",
                         tipoQrCode = consultaData?.tipoQrCode ?: extracaoData?.tipo ?: "NF-e",
                         nomeDestinatario = consultaData?.nfe?.destinatario?.nome,
-                        endereco = consultaData?.enderecoFormatado,
+                        endereco = enderecoRetornado,
                         valor = consultaData?.nfe?.valor,
-                        dataEmissao = consultaData?.nfe?.dataEmissao
-                    )
+                        dataEmissao = consultaData?.nfe?.dataEmissao,
+                        precisaEnderecoManual = precisaDigitarEndereco
+                    ),
+                    error = if (precisaDigitarEndereco) "Consulta SEFAZ indisponível. Digite o endereço manualmente." else null
                 )
             } else {
                 // Verifica se a API retornou erro específico
@@ -357,6 +363,10 @@ class QrCodeViewModel @Inject constructor(
 
             if (consultaResponse.isSuccessful && consultaResponse.body()?.success == true) {
                 val consultaData = consultaResponse.body()?.data
+                
+                // Verifica se endereço está vazio ou null
+                val enderecoRetornado = consultaData?.enderecoFormatado?.takeIf { it.isNotBlank() }
+                val precisaDigitarEndereco = enderecoRetornado.isNullOrBlank()
 
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
@@ -364,10 +374,12 @@ class QrCodeViewModel @Inject constructor(
                         chaveAcesso = consultaData?.chaveAcesso ?: chave,
                         tipoQrCode = consultaData?.tipoQrCode ?: "NF-e",
                         nomeDestinatario = consultaData?.nfe?.destinatario?.nome,
-                        endereco = consultaData?.enderecoFormatado,
+                        endereco = enderecoRetornado,
                         valor = consultaData?.nfe?.valor,
-                        dataEmissao = consultaData?.nfe?.dataEmissao
-                    )
+                        dataEmissao = consultaData?.nfe?.dataEmissao,
+                        precisaEnderecoManual = precisaDigitarEndereco
+                    ),
+                    error = if (precisaDigitarEndereco) "Consulta SEFAZ indisponível. Digite o endereço manualmente." else null
                 )
             } else {
                 // Verifica se a API retornou erro específico

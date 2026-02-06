@@ -146,6 +146,7 @@ export function TelaQrCodeScanner() {
   const [resultado, setResultado] = useState<NfeExtraida | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [importados, setImportados] = useState<ParadaImportada[]>([]);
+  const [dicaScanner, setDicaScanner] = useState<string | null>(null);
   
   // Camera state - usando Html5Qrcode
   const [cameraAtiva, setCameraAtiva] = useState(false);
@@ -154,6 +155,7 @@ export function TelaQrCodeScanner() {
   const scannerContainerId = 'qrcode-scanner-container';
   const lastScannedRef = useRef<string>('');
   const processarQrCodeRef = useRef<((conteudo: string) => Promise<void>) | undefined>(undefined);
+  const dicaTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   /**
    * Processa conteúdo QR Code (extrai e consulta)
@@ -284,24 +286,42 @@ export function TelaQrCodeScanner() {
       const containerEl = document.getElementById(scannerContainerId);
       const containerWidth = containerEl?.clientWidth || 400;
       
-      // QRbox ocupa 90% da largura, altura proporcional para barcode
-      const qrboxWidth = Math.min(containerWidth * 0.9, 500);
-      const qrboxHeight = Math.min(qrboxWidth * 0.5, 250); // Mais alto para facilitar mirar
+      // QRbox ocupa 80% da largura - área grande para facilitar posicionamento
+      const qrboxWidth = Math.min(containerWidth * 0.8, 450);
+      const qrboxHeight = Math.min(qrboxWidth * 0.6, 300); // Área maior para códigos de barras
       
       await html5QrCodeRef.current.start(
         { facingMode: 'environment' },
         {
-          fps: 15,  // Balanceado para performance
+          fps: 10,  // Reduzido para melhor processamento
           qrbox: { width: qrboxWidth, height: qrboxHeight },
-          aspectRatio: 1.0,  // Quadrado para melhor visualização
+          aspectRatio: 1.333,  // 4:3 para melhor compatibilidade
           disableFlip: false,
         },
         onScanSuccess,
-        () => {} // Ignora erros de scan contínuo
+        (errorMessage: string) => {
+          // Só loga se for erro relevante (não "No barcode found")
+          if (!errorMessage.includes('No barcode') && !errorMessage.includes('No MultiFormat')) {
+            console.log('[Scanner] Tentativa:', errorMessage);
+          }
+        }
       );
 
       setCameraAtiva(true);
+      setDicaScanner(null);
       console.log(`[Scanner] Câmera iniciada - qrbox: ${qrboxWidth}x${qrboxHeight}`);
+      
+      // Limpar timeout anterior
+      if (dicaTimeoutRef.current) {
+        clearTimeout(dicaTimeoutRef.current);
+      }
+      
+      // Mensagem de dica após 5 segundos se não detectou nada
+      dicaTimeoutRef.current = setTimeout(() => {
+        if (html5QrCodeRef.current?.isScanning && !lastScannedRef.current) {
+          setDicaScanner('💡 Dica: Aproxime mais a câmera ou tente o modo "Digitar" para colar a chave manualmente');
+        }
+      }, 5000);
 
     } catch (err) {
       console.error('Erro ao acessar câmera:', err);
@@ -321,6 +341,11 @@ export function TelaQrCodeScanner() {
       console.error('Erro ao parar câmera:', err);
     }
     setCameraAtiva(false);
+    setDicaScanner(null);
+    if (dicaTimeoutRef.current) {
+      clearTimeout(dicaTimeoutRef.current);
+      dicaTimeoutRef.current = null;
+    }
   }, []);
 
   /**
@@ -333,6 +358,7 @@ export function TelaQrCodeScanner() {
     setModo(novoModo);
     setResultado(null);
     setErro(null);
+    setDicaScanner(null);
   };
 
   /**
@@ -475,9 +501,24 @@ export function TelaQrCodeScanner() {
                   </div>
                 )}
                 {cameraAtiva && (
-                  <p style={{ textAlign: 'center', color: '#666', marginTop: '0.5rem', fontSize: '0.85rem' }}>
-                    📷 Aponte para QR Code ou código de barras
-                  </p>
+                  <>
+                    <p style={{ textAlign: 'center', color: '#666', marginTop: '0.5rem', fontSize: '0.85rem' }}>
+                      📷 Aponte para QR Code ou código de barras
+                    </p>
+                    {dicaScanner && (
+                      <div style={{ 
+                        background: 'rgba(245, 158, 11, 0.1)', 
+                        color: '#92400e',
+                        padding: '0.75rem',
+                        borderRadius: '0.5rem',
+                        marginTop: '0.5rem',
+                        fontSize: '0.8rem',
+                        textAlign: 'center'
+                      }}>
+                        {dicaScanner}
+                      </div>
+                    )}
+                  </>
                 )}
               </>
             )}
