@@ -97,6 +97,70 @@ export interface OcrResult {
   erro?: string;
 }
 
+// ==========================================
+// VERIFICAÇÃO DE QUALIDADE OCR
+// ==========================================
+
+const PALAVRAS_CHAVE_NFE = [
+  'destinatario',
+  'rua',
+  'avenida',
+  'bairro',
+  'cidade',
+  'cep',
+  'danfe',
+  'nota fiscal',
+  'endereco',
+  'valor total',
+  'chave de acesso'
+];
+
+/**
+ * Verifica se o texto extraído contém palavras-chave de NF-e
+ * @pre texto limpo
+ * @post true se encontrou pelo menos 2 palavras-chave
+ */
+function verificarQualidadeOCR(texto: string): boolean {
+  const textoLower = texto.toLowerCase();
+  const encontradas = PALAVRAS_CHAVE_NFE.filter(p => textoLower.includes(p));
+  console.log(`[OCR] Palavras-chave encontradas: ${encontradas.length} (${encontradas.join(', ')})`);
+  return encontradas.length >= 2;
+}
+
+/**
+ * Aplica rotação à imagem usando Sharp
+ * @pre buffer da imagem, graus ∈ {90, 180, 270}
+ * @post buffer da imagem rotacionada
+ */
+async function rotacionarImagem(imageBuffer: Buffer, graus: number): Promise<Buffer> {
+  return sharp(imageBuffer)
+    .rotate(graus)
+    .grayscale()
+    .normalize()
+    .sharpen({ sigma: 1.5 })
+    .png()
+    .toBuffer();
+}
+
+/**
+ * Executa OCR em um buffer de imagem
+ * @pre buffer válido
+ * @post resultado do Tesseract
+ */
+async function executarOCR(imageBuffer: Buffer): Promise<Tesseract.RecognizeResult> {
+  return Tesseract.recognize(
+    imageBuffer,
+    'por',
+    {
+      logger: m => {
+        if (m.status === 'recognizing text') {
+          console.log(`[OCR] Progresso: ${Math.round((m.progress || 0) * 100)}%`);
+        }
+      }
+    }
+  );
+}
+
 /**
  * Extrai chave de acesso de 44 dígitos do texto
  * 
@@ -358,23 +422,40 @@ export async function analisarImagemNota(imagemBase64: string): Promise<OcrResul
     
     console.log('[OCR] Executando Tesseract...');
     
-    // Executa OCR com Tesseract
-    const result = await Tesseract.recognize(
-      imageBuffer,
-      'por', // Português
-      {
-        logger: m => {
-          if (m.status === 'recognizing text') {
-            console.log(`[OCR] Progresso: ${Math.round((m.progress || 0) * 100)}%`);
-          }
-        }
-      }
-    );
+    // Guarda buffer original para tentativas de rotação
+    const bufferOriginal = imageBuffer;
     
-    const textoExtraido = result.data.text;
-    const confianca = result.data.confidence;
+    // Executa OCR com Tesseract
+    let result = await executarOCR(imageBuffer);
+    
+    let textoExtraido = result.data.text;
+    let confianca = result.data.confidence;
     
     console.log(`[OCR] Texto extraído (${textoExtraido.length} chars, confiança: ${confianca}%)`);
+    
+    // Se não encontrou palavras-chave, tentar rotações
+    if (!verificarQualidadeOCR(textoExtraido)) {
+      console.log('[OCR] Qualidade ruim, tentando rotações...');
+      
+      const rotacoes = [90, 270, 180];
+      for (const graus of rotacoes) {
+        console.log(`[OCR] Tentando rotação de ${graus}°...`);
+        try {
+          const bufferRotacionado = await rotacionarImagem(bufferOriginal, graus);
+          const resultRot = await executarOCR(bufferRotacionado);
+          const textoRot = resultRot.data.text;
+          
+          if (verificarQualidadeOCR(textoRot)) {
+            console.log(`[OCR] Rotação ${graus}° encontrou texto válido!`);
+            textoExtraido = textoRot;
+            confianca = resultRot.data.confidence;
+            break;
+          }
+        } catch (err) {
+          console.warn(`[OCR] Erro na rotação ${graus}°:`, err);
+        }
+      }
+    }
     
     if (!textoExtraido || textoExtraido.trim().length < 10) {
       return {
@@ -424,8 +505,8 @@ export async function analisarImagemNota(imagemBase64: string): Promise<OcrResul
       dadosAdicionais: {
         nomeDestinatario,
         enderecoDestinatario: endereco?.enderecoCompleto,
-        valorTotal: dadosNota.valorTotal,
-        dataEmissao: dadosNota.dataEmissao
+        valorTotal: dadosNota?.valorTotal,
+        dataEmissao: dadosNota?.dataEmissao
       }
     };
     
