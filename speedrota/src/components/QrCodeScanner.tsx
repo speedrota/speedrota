@@ -2,7 +2,7 @@
  * @fileoverview Componente QR Code Scanner para NF-e/NFC-e
  * 
  * Responsável por:
- * - Escanear QR Codes via câmera
+ * - Escanear QR Codes e códigos de barras via câmera
  * - Input manual de QR Code/chave de acesso
  * - Consultar NF-e no SEFAZ
  * - Importar como parada na rota
@@ -13,6 +13,7 @@
  */
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import { useRouteStore } from '../store/routeStore';
 import './QrCodeScanner.css';
 
@@ -146,56 +147,164 @@ export function TelaQrCodeScanner() {
   const [erro, setErro] = useState<string | null>(null);
   const [importados, setImportados] = useState<ParadaImportada[]>([]);
   
-  // Camera state
+  // Camera state - usando Html5Qrcode
   const [cameraAtiva, setCameraAtiva] = useState(false);
   const [erroCamera, setErroCamera] = useState<string | null>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
+  const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
+  const scannerContainerId = 'qrcode-scanner-container';
+  const lastScannedRef = useRef<string>('');
+  const processarQrCodeRef = useRef<((conteudo: string) => Promise<void>) | undefined>(undefined);
 
-  // Cleanup camera on unmount
+  /**
+   * Processa conteúdo QR Code (extrai e consulta)
+   * @pre conteudo não vazio
+   * @post resultado populado ou erro setado
+   */
+  const processarQrCode = async (conteudo: string) => {
+    if (!conteudo.trim()) {
+      setErro('Digite ou escaneie um QR Code/código de barras');
+      return;
+    }
+
+    setProcessando(true);
+    setErro(null);
+    setResultado(null);
+
+    try {
+      // Primeiro: extrai para validar formato
+      const extracao = await extrairQrCode(conteudo);
+      
+      if (!extracao.success) {
+        setErro(extracao.error || 'Formato de código não reconhecido');
+        setProcessando(false);
+        return;
+      }
+
+      // Segundo: consulta SEFAZ para dados completos
+      const consulta = await consultarQrCode(conteudo);
+      
+      if (!consulta.success) {
+        // Se falhou consulta, mostra pelo menos os dados extraídos
+        setResultado({
+          chaveAcesso: extracao.data!.chaveAcesso,
+          tipoQrCode: extracao.data!.tipo,
+        });
+        setErro(`Extração OK, mas consulta SEFAZ falhou: ${consulta.error}`);
+        setProcessando(false);
+        return;
+      }
+
+      // Sucesso completo
+      const nfe = consulta.data!.nfe;
+      setResultado({
+        chaveAcesso: consulta.data!.chaveAcesso,
+        tipoQrCode: consulta.data!.tipoQrCode,
+        nomeDestinatario: nfe.destinatario.nome,
+        endereco: consulta.data!.enderecoFormatado,
+        valor: nfe.valor,
+        dataEmissao: nfe.dataEmissao
+      });
+
+    } catch (err) {
+      console.error('Erro ao processar código:', err);
+      setErro('Erro de conexão. Verifique sua internet.');
+    } finally {
+      setProcessando(false);
+    }
+  };
+
+  // Manter referência atualizada para uso no callback
+  useEffect(() => {
+    processarQrCodeRef.current = processarQrCode;
+  });
+
+  // Cleanup scanner on unmount
   useEffect(() => {
     return () => {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
+      if (html5QrCodeRef.current?.isScanning) {
+        html5QrCodeRef.current.stop().catch(console.error);
       }
     };
   }, []);
 
   /**
-   * Inicia a câmera para escaneamento
+   * Callback quando QR Code/Barcode é detectado
+   */
+  const onScanSuccess = useCallback((decodedText: string) => {
+    // Evitar processamento duplicado do mesmo código
+    if (decodedText === lastScannedRef.current) return;
+    lastScannedRef.current = decodedText;
+    
+    console.log('[Scanner] Código detectado:', decodedText);
+    
+    // Processar automaticamente via ref
+    processarQrCodeRef.current?.(decodedText);
+    
+    // Reset após 3 segundos para permitir novo scan
+    setTimeout(() => {
+      lastScannedRef.current = '';
+    }, 3000);
+  }, []);
+
+  /**
+   * Inicia a câmera para escaneamento com Html5Qrcode
+   * Suporta QR Code E códigos de barras (Code 128, ITF-14, etc)
    */
   const iniciarCamera = useCallback(async () => {
     try {
       setErroCamera(null);
-      const constraints = {
-        video: { 
-          facingMode: 'environment',
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        }
-      };
-
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      streamRef.current = stream;
       
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-        setCameraAtiva(true);
+      // Criar instância do scanner se não existir
+      if (!html5QrCodeRef.current) {
+        html5QrCodeRef.current = new Html5Qrcode(scannerContainerId, {
+          verbose: false,
+          formatsToSupport: [
+            // QR Codes
+            Html5QrcodeSupportedFormats.QR_CODE,
+            Html5QrcodeSupportedFormats.DATA_MATRIX,
+            // Códigos de barras usados em NF-e
+            Html5QrcodeSupportedFormats.CODE_128,
+            Html5QrcodeSupportedFormats.CODE_39,
+            Html5QrcodeSupportedFormats.ITF,
+            Html5QrcodeSupportedFormats.EAN_13,
+            Html5QrcodeSupportedFormats.EAN_8,
+            Html5QrcodeSupportedFormats.UPC_A,
+            Html5QrcodeSupportedFormats.UPC_E,
+          ]
+        });
       }
+
+      // Configurar e iniciar scanner
+      await html5QrCodeRef.current.start(
+        { facingMode: 'environment' },
+        {
+          fps: 10,
+          qrbox: { width: 280, height: 180 },
+          aspectRatio: 1.5,
+        },
+        onScanSuccess,
+        () => {} // Ignora erros de scan contínuo
+      );
+
+      setCameraAtiva(true);
+      console.log('[Scanner] Câmera iniciada com suporte a QR Code + Barcode');
+
     } catch (err) {
       console.error('Erro ao acessar câmera:', err);
       setErroCamera('Não foi possível acessar a câmera. Verifique as permissões.');
     }
-  }, []);
+  }, [onScanSuccess]);
 
   /**
    * Para a câmera
    */
-  const pararCamera = useCallback(() => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
+  const pararCamera = useCallback(async () => {
+    try {
+      if (html5QrCodeRef.current?.isScanning) {
+        await html5QrCodeRef.current.stop();
+      }
+    } catch (err) {
+      console.error('Erro ao parar câmera:', err);
     }
     setCameraAtiva(false);
   }, []);
@@ -212,62 +321,6 @@ export function TelaQrCodeScanner() {
     setModo(novoModo);
     setResultado(null);
     setErro(null);
-  };
-
-  /**
-   * Processa conteúdo QR Code (extrai e consulta)
-   * @pre conteudo não vazio
-   * @post resultado populado ou erro setado
-   */
-  const processarQrCode = async (conteudo: string) => {
-    if (!conteudo.trim()) {
-      setErro('Digite ou escaneie um QR Code');
-      return;
-    }
-
-    setProcessando(true);
-    setErro(null);
-    setResultado(null);
-
-    try {
-      // Primeiro: extrai para validar formato
-      const extracao = await extrairQrCode(conteudo);
-      
-      if (!extracao.success) {
-        setErro(extracao.error || 'Formato de QR Code não reconhecido');
-        return;
-      }
-
-      // Segundo: consulta SEFAZ para dados completos
-      const consulta = await consultarQrCode(conteudo);
-      
-      if (!consulta.success) {
-        // Se falhou consulta, mostra pelo menos os dados extraídos
-        setResultado({
-          chaveAcesso: extracao.data!.chaveAcesso,
-          tipoQrCode: extracao.data!.tipo,
-        });
-        setErro(`Extração OK, mas consulta SEFAZ falhou: ${consulta.error}`);
-        return;
-      }
-
-      // Sucesso completo
-      const nfe = consulta.data!.nfe;
-      setResultado({
-        chaveAcesso: consulta.data!.chaveAcesso,
-        tipoQrCode: consulta.data!.tipoQrCode,
-        nomeDestinatario: nfe.destinatario.nome,
-        endereco: consulta.data!.enderecoFormatado,
-        valor: nfe.valor,
-        dataEmissao: nfe.dataEmissao
-      });
-
-    } catch (err) {
-      console.error('Erro ao processar QR Code:', err);
-      setErro('Erro de conexão. Verifique sua internet.');
-    } finally {
-      setProcessando(false);
-    }
   };
 
   /**
@@ -334,7 +387,7 @@ export function TelaQrCodeScanner() {
         >
           ←
         </button>
-        <h1 className="qrcode-scanner__title">📱 Scanner QR Code NF-e</h1>
+        <h1 className="qrcode-scanner__title">📱 Scanner NF-e</h1>
       </header>
 
       {/* Área Scanner */}
@@ -372,21 +425,26 @@ export function TelaQrCodeScanner() {
               </div>
             ) : (
               <>
-                <video 
-                  ref={videoRef} 
+                {/* Container para Html5Qrcode */}
+                <div 
+                  id={scannerContainerId}
                   className="camera-video"
-                  playsInline
-                  muted
+                  style={{ width: '100%', minHeight: '300px' }}
                 />
-                <div className="camera-overlay">
-                  <div className="scan-frame">
-                    {cameraAtiva && (
+                {!cameraAtiva && (
+                  <div className="camera-overlay">
+                    <div className="scan-frame">
                       <span className="scanning-indicator">
-                        Aponte para o QR Code
+                        Iniciando câmera...
                       </span>
-                    )}
+                    </div>
                   </div>
-                </div>
+                )}
+                {cameraAtiva && (
+                  <p style={{ textAlign: 'center', color: '#666', marginTop: '0.5rem', fontSize: '0.85rem' }}>
+                    📷 Aponte para QR Code ou código de barras
+                  </p>
+                )}
               </>
             )}
           </div>
