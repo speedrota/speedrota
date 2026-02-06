@@ -60,20 +60,27 @@
 
 **Descrição curta (máx. 80 caracteres):**
 ```
-Rotas inteligentes com IA: OCR de NF-e + SEFAZ. 60% mais barato que concorrentes!
+Una Natura + ML + Shopee em 1 rota! OCR de NF-e + IA. 60% mais barato!
 ```
 
 **Descrição completa (máx. 4000 caracteres):**
 ```
 🚀 SPEEDROTA - O Roteirizador Inteligente para Entregas
 
-O único app brasileiro com IA, OCR de Nota Fiscal e integração SEFAZ! 
-60-70% mais barato que qualquer concorrente.
+O único app brasileiro que UNIFICA entregas de MÚLTIPLOS FORNECEDORES em uma única rota otimizada!
+
+🔥 EXCLUSIVO: MERGE DE ROTAS MULTI-FORNECEDOR 🔥
+
+Trabalha com Natura, Mercado Livre, Shopee, Amazon, iFood e outros? 
+O SpeedRota combina TODAS as suas entregas em UMA ÚNICA ROTA INTELIGENTE!
+
+Exemplo: 5 entregas Natura + 8 do Mercado Livre + 3 da Shopee = 16 paradas organizadas na melhor sequência possível. Economize até 40% em combustível e tempo!
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ✨ FUNCIONALIDADES EXCLUSIVAS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+🔀 MERGE MULTI-FORNECEDOR - Combine Natura + ML + Shopee + Amazon em 1 rota (ÚNICO NO BRASIL!)
 📸 OCR de NF-e - Tire foto da nota fiscal e extraia endereços automaticamente
 📱 QR Code SEFAZ - Escaneie o QR Code da NF-e para importar dados direto da Receita
 🧠 IA de Otimização - Algoritmo inteligente que aprende com suas rotas
@@ -82,6 +89,21 @@ O único app brasileiro com IA, OCR de Nota Fiscal e integração SEFAZ!
 📊 Analytics Avançado - Relatórios de desempenho e economia
 🎮 Gamificação - Badges, ranking e eventos sazonais
 📄 PDF Import - Faça upload de listas de endereços
+🏷️ Tags por Fornecedor - Identifique visualmente cada entrega por cor
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎯 IDEAL PARA QUEM TRABALHA COM:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+• 💜 Natura / Avon / O Boticário
+• 📦 Mercado Livre / Mercado Envios  
+• 🟠 Shopee / Shopee Express
+• 📱 Amazon / Loggi
+• 🍔 iFood / Rappi / 99Food
+• 🏪 Magalu / Americanas / Casas Bahia
+• 🚚 Correios / Jadlog / Total Express
+
+Não importa quantos fornecedores você atende - o SpeedRota unifica tudo!
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 💰 PLANOS PARA ENTREGADORES
@@ -90,17 +112,20 @@ O único app brasileiro com IA, OCR de Nota Fiscal e integração SEFAZ!
 🆓 GRÁTIS
 • 3 rotas por dia
 • Até 10 paradas por rota
+• 3 fornecedores
 • Otimização básica
 
 ⭐ STARTER - R$ 29,90/mês
 • 10 rotas por dia
 • Até 30 paradas
+• 5 fornecedores
 • OCR de NF-e
 • WhatsApp Share
 
 🔥 PRO - R$ 59,90/mês (MAIS POPULAR)
 • Rotas ilimitadas
 • Até 50 paradas
+• 8 fornecedores
 • Analytics completo
 • QR Code SEFAZ
 • Suporte prioritário
@@ -108,6 +133,7 @@ O único app brasileiro com IA, OCR de Nota Fiscal e integração SEFAZ!
 💎 FULL - R$ 99,90/mês
 • Tudo do PRO
 • Até 100 paradas
+• Fornecedores ILIMITADOS
 • POD (Comprovante de Entrega)
 • Acesso à API
 • IA Preditiva
@@ -138,9 +164,11 @@ O único app brasileiro com IA, OCR de Nota Fiscal e integração SEFAZ!
 📈 POR QUE ESCOLHER O SPEEDROTA?
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+🔥 ÚNICO que unifica Natura + ML + Shopee + Amazon em 1 rota!
 ✅ 60-70% mais barato que Vuupt, RoutEasy e outros
 ✅ Único com OCR de NF-e automático
 ✅ Único com QR Code SEFAZ integrado
+✅ Merge inteligente de múltiplos fornecedores
 ✅ 100% brasileiro, desenvolvido para o mercado local
 ✅ Suporte em português via WhatsApp
 ✅ Pagamento via PIX, cartão ou boleto
