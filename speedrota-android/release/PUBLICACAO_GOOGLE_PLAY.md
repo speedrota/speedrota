@@ -186,9 +186,9 @@ Não importa quantos fornecedores você atende - o SpeedRota unifica tudo!
 📞 SUPORTE
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-📧 Email: contato@speedrota.com.br
+📧 Email: sac@speedrota.com.br
 🌐 Site: https://speedrota.com.br
-📱 WhatsApp: (11) 99999-9999
+📱 WhatsApp: (11) 915267337
 
 Baixe agora e comece a economizar tempo e combustível!
 ```
