@@ -218,8 +218,10 @@ function extrairEndereco(texto: string): OcrResult['endereco'] {
   
   // Procura padrões de rua/avenida (melhorado para DANFE)
   const logradouroPatterns = [
-    // Padrão DANFE: "R. DOUTOR JOAO DANIEL, 809"
-    /(R\.|RUA|AV\.|AVENIDA|AL\.|ALAMEDA|TV\.|TRAVESSA|EST\.|ESTRADA|ROD\.|RODOVIA)\s*[A-ZÀ-Ú0-9\s]+[,\s]+(\d+)/i,
+    // Padrão DANFE: "R DOUTOR JOAO ZANAGA , 600" (R sem ponto)
+    /\b(R\s+(?:DOUTOR|DR\.?|PROFESSOR|PROF\.?|MAJOR|CORONEL|CAP)?\s*[A-ZÀ-Ú][A-ZÀ-Ú0-9\s]{3,40})[,\s]+(\d{1,5})\b/i,
+    // Padrão com ponto: "R. DOUTOR JOAO DANIEL, 809"
+    /(R\.|RUA|AV\.|AV\s|AVENIDA|AL\.|ALAMEDA|TV\.|TRAVESSA|EST\.|ESTRADA|ROD\.|RODOVIA)\s*[A-ZÀ-Ú0-9\s]+[,\s]+(\d+)/i,
     // Padrão com número separado
     /(RUA|R\.|AV\.|AVENIDA|ALAMEDA|AL\.|TRAVESSA|TV\.)\s+[A-ZÀ-Ú\s]+/i,
     // Qualquer endereço com número
@@ -229,22 +231,30 @@ function extrairEndereco(texto: string): OcrResult['endereco'] {
   for (const pattern of logradouroPatterns) {
     const match = texto.match(pattern);
     if (match && match[0].length > 10) {
-      endereco.logradouro = match[0].trim();
+      let logradouro = match[0].trim();
+      // Ignorar se for endereço do remetente (Natura/Cabreúva)
+      if (logradouro.toUpperCase().includes('TOLEDO') || logradouro.toUpperCase().includes('CABREUVA')) {
+        continue;
+      }
+      endereco.logradouro = logradouro;
       // Extrai número se presente
-      const numMatch = match[0].match(/,?\s*(\d{1,5})/);
+      const numMatch = match[0].match(/[,\s]+(\d{1,5})\b/);
       if (numMatch) {
         endereco.numero = numMatch[1];
       }
+      console.log(`[OCR] Logradouro extraído: ${logradouro}, número: ${endereco.numero}`);
       break;
     }
   }
   
-  // Procura bairro (geralmente após "BAIRRO:" ou em contexto)
+  // Procura bairro (CHACARA MACHADINHO, JD xxx, VILA xxx, etc)
   const bairroPatterns = [
+    /\b(CHACARA\s+MACHADINHO(?:\s+II)?)\b/i,
+    /\b(JD\.?\s+[A-ZÀ-Ú]+)\b/i,
+    /\b(JARDIM\s+[A-ZÀ-Ú]+)\b/i,
+    /\b(VILA\s+[A-ZÀ-Ú]+)\b/i,
+    /\b(PARQUE\s+[A-ZÀ-Ú]+)\b/i,
     /BAIRRO:?\s*([A-ZÀ-Ú\s]+)/i,
-    /Bairro[:\s]+([A-ZÀ-Ú\s]+)/i,
-    // Padrão DANFE: texto entre endereço e cidade/UF
-    /\d+\s*[-,]?\s*([A-ZÀ-Ú\s]{3,30})\s*[-,]?\s*[A-ZÀ-Ú\s]+\s*[-\/]?\s*(PR|SP|RJ|MG|RS|SC|BA|GO|PE|CE|PA|AM|MT|MS|DF|ES|PB|RN|AL|SE|PI|MA|RO|AC|AP|RR|TO)/i
   ];
   
   for (const pattern of bairroPatterns) {
