@@ -99,96 +99,120 @@ function aplicarBlurGaussiano(data: Uint8ClampedArray, width: number, height: nu
   }
 }
 
-async function preprocessarImagem(imagem: File | Blob | string): Promise<string> {
-  console.log('[OCR] Pré-processando imagem v3.0 (anti-moiré)...');
+// ==========================================
+// CORREÇÃO DE ORIENTAÇÃO EXIF (IPHONE/FOTOS)
+// ==========================================
+
+/**
+ * Corrige orientação EXIF de fotos de celular
+ * iPhones e outros dispositivos salvam fotos com metadados de rotação
+ * que o canvas não aplica automaticamente
+ */
+async function corrigirOrientacaoEXIF(imagem: File | Blob | string): Promise<ImageBitmap> {
+  let blob: Blob;
   
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    
-    img.onload = () => {
-      console.log(`[OCR] Imagem original: ${img.width}x${img.height}`);
-      
-      // Escala para melhor OCR
-      const scale = Math.max(2, 2500 / Math.max(img.width, img.height));
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
-      
-      canvas.width = Math.round(img.width * scale);
-      canvas.height = Math.round(img.height * scale);
-      
-      console.log(`[OCR] Canvas: ${canvas.width}x${canvas.height} (scale: ${scale.toFixed(2)})`);
-      
-      // Fundo branco
-      ctx.fillStyle = '#FFFFFF';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      
-      // Desenhar imagem
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = 'high';
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const data = imageData.data;
-      const width = canvas.width;
-      const height = canvas.height;
-      
-      // PASSO 1: Blur gaussiano para remover moiré
-      console.log('[OCR] Aplicando blur anti-moiré...');
-      aplicarBlurGaussiano(data, width, height, 1);
-      
-      // PASSO 2: Converter para escala de cinza
-      const gray = new Uint8Array(width * height);
-      for (let i = 0; i < gray.length; i++) {
-        const idx = i * 4;
-        gray[i] = Math.round(0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2]);
-      }
-      
-      // PASSO 3: Stretch de contraste
-      let min = 255, max = 0;
-      for (let i = 0; i < gray.length; i++) {
-        if (gray[i] < min) min = gray[i];
-        if (gray[i] > max) max = gray[i];
-      }
-      const range = max - min || 1;
-      for (let i = 0; i < gray.length; i++) {
-        gray[i] = Math.round(((gray[i] - min) / range) * 255);
-      }
-      console.log(`[OCR] Contraste: min=${min}, max=${max}`);
-      
-      // PASSO 4: Threshold simples (mais robusto que Otsu para fotos de tela)
-      // Usar threshold fixo mais alto para fotos de tela
-      const threshold = 160;
-      console.log(`[OCR] Threshold: ${threshold}`);
-      
-      // Aplicar binarização
-      for (let i = 0; i < gray.length; i++) {
-        const idx = i * 4;
-        const value = gray[i] < threshold ? 0 : 255;
-        data[idx] = value;
-        data[idx + 1] = value;
-        data[idx + 2] = value;
-        data[idx + 3] = 255;
-      }
-      
-      ctx.putImageData(imageData, 0, 0);
-      
-      const processedDataUrl = canvas.toDataURL('image/png', 1.0);
-      console.log('[OCR] Pré-processamento concluído');
-      
-      resolve(processedDataUrl);
-    };
-    
-    img.onerror = (error) => {
-      console.error('[OCR] Erro ao carregar imagem:', error);
-      reject(new Error('Erro ao carregar imagem'));
-    };
-    
-    if (typeof imagem === 'string') {
-      img.src = imagem;
-    } else {
-      img.src = URL.createObjectURL(imagem);
-    }
-  });
+  if (typeof imagem === 'string') {
+    // Data URL para Blob
+    const response = await fetch(imagem);
+    blob = await response.blob();
+  } else {
+    blob = imagem;
+  }
+  
+  // createImageBitmap com imageOrientation aplica rotação EXIF automaticamente
+  try {
+    const bitmap = await createImageBitmap(blob, {
+      imageOrientation: 'from-image', // Aplica rotação EXIF
+      premultiplyAlpha: 'none',
+      colorSpaceConversion: 'default',
+    });
+    console.log(`[OCR] Imagem com correção EXIF: ${bitmap.width}x${bitmap.height}`);
+    return bitmap;
+  } catch (e) {
+    // Fallback para browsers antigos
+    console.warn('[OCR] createImageBitmap com EXIF não suportado, usando fallback');
+    return createImageBitmap(blob);
+  }
+}
+
+async function preprocessarImagem(imagem: File | Blob | string): Promise<string> {
+  console.log('[OCR] Pré-processando imagem v4.0 (EXIF + anti-moiré)...');
+  
+  // PASSO 0: Corrigir orientação EXIF (crítico para fotos de iPhone)
+  const bitmap = await corrigirOrientacaoEXIF(imagem);
+  
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
+  
+  // Escala para melhor OCR
+  const scale = Math.max(2, 2500 / Math.max(bitmap.width, bitmap.height));
+  
+  canvas.width = Math.round(bitmap.width * scale);
+  canvas.height = Math.round(bitmap.height * scale);
+  
+  console.log(`[OCR] Imagem original: ${bitmap.width}x${bitmap.height}`);
+  console.log(`[OCR] Canvas: ${canvas.width}x${canvas.height} (scale: ${scale.toFixed(2)})`);
+  
+  // Fundo branco
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Desenhar imagem com correção EXIF aplicada
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  
+  // Liberar bitmap
+  bitmap.close();
+  
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const data = imageData.data;
+  const width = canvas.width;
+  const height = canvas.height;
+  
+  // PASSO 1: Blur gaussiano para remover moiré
+  console.log('[OCR] Aplicando blur anti-moiré...');
+  aplicarBlurGaussiano(data, width, height, 1);
+  
+  // PASSO 2: Converter para escala de cinza
+  const gray = new Uint8Array(width * height);
+  for (let i = 0; i < gray.length; i++) {
+    const idx = i * 4;
+    gray[i] = Math.round(0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2]);
+  }
+  
+  // PASSO 3: Stretch de contraste
+  let min = 255, max = 0;
+  for (let i = 0; i < gray.length; i++) {
+    if (gray[i] < min) min = gray[i];
+    if (gray[i] > max) max = gray[i];
+  }
+  const range = max - min || 1;
+  for (let i = 0; i < gray.length; i++) {
+    gray[i] = Math.round(((gray[i] - min) / range) * 255);
+  }
+  console.log(`[OCR] Contraste: min=${min}, max=${max}`);
+  
+  // PASSO 4: Threshold simples (mais robusto que Otsu para fotos de tela)
+  const threshold = 160;
+  console.log(`[OCR] Threshold: ${threshold}`);
+  
+  // Aplicar binarização
+  for (let i = 0; i < gray.length; i++) {
+    const idx = i * 4;
+    const value = gray[i] < threshold ? 0 : 255;
+    data[idx] = value;
+    data[idx + 1] = value;
+    data[idx + 2] = value;
+    data[idx + 3] = 255;
+  }
+  
+  ctx.putImageData(imageData, 0, 0);
+  
+  const processedDataUrl = canvas.toDataURL('image/png', 1.0);
+  console.log('[OCR] Pré-processamento concluído');
+  
+  return processedDataUrl;
 }
 
 // ==========================================
@@ -202,51 +226,44 @@ export interface OCRProgress {
 
 // Criar versão grayscale com blur forte (melhor para fotos de tela com moiré)
 async function preprocessarGrayscale(imagem: File | Blob | string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    
-    img.onload = () => {
-      // Escala menor - às vezes ajuda com moiré
-      const scale = Math.max(1.5, 2000 / Math.max(img.width, img.height));
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
-      
-      canvas.width = Math.round(img.width * scale);
-      canvas.height = Math.round(img.height * scale);
-      
-      ctx.fillStyle = '#FFFFFF';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = 'high';
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const data = imageData.data;
-      
-      // Aplicar blur mais forte
-      aplicarBlurGaussiano(data, canvas.width, canvas.height, 1);
-      aplicarBlurGaussiano(data, canvas.width, canvas.height, 1); // Duas passadas
-      
-      // Grayscale + contraste moderado
-      for (let i = 0; i < data.length; i += 4) {
-        let gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-        gray = ((gray - 128) * 1.5) + 128;
-        gray = Math.max(0, Math.min(255, gray));
-        data[i] = data[i + 1] = data[i + 2] = gray;
-      }
-      
-      ctx.putImageData(imageData, 0, 0);
-      resolve(canvas.toDataURL('image/png', 1.0));
-    };
-    
-    img.onerror = () => reject(new Error('Erro ao carregar imagem'));
-    
-    if (typeof imagem === 'string') {
-      img.src = imagem;
-    } else {
-      img.src = URL.createObjectURL(imagem);
-    }
-  });
+  // Corrigir orientação EXIF primeiro
+  const bitmap = await corrigirOrientacaoEXIF(imagem);
+  
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
+  
+  // Escala menor - às vezes ajuda com moiré
+  const scale = Math.max(1.5, 2000 / Math.max(bitmap.width, bitmap.height));
+  
+  canvas.width = Math.round(bitmap.width * scale);
+  canvas.height = Math.round(bitmap.height * scale);
+  
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  
+  // Liberar bitmap
+  bitmap.close();
+  
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const data = imageData.data;
+  
+  // Aplicar blur mais forte
+  aplicarBlurGaussiano(data, canvas.width, canvas.height, 1);
+  aplicarBlurGaussiano(data, canvas.width, canvas.height, 1); // Duas passadas
+  
+  // Grayscale + contraste moderado
+  for (let i = 0; i < data.length; i += 4) {
+    let gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+    gray = ((gray - 128) * 1.5) + 128;
+    gray = Math.max(0, Math.min(255, gray));
+    data[i] = data[i + 1] = data[i + 2] = gray;
+  }
+  
+  ctx.putImageData(imageData, 0, 0);
+  return canvas.toDataURL('image/png', 1.0);
 }
 
 export async function extrairTexto(
