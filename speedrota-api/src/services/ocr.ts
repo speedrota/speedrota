@@ -81,7 +81,7 @@ function extrairChave44Digitos(texto: string): string | null {
 }
 
 /**
- * Extrai endereço do texto OCR usando patterns comuns de NF-e
+ * Extrai endereço do texto OCR usando patterns comuns de NF-e/DANFE
  * 
  * @pre texto não vazio
  * @post objeto com partes do endereço identificadas
@@ -103,23 +103,68 @@ function extrairEndereco(texto: string): OcrResult['endereco'] {
     endereco.uf = ufMatch[1].toUpperCase();
   }
   
-  // Procura padrões de rua/avenida
-  const logradouroMatch = texto.match(/(RUA|R\.|AV\.|AVENIDA|ALAMEDA|AL\.|TRAVESSA|TV\.)\s+[A-ZÀ-Ú\s]+,?\s*(\d+)?/i);
-  if (logradouroMatch) {
-    endereco.logradouro = logradouroMatch[0];
+  // Procura padrões de rua/avenida (melhorado para DANFE)
+  const logradouroPatterns = [
+    // Padrão DANFE: "R. DOUTOR JOAO DANIEL, 809"
+    /(R\.|RUA|AV\.|AVENIDA|AL\.|ALAMEDA|TV\.|TRAVESSA|EST\.|ESTRADA|ROD\.|RODOVIA)\s*[A-ZÀ-Ú0-9\s]+[,\s]+(\d+)/i,
+    // Padrão com número separado
+    /(RUA|R\.|AV\.|AVENIDA|ALAMEDA|AL\.|TRAVESSA|TV\.)\s+[A-ZÀ-Ú\s]+/i,
+    // Qualquer endereço com número
+    /([A-ZÀ-Ú\s]+),?\s*(\d{1,5})\s*[-,]?\s*([A-ZÀ-Ú\s]*)/i
+  ];
+  
+  for (const pattern of logradouroPatterns) {
+    const match = texto.match(pattern);
+    if (match && match[0].length > 10) {
+      endereco.logradouro = match[0].trim();
+      // Extrai número se presente
+      const numMatch = match[0].match(/,?\s*(\d{1,5})/);
+      if (numMatch) {
+        endereco.numero = numMatch[1];
+      }
+      break;
+    }
   }
   
-  // Procura bairro (geralmente após "BAIRRO:" ou antes do CEP)
-  const bairroMatch = texto.match(/BAIRRO:?\s*([A-ZÀ-Ú\s]+)/i);
-  if (bairroMatch) {
-    endereco.bairro = bairroMatch[1].trim();
+  // Procura bairro (geralmente após "BAIRRO:" ou em contexto)
+  const bairroPatterns = [
+    /BAIRRO:?\s*([A-ZÀ-Ú\s]+)/i,
+    /Bairro[:\s]+([A-ZÀ-Ú\s]+)/i,
+    // Padrão DANFE: texto entre endereço e cidade/UF
+    /\d+\s*[-,]?\s*([A-ZÀ-Ú\s]{3,30})\s*[-,]?\s*[A-ZÀ-Ú\s]+\s*[-\/]?\s*(PR|SP|RJ|MG|RS|SC|BA|GO|PE|CE|PA|AM|MT|MS|DF|ES|PB|RN|AL|SE|PI|MA|RO|AC|AP|RR|TO)/i
+  ];
+  
+  for (const pattern of bairroPatterns) {
+    const match = texto.match(pattern);
+    if (match && match[1] && match[1].trim().length > 2) {
+      endereco.bairro = match[1].trim();
+      break;
+    }
   }
   
-  // Procura cidade (geralmente antes da UF)
+  // Procura cidade (antes da UF)
   if (endereco.uf) {
-    const cidadeMatch = texto.match(new RegExp(`([A-ZÀ-Ú\\s]+)\\s*[-/]?\\s*${endereco.uf}`, 'i'));
-    if (cidadeMatch) {
-      endereco.cidade = cidadeMatch[1].trim();
+    const cidadePatterns = [
+      new RegExp(`([A-ZÀ-Ú\\s]{3,30})\\s*[-\\/]?\\s*${endereco.uf}`, 'i'),
+      new RegExp(`Município:?\\s*([A-ZÀ-Ú\\s]+)`, 'i'),
+      new RegExp(`Cidade:?\\s*([A-ZÀ-Ú\\s]+)`, 'i')
+    ];
+    
+    for (const pattern of cidadePatterns) {
+      const match = texto.match(pattern);
+      if (match && match[1] && match[1].trim().length > 2) {
+        endereco.cidade = match[1].trim();
+        break;
+      }
+    }
+  }
+  
+  // Tenta extrair endereço completo de DANFE (seção DESTINATÁRIO)
+  const danfeDestMatch = texto.match(/DESTINAT[ÁA]RIO[\s\S]*?(?:Endere[çc]o|Logradouro)?:?\s*([^\n]+)/i);
+  if (danfeDestMatch && danfeDestMatch[1]) {
+    const endCompleto = danfeDestMatch[1].trim();
+    if (endCompleto.length > 10 && !endereco.logradouro) {
+      endereco.logradouro = endCompleto;
     }
   }
   
@@ -127,6 +172,7 @@ function extrairEndereco(texto: string): OcrResult['endereco'] {
   if (endereco.logradouro || endereco.bairro || endereco.cidade) {
     const partes = [
       endereco.logradouro,
+      endereco.numero && !endereco.logradouro?.includes(endereco.numero) ? endereco.numero : null,
       endereco.bairro,
       endereco.cidade,
       endereco.uf,
@@ -140,23 +186,39 @@ function extrairEndereco(texto: string): OcrResult['endereco'] {
 
 /**
  * Extrai nome do destinatário do texto OCR
+ * Suporta formatos de NFC-e e DANFE
  * 
  * @pre texto não vazio
  * @post nome do destinatário se encontrado
  */
 function extrairDestinatario(texto: string): string | undefined {
-  // Procura padrões comuns de destinatário em NF-e
+  // Padrões ordenados por especificidade (mais específico primeiro)
   const patterns = [
-    /DEST(?:INATARIO)?:?\s*([A-ZÀ-Ú\s]+)/i,
-    /NOME:?\s*([A-ZÀ-Ú\s]+)/i,
-    /CLIENTE:?\s*([A-ZÀ-Ú\s]+)/i,
-    /PARA:?\s*([A-ZÀ-Ú\s]+)/i
+    // DANFE: seção DESTINATÁRIO/REMETENTE com nome completo
+    /DESTINAT[ÁA]RIO[\/\s]*REMETENTE[\s\S]*?Nome[\/\s]*Raz[ãa]o Social:?\s*([A-ZÀ-Ú\s]+)/i,
+    /DESTINAT[ÁA]RIO[\s\S]*?Nome:?\s*([A-ZÀ-Ú\s]+)/i,
+    // Nome após "DEST" ou "DESTINATARIO"
+    /DEST(?:INAT[ÁA]RIO)?[:\s]+([A-ZÀ-Ú][A-ZÀ-Úa-zà-ú\s]{5,40})/i,
+    // Padrão comum NFC-e
+    /CONSUMIDOR:?\s*([A-ZÀ-Ú][A-ZÀ-Úa-zà-ú\s]+)/i,
+    /CLIENTE:?\s*([A-ZÀ-Ú][A-ZÀ-Úa-zà-ú\s]+)/i,
+    // Nome genérico
+    /NOME:?\s*([A-ZÀ-Ú][A-ZÀ-Úa-zà-ú\s]{3,40})/i,
+    // Fallback: nome próprio (primeira e última maiúsculas, com espaços)
+    /\b([A-ZÀ-Ú][A-ZÀ-Úa-zà-ú]+(?:\s+[A-ZÀ-Ú][A-ZÀ-Úa-zà-ú]+){1,5})\b/
   ];
   
   for (const pattern of patterns) {
     const match = texto.match(pattern);
-    if (match && match[1].length > 3) {
-      return match[1].trim();
+    if (match && match[1]) {
+      const nome = match[1].trim();
+      // Valida: nome deve ter pelo menos 2 palavras e não ser termo comum
+      const palavras = nome.split(/\s+/).filter(p => p.length > 1);
+      const termosIgnorar = ['ENTRADA', 'SAIDA', 'DADOS', 'EMITENTE', 'NOTA', 'FISCAL', 'CONSULTA', 'AUTENTICIDADE'];
+      
+      if (palavras.length >= 2 && !termosIgnorar.some(t => nome.toUpperCase().includes(t))) {
+        return nome.toUpperCase();
+      }
     }
   }
   

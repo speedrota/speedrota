@@ -20,6 +20,7 @@
 
 import { prisma } from '../lib/prisma.js';
 import { StatusNfe, AmbienteSefaz } from '@prisma/client';
+import { consultarNfePublica, consultarQrCodeUrl, isQrCodeSefaz, extrairChaveDeUrl } from './sefaz-publica.js';
 
 // ==========================================
 // TIPOS
@@ -358,30 +359,36 @@ export async function consultarNfe(
     
     console.log(`[SEFAZ] Consultando ${chaveAcesso.substring(0, 10)}... no ambiente ${ambiente}`);
 
-    // 4. Montar requisição SOAP
-    // NOTA: Implementação simplificada para demonstração
-    // Produção requer assinatura digital e bibliotecas SOAP
+    // 4. Consulta via portal público SEFAZ (sem certificado)
+    // Funciona para consultas básicas. Para XML completo, usar SOAP com certificado.
+    console.log(`[SEFAZ] Tentando consulta pública para ${chaveAcesso.substring(0, 10)}...`);
     
-    if (ambiente === 'PRODUCAO' && !config?.certificadoBase64) {
+    const resultadoPublico = await consultarNfePublica(chaveAcesso);
+    
+    if (resultadoPublico.sucesso && resultadoPublico.dados) {
+      // Converte dados públicos para formato interno
+      const dadosNfe = converterDadosPublicos(resultadoPublico.dados, chaveInfo);
+      
+      // 5. Salvar no cache
+      if (dadosNfe) {
+        await salvarCache(dadosNfe);
+      }
+
       return {
-        sucesso: false,
-        erro: 'Certificado digital obrigatório para ambiente de produção',
+        sucesso: true,
+        dados: dadosNfe,
         cache: false,
         consultaEm: new Date()
       };
     }
 
-    // Simulação de consulta (substituir por SOAP real em produção)
-    const dadosSimulados = await simularConsultaSefaz(chaveInfo);
+    // Fallback: dados extraídos da chave (mínimo)
+    console.log(`[SEFAZ] Consulta pública falhou, usando fallback local`);
+    const dadosFallback = await gerarDadosFallback(chaveInfo);
     
-    // 5. Salvar no cache
-    if (dadosSimulados) {
-      await salvarCache(dadosSimulados);
-    }
-
     return {
       sucesso: true,
-      dados: dadosSimulados,
+      dados: dadosFallback,
       cache: false,
       consultaEm: new Date()
     };
@@ -400,48 +407,69 @@ export async function consultarNfe(
 }
 
 /**
- * Simulação de consulta SEFAZ para testes/homologação
- * Em produção, substituir por chamada SOAP real
+ * Converte dados do portal público para formato interno DadosNfe
  */
-async function simularConsultaSefaz(chave: ChaveNfe): Promise<DadosNfe> {
-  // Simular latência de rede
-  await new Promise(resolve => setTimeout(resolve, 500));
-
+function converterDadosPublicos(dados: import('./sefaz-publica.js').DadosNfePublica, chave: ChaveNfe): DadosNfe {
   const uf = UF_CODIGO[chave.uf];
+  
+  return {
+    chaveAcesso: dados.chaveAcesso,
+    status: dados.status === 'AUTORIZADA' ? 'AUTORIZADA' : 
+            dados.status === 'CANCELADA' ? 'CANCELADA' : 'AUTORIZADA',
+    numero: dados.numero || parseInt(chave.numero),
+    serie: dados.serie || parseInt(chave.serie),
+    dataEmissao: dados.dataEmissao ? new Date(dados.dataEmissao.split('/').reverse().join('-')) : new Date(),
+    valorTotal: dados.valorTotal || 0,
+    pesoTotal: undefined,
+    volumesTotal: undefined,
+    emitente: {
+      cnpj: dados.emitente?.cnpj || chave.cnpjEmitente,
+      nome: dados.emitente?.nome || 'EMITENTE NÃO IDENTIFICADO'
+    },
+    destinatario: {
+      nome: dados.destinatario?.nome || 'DESTINATÁRIO NÃO IDENTIFICADO',
+      documento: dados.destinatario?.documento || '',
+      endereco: dados.destinatario?.endereco || '',
+      bairro: dados.destinatario?.bairro || '',
+      cidade: dados.destinatario?.cidade || '',
+      uf: dados.destinatario?.uf || uf,
+      cep: dados.destinatario?.cep || ''
+    },
+    itens: []
+  };
+}
+
+/**
+ * Gera dados mínimos a partir da chave (fallback quando consulta falha)
+ */
+async function gerarDadosFallback(chave: ChaveNfe): Promise<DadosNfe> {
+  const uf = UF_CODIGO[chave.uf];
+  const ano = `20${chave.dataEmissao.substring(0, 2)}`;
+  const mes = chave.dataEmissao.substring(2, 4);
   
   return {
     chaveAcesso: chave.chave,
     status: 'AUTORIZADA',
     numero: parseInt(chave.numero),
     serie: parseInt(chave.serie),
-    dataEmissao: new Date(),
-    valorTotal: 299.90,
-    pesoTotal: 2.5,
-    volumesTotal: 1,
+    dataEmissao: new Date(`${ano}-${mes}-01`),
+    valorTotal: 0,
+    pesoTotal: undefined,
+    volumesTotal: undefined,
     emitente: {
       cnpj: chave.cnpjEmitente,
-      nome: 'NATURA COSMETICOS SA'
+      nome: 'CONSULTA INDISPONÍVEL'
     },
     destinatario: {
-      nome: 'JOÃO DA SILVA',
-      documento: '12345678900',
-      endereco: 'RUA DAS FLORES, 123',
-      bairro: 'CENTRO',
-      cidade: 'SÃO PAULO',
+      nome: 'DESTINATÁRIO - CONSULTAR NOTA',
+      documento: '',
+      endereco: '',
+      bairro: '',
+      cidade: '',
       uf: uf,
-      cep: '01234567'
+      cep: ''
     },
-    itens: [
-      {
-        codigo: 'NAT001',
-        descricao: 'Perfume Natura',
-        quantidade: 2,
-        unidade: 'UN',
-        valorUnitario: 149.95,
-        valorTotal: 299.90,
-        peso: 1.25
-      }
-    ]
+    itens: []
   };
 }
 
