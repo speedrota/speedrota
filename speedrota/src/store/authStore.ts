@@ -44,9 +44,13 @@ interface AuthState {
 
 const LIMITES_PLANO: Record<Plano, { rotasPorMes: number; paradasPorRota: number; fornecedores: number }> = {
   FREE: { rotasPorMes: 5, paradasPorRota: 10, fornecedores: 3 },
+  STARTER: { rotasPorMes: 20, paradasPorRota: 20, fornecedores: 5 },
   PRO: { rotasPorMes: 50, paradasPorRota: 30, fornecedores: 8 },
   FULL: { rotasPorMes: 999, paradasPorRota: 100, fornecedores: 14 },
-  ENTERPRISE: { rotasPorMes: 999999, paradasPorRota: 500, fornecedores: 14 },
+  FROTA_START: { rotasPorMes: 999, paradasPorRota: 50, fornecedores: 14 },
+  FROTA_PRO: { rotasPorMes: 999999, paradasPorRota: 100, fornecedores: 14 },
+  FROTA_ENTERPRISE: { rotasPorMes: 999999, paradasPorRota: 500, fornecedores: 14 },
+  ENTERPRISE: { rotasPorMes: 999999, paradasPorRota: 500, fornecedores: 14 }, // legacy
 };
 
 // ==========================================

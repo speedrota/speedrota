@@ -9,8 +9,8 @@
  * @see SpeedRota_Pricing_Brasil_Revisado.docx
  */
 
-import { useState, useEffect } from 'react';
-import { pagamentoService, type PlanoInfo, type Promocao } from '../services/pagamentos';
+import { useState } from 'react';
+import { pagamentoService } from '../services/pagamentos';
 import { useAuthStore } from '../store/authStore';
 import { PLANOS_CONFIG, PROMOCOES, type Plano } from '../types';
 import './TelaPlanos.css';
@@ -23,7 +23,6 @@ type CategoriaPlano = 'individual' | 'frota';
 
 export function TelaPlanos({ onClose }: TelaplanosProps) {
   const [categoria, setCategoria] = useState<CategoriaPlano>('individual');
-  const [carregando, setCarregando] = useState(false);
   const [processando, setProcessando] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [cupomCodigo, setCupomCodigo] = useState('');
@@ -77,7 +76,6 @@ export function TelaPlanos({ onClose }: TelaplanosProps) {
   };
   
   const planoAtual = (user?.plano || 'FREE') as Plano;
-  const isGestorFrota = planoAtual.startsWith('FROTA');
   
   return (
     <div className="planos-overlay" onClick={onClose}>
