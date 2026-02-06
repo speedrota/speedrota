@@ -378,7 +378,7 @@ export async function finalizarRota(rotaId: string): Promise<any> {
     tipo: 'STATUS_ROTA',
     rotaId,
     dados: {
-      status: StatusRota.CONCLUIDA,
+      status: StatusRota.FINALIZADA,
       timestamp: new Date(),
       metricas,
     },

@@ -99,6 +99,86 @@ export interface OcrResult {
 }
 
 // ==========================================
+// LIMPEZA DE TEXTO OCR (v3.0 - Anti-Moiré)
+// ==========================================
+
+/**
+ * Limpa texto OCR removendo ruído comum de fotos de celular
+ * @pre texto bruto do Tesseract
+ * @post texto limpo com correções aplicadas
+ */
+function limparTextoOCR(texto: string): string {
+  let limpo = texto;
+  
+  // 1. Remover sequências de caracteres aleatórios (ruído moiré)
+  // Padrões como "EAR NAT RAE Ar RES" são ruído
+  limpo = limpo.replace(/([A-Z]{1,3}\s){4,}/g, ''); // Sequências de 1-3 letras soltas
+  
+  // 2. Corrigir substituições comuns de OCR
+  const correcoes: Record<string, string> = {
+    // Números confundidos com letras
+    '0': ['O', 'o', 'Q'],
+    '1': ['I', 'l', '|', 'i'],
+    '2': ['Z'],
+    '4': ['A'],
+    '5': ['S', 's'],
+    '6': ['G', 'b'],
+    '7': ['T'],
+    '8': ['B'],
+    '9': ['g', 'q'],
+  };
+  
+  // 3. Limpar caracteres especiais estranhos
+  limpo = limpo.replace(/[—–―]/g, '-'); // Diferentes tipos de traço
+  limpo = limpo.replace(/[''´`]/g, "'"); // Diferentes tipos de apóstrofo
+  limpo = limpo.replace(/[""„]/g, '"'); // Diferentes tipos de aspas
+  limpo = limpo.replace(/[^\w\sáéíóúàèìòùâêîôûãõçÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕÇ.,\-\/\\:;()\[\]@#$%&*+=!?\n\r]/gi, ' ');
+  
+  // 4. Remover espaços múltiplos
+  limpo = limpo.replace(/[ \t]{2,}/g, ' ');
+  
+  // 5. Remover linhas com apenas pontuação/símbolos
+  limpo = limpo.split('\n').filter(linha => {
+    const apenasSimbolos = /^[\s\-_|.,;:!?(){}[\]@#$%&*+=\\/<>]*$/.test(linha);
+    return !apenasSimbolos && linha.trim().length > 0;
+  }).join('\n');
+  
+  return limpo;
+}
+
+/**
+ * Corrige erros de OCR em CEP (muito comum em fotos de celular)
+ * @pre texto com possível CEP corrompido
+ * @post CEP corrigido ou original
+ */
+function corrigirCEP(texto: string): string {
+  // Substituições de letras por números em CEP
+  const mapaSubstituicao: Record<string, string> = {
+    'O': '0', 'o': '0', 'Q': '0',
+    'I': '1', 'l': '1', '|': '1', 'i': '1',
+    'Z': '2', 'z': '2',
+    'A': '4',
+    'S': '5', 's': '5',
+    'G': '6', 'b': '6',
+    'T': '7',
+    'B': '8',
+    'g': '9', 'q': '9',
+  };
+  
+  // Padrão flexível para CEP (pode ter letras confundidas)
+  return texto.replace(/(\d{2}[\dOoQIl|iZzASsGbTBgq]{3})\s*-?\s*(\d{0,1}[\dOoQIl|iZzASsGbTBgq]{2,3})/g, (match, p1, p2) => {
+    let cep = (p1 + p2).toUpperCase();
+    for (const [letra, numero] of Object.entries(mapaSubstituicao)) {
+      cep = cep.replace(new RegExp(letra, 'g'), numero);
+    }
+    if (cep.length === 8 && /^\d{8}$/.test(cep)) {
+      return cep.slice(0, 5) + '-' + cep.slice(5);
+    }
+    return match;
+  });
+}
+
+// ==========================================
 // VERIFICAÇÃO DE QUALIDADE OCR
 // ==========================================
 
@@ -1325,17 +1405,21 @@ export async function analisarImagemNota(imagemBase64: string): Promise<OcrResul
     
     console.log('[OCR] Pré-processando imagem com Sharp (EXIF + otimização)...');
     
-    // PRÉ-PROCESSAMENTO COM SHARP:
+    // PRÉ-PROCESSAMENTO COM SHARP v3.0 (Anti-Moiré):
     // 1. rotate() sem argumentos = aplica correção EXIF automaticamente
-    // 2. grayscale() = melhor para OCR
-    // 3. normalize() = melhora contraste
-    // 4. sharpen() = melhora nitidez do texto
+    // 2. blur(0.5) = remove moiré de fotos de tela/celular
+    // 3. grayscale() = melhor para OCR
+    // 4. normalize() = melhora contraste
+    // 5. threshold(128) = binarização para texto mais nítido
+    // 6. sharpen() = melhora nitidez do texto
     try {
       imageBuffer = await sharp(imageBuffer)
         .rotate() // Aplica orientação EXIF (crítico para fotos de iPhone/Android)
+        .blur(0.5) // Anti-moiré: blur leve para remover padrões de interferência
         .grayscale() // Converte para escala de cinza
         .normalize() // Melhora contraste automaticamente
-        .sharpen({ sigma: 1.5 }) // Melhora nitidez do texto
+        .threshold(128) // Binarização: texto preto em fundo branco
+        .sharpen({ sigma: 1.0 }) // Melhora nitidez do texto (menos agressivo com threshold)
         .png() // Formato sem perdas para OCR
         .toBuffer();
       
@@ -1390,6 +1474,13 @@ export async function analisarImagemNota(imagemBase64: string): Promise<OcrResul
         erro: 'Não foi possível extrair texto legível da imagem'
       };
     }
+    
+    // LIMPEZA DE TEXTO OCR (v3.0 - Anti-Moiré)
+    console.log('[OCR] Aplicando limpeza de texto OCR...');
+    const textoOriginal = textoExtraido;
+    textoExtraido = limparTextoOCR(textoExtraido);
+    textoExtraido = corrigirCEP(textoExtraido);
+    console.log(`[OCR] Texto limpo: ${textoExtraido.length} chars (original: ${textoOriginal.length})`);
     
     // Extrai chave de acesso
     const chaveAcesso = extrairChave44Digitos(textoExtraido);

@@ -147,7 +147,7 @@ export async function buscarHistorico(
       lte: dataFim,
     },
     status: {
-      in: [StatusRota.CONCLUIDA, StatusRota.CANCELADA],
+      in: [StatusRota.FINALIZADA, StatusRota.CANCELADA],
     },
   };
 
@@ -235,7 +235,7 @@ export async function calcularResumo(
         lte: dataFim,
       },
       status: {
-        in: [StatusRota.CONCLUIDA, StatusRota.CANCELADA],
+        in: [StatusRota.FINALIZADA, StatusRota.CANCELADA],
       },
     },
     include: {
