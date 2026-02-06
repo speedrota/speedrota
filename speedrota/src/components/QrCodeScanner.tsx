@@ -313,15 +313,27 @@ export function TelaQrCodeScanner() {
    * Alterna entre modos camera/manual
    */
   const alternarModo = (novoModo: ModoScanner) => {
-    if (novoModo === 'camera' && modo !== 'camera') {
-      iniciarCamera();
-    } else if (novoModo !== 'camera' && modo === 'camera') {
+    if (novoModo !== 'camera' && modo === 'camera') {
       pararCamera();
     }
     setModo(novoModo);
     setResultado(null);
     setErro(null);
   };
+
+  /**
+   * Inicia câmera após o container estar no DOM
+   * (useEffect aguarda re-render do React)
+   */
+  useEffect(() => {
+    if (modo === 'camera' && !cameraAtiva && !erroCamera) {
+      // Pequeno delay para garantir que o container está no DOM
+      const timer = setTimeout(() => {
+        iniciarCamera();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [modo, cameraAtiva, erroCamera, iniciarCamera]);
 
   /**
    * Importa NF-e atual como parada
@@ -411,6 +423,17 @@ export function TelaQrCodeScanner() {
         {/* Modo Câmera */}
         {modo === 'camera' && (
           <div className="camera-container">
+            {/* Container para Html5Qrcode - sempre presente no DOM */}
+            <div 
+              id={scannerContainerId}
+              className="camera-video"
+              style={{ 
+                width: '100%', 
+                minHeight: '300px',
+                display: erroCamera ? 'none' : 'block'
+              }}
+            />
+            
             {erroCamera ? (
               <div className="camera-error">
                 <span className="camera-error__icon">📵</span>
@@ -418,19 +441,16 @@ export function TelaQrCodeScanner() {
                 <button 
                   className="btn-processar" 
                   style={{ marginTop: '1rem' }}
-                  onClick={iniciarCamera}
+                  onClick={() => {
+                    setErroCamera(null);
+                    // useEffect vai reiniciar a câmera
+                  }}
                 >
                   🔄 Tentar Novamente
                 </button>
               </div>
             ) : (
               <>
-                {/* Container para Html5Qrcode */}
-                <div 
-                  id={scannerContainerId}
-                  className="camera-video"
-                  style={{ width: '100%', minHeight: '300px' }}
-                />
                 {!cameraAtiva && (
                   <div className="camera-overlay">
                     <div className="scan-frame">
