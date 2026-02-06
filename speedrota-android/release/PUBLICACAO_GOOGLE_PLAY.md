@@ -1,102 +1,318 @@
-# Guia de Publicação na Google Play Store
+# 📱 Guia Completo de Publicação na Google Play Store
 
-## Arquivo de Release
-- **Arquivo AAB:** `speedrota-v1.0.0.aab`
-- **Version Code:** 1
-- **Version Name:** 1.0.0
-- **Data de Build:** Fevereiro 2026
+**Última atualização:** Fevereiro 2026
 
-## Pré-requisitos para Publicação
+---
 
-### 1. Conta de Desenvolvedor Google Play
-- Acesse: https://play.google.com/console
-- Taxa única de inscrição: $25 USD
-- Preencha os dados de contato e aceite os termos
+## 📦 Arquivo de Release
 
-### 2. Informações Necessárias para o Cadastro
+| Propriedade | Valor |
+|-------------|-------|
+| **Arquivo AAB** | `app-release.aab` |
+| **Localização** | `app/build/outputs/bundle/release/` |
+| **Version Code** | 1 |
+| **Version Name** | 1.0.0 |
+| **Min SDK** | Android 7.0 (API 24) |
+| **Target SDK** | Android 14 (API 34) |
 
-#### Dados do Aplicativo:
-- **Nome:** SpeedRota
-- **Descrição curta:** Otimize suas rotas de entrega com IA
-- **Descrição completa:** 
-  ```
-  SpeedRota é o aplicativo definitivo para otimização de rotas de entrega.
-  
-  ✓ Rotas otimizadas com Inteligência Artificial
-  ✓ Suporte a múltiplas paradas
-  ✓ Integração com Google Maps
-  ✓ OCR para leitura de endereços via PDF
-  ✓ Histórico de rotas
-  
-  Planos disponíveis:
-  • Pro: R$ 29,90/mês - Até 30 paradas por rota
-  • Full: R$ 59,90/mês - Até 100 paradas por rota
-  
-  Economize tempo e combustível com rotas inteligentes!
-  ```
+---
 
-#### Assets Necessários:
-- Ícone do app: 512x512 px (PNG, 32-bit)
-- Feature Graphic: 1024x500 px
-- Screenshots: mínimo 2 (phone), recomendado 8
-- Video promocional (opcional): link do YouTube
+## 🔐 Informações do Keystore (GUARDE EM LOCAL SEGURO!)
 
-#### Categorização:
-- **Categoria:** Mapas e Navegação ou Produtividade
-- **Classificação etária:** Para todos (sem conteúdo restrito)
+| Propriedade | Valor |
+|-------------|-------|
+| **Arquivo** | `speedrota-release.keystore` |
+| **Alias** | `speedrota` |
+| **Senha** | `SpeedRota2026` |
 
-### 3. Configurações de Assinatura
+⚠️ **ATENÇÃO:** Se você perder o keystore, **NÃO PODERÁ** atualizar o app na Play Store!
 
-A assinatura do app já está configurada com:
-- **Keystore:** speedrota-release.keystore
-- **Key Alias:** speedrota
+---
 
-**IMPORTANTE:** Guarde o arquivo keystore em local seguro! Você precisará dele para todas as atualizações futuras.
+## 📋 Passo a Passo para Publicação
 
-## Passos para Publicar
+### Passo 1: Criar Conta de Desenvolvedor (se ainda não tem)
 
-### Passo 1: Criar o App
-1. Acesse Google Play Console
-2. Clique em "Criar app"
-3. Preencha nome, idioma padrão, tipo (App) e categoria
-4. Aceite as declarações
+1. Acesse: https://play.google.com/console
+2. Faça login com conta Google
+3. Pague a taxa única de **US$ 25**
+4. Complete a verificação de identidade (pode levar 48h)
+5. Preencha dados de contato do desenvolvedor
 
-### Passo 2: Configurar a Página do App
-1. Vá em "Presença na loja" > "Página principal da loja"
-2. Adicione descrições, ícone e screenshots
-3. Preencha política de privacidade (obrigatório se coleta dados)
+---
 
-### Passo 3: Upload do AAB
-1. Vá em "Produção" > "Criar nova versão"
-2. Faça upload do arquivo `speedrota-v1.0.0.aab`
-3. Adicione notas de versão
-4. Revise e publique
+### Passo 2: Criar o Aplicativo
 
-### Passo 4: Política de Privacidade
-- URL obrigatório se o app coleta dados pessoais
-- Deve estar hospedado em URL público
+1. No Google Play Console, clique em **"Criar app"**
+2. Preencha:
+   - **Nome do app:** SpeedRota
+   - **Idioma padrão:** Português (Brasil)
+   - **Tipo de app:** Aplicativo
+   - **Gratuito ou pago:** Gratuito
+3. Marque as declarações obrigatórias
+4. Clique em **"Criar app"**
 
-### Passo 5: Questionário de Classificação
-- Preencha o questionário de classificação etária (IARC)
-- O app receberá classificação automática
+---
 
-### Passo 6: Configurar Preço e Países
-1. Vá em "Preço" > Gratuito (com compras no app)
-2. Selecione países de distribuição (Brasil)
+### Passo 3: Configurar a Ficha da Loja
 
-### Passo 7: Revisão e Publicação
-- Revise todos os campos obrigatórios
-- Clique em "Enviar para revisão"
-- Aguarde 1-7 dias para aprovação
+#### 📝 Textos Obrigatórios
 
-## Configuração de Assinaturas In-App
+**Descrição curta (máx. 80 caracteres):**
+```
+Rotas inteligentes com IA: OCR de NF-e + SEFAZ. 60% mais barato que concorrentes!
+```
 
-Para configurar os planos Pro e Full:
+**Descrição completa (máx. 4000 caracteres):**
+```
+🚀 SPEEDROTA - O Roteirizador Inteligente para Entregas
 
-1. Vá em "Monetização" > "Produtos" > "Assinaturas"
-2. Crie as assinaturas:
-   - **pro_monthly:** R$ 29,90/mês
-   - **full_monthly:** R$ 59,90/mês
+O único app brasileiro com IA, OCR de Nota Fiscal e integração SEFAZ! 
+60-70% mais barato que qualquer concorrente.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✨ FUNCIONALIDADES EXCLUSIVAS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📸 OCR de NF-e - Tire foto da nota fiscal e extraia endereços automaticamente
+📱 QR Code SEFAZ - Escaneie o QR Code da NF-e para importar dados direto da Receita
+🧠 IA de Otimização - Algoritmo inteligente que aprende com suas rotas
+📍 Até 100 paradas - Organize dezenas de entregas em segundos
+🗺️ Google Maps + Waze - Navegação integrada com um toque
+📊 Analytics Avançado - Relatórios de desempenho e economia
+🎮 Gamificação - Badges, ranking e eventos sazonais
+📄 PDF Import - Faça upload de listas de endereços
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+💰 PLANOS PARA ENTREGADORES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🆓 GRÁTIS
+• 3 rotas por dia
+• Até 10 paradas por rota
+• Otimização básica
+
+⭐ STARTER - R$ 29,90/mês
+• 10 rotas por dia
+• Até 30 paradas
+• OCR de NF-e
+• WhatsApp Share
+
+🔥 PRO - R$ 59,90/mês (MAIS POPULAR)
+• Rotas ilimitadas
+• Até 50 paradas
+• Analytics completo
+• QR Code SEFAZ
+• Suporte prioritário
+
+💎 FULL - R$ 99,90/mês
+• Tudo do PRO
+• Até 100 paradas
+• POD (Comprovante de Entrega)
+• Acesso à API
+• IA Preditiva
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🚚 PLANOS PARA TRANSPORTADORAS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🚀 FROTA START - R$ 299/mês
+• Até 5 motoristas
+• Dashboard gestor
+• Tracking tempo real
+• Distribuição de entregas
+
+⚡ FROTA PRO - R$ 599/mês
+• Até 15 motoristas
+• Analytics frota
+• Geofencing
+• API completa
+
+🏆 FROTA ENTERPRISE - R$ 999/mês
+• Motoristas ilimitados
+• IA de previsão
+• Integração VTEX/Shopify
+• Suporte dedicado
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📈 POR QUE ESCOLHER O SPEEDROTA?
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ 60-70% mais barato que Vuupt, RoutEasy e outros
+✅ Único com OCR de NF-e automático
+✅ Único com QR Code SEFAZ integrado
+✅ 100% brasileiro, desenvolvido para o mercado local
+✅ Suporte em português via WhatsApp
+✅ Pagamento via PIX, cartão ou boleto
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔒 SEGURANÇA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+• Dados criptografados
+• Pagamentos via Mercado Pago
+• Cancele quando quiser
+• 30 dias de garantia
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📞 SUPORTE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📧 Email: contato@speedrota.com.br
+🌐 Site: https://speedrota.com.br
+📱 WhatsApp: (11) 99999-9999
+
+Baixe agora e comece a economizar tempo e combustível!
+```
+
+#### 🖼️ Imagens Obrigatórias
+
+| Tipo | Dimensões | Formato | Obrigatório |
+|------|-----------|---------|-------------|
+| Ícone do app | 512x512 px | PNG 32-bit | ✅ Sim |
+| Gráfico de recursos | 1024x500 px | PNG/JPEG | ✅ Sim |
+| Screenshots celular | 320-3840 px (min 2) | PNG/JPEG | ✅ Sim |
+| Screenshots tablet | 1080-7680 px | PNG/JPEG | ❌ Não |
+| Vídeo promocional | URL YouTube | - | ❌ Não |
+
+**Dicas para Screenshots:**
+1. Tela de login/home
+2. Mapa com rota otimizada
+3. Lista de paradas
+4. OCR em ação (foto de NF-e)
+5. QR Code scanner
+6. Dashboard/Analytics
+7. Tela de planos
+8. Navegação ativa
+
+---
+
+### Passo 4: Configurações Obrigatórias
+
+#### 📜 Política de Privacidade
+- URL obrigatória: `https://speedrota.com.br/privacidade`
+- Deve estar acessível publicamente
+- Deve mencionar coleta de localização e dados pessoais
+
+#### 🔞 Classificação de Conteúdo (IARC)
+1. Vá em **Política** > **Classificação do conteúdo do app**
+2. Preencha o questionário:
+   - Violência: Não
+   - Sexualidade: Não
+   - Linguagem: Não
+   - Substâncias: Não
+   - Jogos de azar: Não
+3. Classificação esperada: **Livre para todos**
+
+#### 👥 Público-alvo e Conteúdo
+- **Público:** Maiores de 18 anos (uso profissional)
+- **Contém anúncios:** Não
+- **Permite compras no app:** Sim
+
+#### 📞 Dados de Contato
+- Email: contato@speedrota.com.br
+- Telefone: (11) 99999-9999 (opcional)
+- Site: https://speedrota.com.br
+
+---
+
+### Passo 5: Upload do AAB
+
+1. Vá em **Versão** > **Produção** > **Países/Regiões**
+2. Selecione: **Brasil** (adicione outros se desejar)
+3. Vá em **Produção** > **Criar nova versão**
+4. Clique em **"Fazer upload"**
+5. Selecione: `app-release.aab`
+6. Aguarde processamento (~2-5 min)
+7. Preencha **Notas de versão**:
+
+```
+Versão 1.0.0 - Lançamento Inicial 🎉
+
+✨ Novidades:
+• Roteirização inteligente com IA
+• OCR de Nota Fiscal eletrônica
+• Scanner QR Code SEFAZ
+• Integração Google Maps e Waze
+• Dashboard com analytics
+• Sistema de gamificação
+• Suporte a múltiplos fornecedores (Natura, ML, Shopee, etc.)
+
+🔒 Segurança:
+• Login seguro com JWT
+• Pagamentos via Mercado Pago
+• Dados criptografados
+
+📱 Requisitos:
+• Android 7.0 ou superior
+• Conexão com internet
+• GPS ativado
+```
+
+8. Clique em **"Próximo"** > **"Salvar"**
+
+---
+
+### Passo 6: Configurar Assinaturas In-App
+
+1. Vá em **Monetização** > **Produtos** > **Assinaturas**
+2. Clique em **"Criar assinatura"**
+
+| ID do Produto | Nome | Preço | Período |
+|---------------|------|-------|---------|
+| `starter_monthly` | SpeedRota Starter | R$ 29,90 | Mensal |
+| `pro_monthly` | SpeedRota Pro | R$ 59,90 | Mensal |
+| `full_monthly` | SpeedRota Full | R$ 99,90 | Mensal |
+| `frota_start_monthly` | SpeedRota Frota Start | R$ 299,00 | Mensal |
+| `frota_pro_monthly` | SpeedRota Frota Pro | R$ 599,00 | Mensal |
+| `frota_enterprise_monthly` | SpeedRota Frota Enterprise | R$ 999,00 | Mensal |
+
+**Obs:** Planos anuais com 25% desconto podem ser adicionados depois.
+
+---
+
+### Passo 7: Enviar para Revisão
+
+1. Verifique a barra de progresso - precisa estar 100%
+2. Revise checklist:
+   - ✅ Ficha da loja completa
+   - ✅ Classificação de conteúdo
+   - ✅ Política de privacidade
+   - ✅ Público-alvo definido
+   - ✅ AAB enviado
+   - ✅ Países selecionados
+3. Clique em **"Enviar para revisão"**
+4. Aguarde **1-7 dias úteis** para aprovação
+
+---
+
+## 🚨 Problemas Comuns e Soluções
+
+| Problema | Solução |
+|----------|---------|
+| AAB rejeitado por assinatura | Verifique se usou o keystore correto |
+| Política de privacidade inválida | URL deve estar acessível e mencionar coleta de dados |
+| Classificação pendente | Complete o questionário IARC |
+| App rejeitado por funcionalidade | Verifique se todas features funcionam offline/online |
+
+---
+
+## 📊 Pós-Publicação
+
+1. **Monitore avaliações** - Responda reviews em até 24h
+2. **Acompanhe crashes** - Use Firebase Crashlytics
+3. **Analytics** - Monitore instalações e retenção
+4. **Atualizações** - Planeje releases quinzenais
+
+---
+
+## 🔄 Para Atualizar o App
+
+1. Incremente `versionCode` e `versionName` em `build.gradle.kts`
+2. Gere novo AAB: `./gradlew bundleRelease`
+3. Upload no Play Console
+4. Preencha notas de versão
+5. Enviar para revisão (geralmente mais rápido: 1-3 dias)
 
 ## Próximas Versões
 
