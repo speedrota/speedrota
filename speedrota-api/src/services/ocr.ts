@@ -3,12 +3,60 @@
  * 
  * @description Usa Tesseract.js para extrair texto de imagens e identificar
  *              chaves de acesso de 44 dígitos e endereços.
+ *              Versão 2.0 com extração robusta portada do frontend Web.
  * 
  * @pre Imagem em base64 válida (JPEG, PNG)
  * @post Texto extraído + chave de acesso (se encontrada)
  */
 
 import Tesseract from 'tesseract.js';
+
+// ==========================================
+// CIDADES CONHECIDAS COM CORREÇÃO OCR
+// ==========================================
+const CIDADES_CONHECIDAS: Record<string, { nome: string; uf: string; cepPrefixos: string[] }> = {
+  // São Paulo interior
+  'AMERICANA': { nome: 'AMERICANA', uf: 'SP', cepPrefixos: ['134'] },
+  'AMERICANS': { nome: 'AMERICANA', uf: 'SP', cepPrefixos: ['134'] },
+  'AMERIC4NA': { nome: 'AMERICANA', uf: 'SP', cepPrefixos: ['134'] },
+  'AMER1CANA': { nome: 'AMERICANA', uf: 'SP', cepPrefixos: ['134'] },
+  'CAMPINAS': { nome: 'CAMPINAS', uf: 'SP', cepPrefixos: ['130', '131'] },
+  'CAMP1NAS': { nome: 'CAMPINAS', uf: 'SP', cepPrefixos: ['130', '131'] },
+  'LIMEIRA': { nome: 'LIMEIRA', uf: 'SP', cepPrefixos: ['134'] },
+  'L1MEIRA': { nome: 'LIMEIRA', uf: 'SP', cepPrefixos: ['134'] },
+  'PIRACICABA': { nome: 'PIRACICABA', uf: 'SP', cepPrefixos: ['134'] },
+  'SUMARE': { nome: 'SUMARE', uf: 'SP', cepPrefixos: ['138'] },
+  'HORTOLANDIA': { nome: 'HORTOLANDIA', uf: 'SP', cepPrefixos: ['132'] },
+  'SANTA BARBARA': { nome: 'SANTA BARBARA', uf: 'SP', cepPrefixos: ['134'] },
+  'INDAIATUBA': { nome: 'INDAIATUBA', uf: 'SP', cepPrefixos: ['133'] },
+  'JUNDIAI': { nome: 'JUNDIAI', uf: 'SP', cepPrefixos: ['132'] },
+  'SOROCABA': { nome: 'SOROCABA', uf: 'SP', cepPrefixos: ['180'] },
+  'PAULINIA': { nome: 'PAULINIA', uf: 'SP', cepPrefixos: ['130'] },
+  'VALINHOS': { nome: 'VALINHOS', uf: 'SP', cepPrefixos: ['131'] },
+  'VINHEDO': { nome: 'VINHEDO', uf: 'SP', cepPrefixos: ['131'] },
+  'ITATIBA': { nome: 'ITATIBA', uf: 'SP', cepPrefixos: ['131'] },
+  'CABREUVA': { nome: 'CABREUVA', uf: 'SP', cepPrefixos: ['131'] },
+  'NOVA ODESSA': { nome: 'NOVA ODESSA', uf: 'SP', cepPrefixos: ['134'] },
+  // Capitais
+  'SAO PAULO': { nome: 'SAO PAULO', uf: 'SP', cepPrefixos: ['01', '02', '03', '04', '05', '08'] },
+  'S4O PAULO': { nome: 'SAO PAULO', uf: 'SP', cepPrefixos: ['01', '02', '03', '04', '05', '08'] },
+  'RIO DE JANEIRO': { nome: 'RIO DE JANEIRO', uf: 'RJ', cepPrefixos: ['20', '21', '22', '23'] },
+  'BELO HORIZONTE': { nome: 'BELO HORIZONTE', uf: 'MG', cepPrefixos: ['30', '31'] },
+  'CURITIBA': { nome: 'CURITIBA', uf: 'PR', cepPrefixos: ['80', '81', '82'] },
+  'PORTO ALEGRE': { nome: 'PORTO ALEGRE', uf: 'RS', cepPrefixos: ['90', '91'] },
+  'SALVADOR': { nome: 'SALVADOR', uf: 'BA', cepPrefixos: ['40', '41'] },
+  'FORTALEZA': { nome: 'FORTALEZA', uf: 'CE', cepPrefixos: ['60'] },
+  'RECIFE': { nome: 'RECIFE', uf: 'PE', cepPrefixos: ['50', '51', '52'] },
+  'BRASILIA': { nome: 'BRASILIA', uf: 'DF', cepPrefixos: ['70', '71', '72', '73'] },
+  'MANAUS': { nome: 'MANAUS', uf: 'AM', cepPrefixos: ['69'] },
+  'BELEM': { nome: 'BELEM', uf: 'PA', cepPrefixos: ['66'] },
+  'GOIANIA': { nome: 'GOIANIA', uf: 'GO', cepPrefixos: ['74'] },
+  'GUARULHOS': { nome: 'GUARULHOS', uf: 'SP', cepPrefixos: ['07'] },
+  'OSASCO': { nome: 'OSASCO', uf: 'SP', cepPrefixos: ['06'] },
+  'SANTOS': { nome: 'SANTOS', uf: 'SP', cepPrefixos: ['110'] },
+  'SANTO ANDRE': { nome: 'SANTO ANDRE', uf: 'SP', cepPrefixos: ['09'] },
+  'SAO BERNARDO': { nome: 'SAO BERNARDO DO CAMPO', uf: 'SP', cepPrefixos: ['09'] },
+};
 
 /**
  * Resultado da análise OCR

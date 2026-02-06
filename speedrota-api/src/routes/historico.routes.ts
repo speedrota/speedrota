@@ -21,6 +21,7 @@ import {
   gerarExcel,
   FiltrosHistorico,
 } from '../services/historico.js';
+import { prisma } from '../lib/prisma';
 
 // ==========================================
 // JSON SCHEMAS
@@ -304,9 +305,6 @@ export default async function historicoRoutes(fastify: FastifyInstance) {
 
       try {
         // Buscar fornecedores únicos das paradas do usuário
-        const { PrismaClient } = await import('@prisma/client');
-        const prisma = new PrismaClient();
-
         const paradas = await prisma.parada.findMany({
           where: {
             rota: {
@@ -320,8 +318,6 @@ export default async function historicoRoutes(fastify: FastifyInstance) {
         });
 
         const fornecedores = paradas.map((p) => p.fornecedor).sort();
-
-        await prisma.$disconnect();
 
         return {
           success: true,

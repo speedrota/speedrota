@@ -24,9 +24,8 @@
  * - Janela de tempo: +30 pontos (se compatível com rota atual)
  */
 
-import { PrismaClient, Prisma } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { Prisma } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 
 // ==========================================
 // TIPOS

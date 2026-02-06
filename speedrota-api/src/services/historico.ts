@@ -14,12 +14,11 @@
  * - Exportar para Excel
  */
 
-import { PrismaClient, StatusRota, Prioridade } from '@prisma/client';
+import { StatusRota, Prioridade } from '@prisma/client';
 import PDFDocument from 'pdfkit';
 import ExcelJS from 'exceljs';
 import { Readable, PassThrough } from 'stream';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 // ==========================================
 // INTERFACES

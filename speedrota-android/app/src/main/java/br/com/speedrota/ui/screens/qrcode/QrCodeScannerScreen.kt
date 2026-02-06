@@ -2,6 +2,7 @@ package br.com.speedrota.ui.screens.qrcode
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.util.Log
 import android.view.ViewGroup
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -38,11 +39,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
+import java.io.File
 import java.util.concurrent.Executors
 
 /**
@@ -334,48 +337,96 @@ private fun ScannerArea(
     
     // Estado para controlar feedback de captura
     var capturando by remember { mutableStateOf(false) }
+    var mensagemStatus by remember { mutableStateOf("") }
 
-    // Launcher para capturar foto - usa TakePicturePreview com tratamento melhorado
+    // URI para armazenar a foto capturada (alta resolução)
+    var photoUri by remember { mutableStateOf<Uri?>(null) }
+
+    // Função para criar URI de arquivo para foto
+    fun createImageUri(): Uri {
+        val photoDir = File(context.cacheDir, "photos")
+        photoDir.mkdirs()
+        val photoFile = File(photoDir, "nota_${System.currentTimeMillis()}.jpg")
+        return FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.fileprovider",
+            photoFile
+        )
+    }
+
+    // Launcher para capturar foto em alta resolução usando TakePicture
     val cameraLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicturePreview()
-    ) { bitmap ->
-        capturando = false
-        Log.d("ScannerArea", "Callback da câmera - bitmap: ${bitmap != null}")
-        
-        if (bitmap != null) {
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
+        Log.d("ScannerArea", "Callback da câmera - sucesso: $success")
+
+        if (success && photoUri != null) {
             try {
-                Log.d("ScannerArea", "Bitmap recebido: ${bitmap.width}x${bitmap.height}")
-                
-                // Converter bitmap para base64
-                val outputStream = java.io.ByteArrayOutputStream()
-                bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 85, outputStream)
-                val bytes = outputStream.toByteArray()
-                val base64 = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
-                
-                Log.d("ScannerArea", "Base64 gerado: ${base64.length} chars")
-                
-                // Atualiza estado com a foto
-                onFotoCapturada(base64)
-                
-                // Processa automaticamente após captura
-                // Pequeno delay para UI atualizar
-                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                    onProcessarFoto()
-                }, 300)
-                
+                mensagemStatus = "📸 Foto capturada! Processando..."
+                Log.d("ScannerArea", "Foto salva em: $photoUri")
+
+                // Carregar imagem do arquivo
+                val inputStream = context.contentResolver.openInputStream(photoUri!!)
+                val bitmap = android.graphics.BitmapFactory.decodeStream(inputStream)
+                inputStream?.close()
+
+                if (bitmap != null) {
+                    Log.d("ScannerArea", "Bitmap carregado: ${bitmap.width}x${bitmap.height}")
+
+                    // Redimensionar se muito grande (max 1920px no maior lado) para envio
+                    val maxSize = 1920
+                    val scaledBitmap = if (bitmap.width > maxSize || bitmap.height > maxSize) {
+                        val scale = maxSize.toFloat() / maxOf(bitmap.width, bitmap.height)
+                        val newWidth = (bitmap.width * scale).toInt()
+                        val newHeight = (bitmap.height * scale).toInt()
+                        Log.d("ScannerArea", "Redimensionando para: ${newWidth}x${newHeight}")
+                        android.graphics.Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true)
+                    } else {
+                        bitmap
+                    }
+
+                    // Converter bitmap para base64
+                    val outputStream = java.io.ByteArrayOutputStream()
+                    scaledBitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 85, outputStream)
+                    val bytes = outputStream.toByteArray()
+                    val base64 = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
+
+                    Log.d("ScannerArea", "Base64 gerado: ${base64.length} chars")
+
+                    // Atualiza estado com a foto
+                    onFotoCapturada(base64)
+                    mensagemStatus = "🔍 Analisando imagem..."
+                    capturando = false
+
+                    // Processa automaticamente após captura
+                    android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                        onProcessarFoto()
+                    }, 300)
+
+                    // Limpar bitmap se foi redimensionado
+                    if (scaledBitmap !== bitmap) {
+                        scaledBitmap.recycle()
+                    }
+                } else {
+                    throw Exception("Falha ao decodificar imagem")
+                }
             } catch (e: Exception) {
-                Log.e("ScannerArea", "Erro ao processar bitmap", e)
+                Log.e("ScannerArea", "Erro ao processar foto", e)
+                capturando = false
+                mensagemStatus = ""
                 android.widget.Toast.makeText(
                     context,
-                    "Erro ao processar imagem: ${e.message}",
-                    android.widget.Toast.LENGTH_SHORT
+                    "❌ Erro ao processar imagem: ${e.message}",
+                    android.widget.Toast.LENGTH_LONG
                 ).show()
             }
         } else {
-            Log.w("ScannerArea", "Bitmap nulo - câmera cancelada ou falhou")
+            Log.w("ScannerArea", "Foto não capturada ou URI nulo")
+            capturando = false
+            mensagemStatus = ""
             android.widget.Toast.makeText(
                 context,
-                "Foto não capturada. Tente novamente.",
+                "📷 Captura cancelada. Tente novamente.",
                 android.widget.Toast.LENGTH_SHORT
             ).show()
         }
@@ -618,7 +669,11 @@ private fun ScannerArea(
                                     Spacer(modifier = Modifier.height(16.dp))
                                     
                                     Text(
-                                        text = if (capturando) "Capturando foto..." else "🔍 Analisando imagem...",
+                                        text = when {
+                                            uiState.processandoFoto -> "🔍 Analisando imagem..."
+                                            mensagemStatus.isNotBlank() -> mensagemStatus
+                                            else -> "⏳ Capturando foto..."
+                                        },
                                         fontWeight = FontWeight.SemiBold,
                                         fontSize = 16.sp,
                                         color = Color(0xFF2563EB)
@@ -627,7 +682,11 @@ private fun ScannerArea(
                                     Spacer(modifier = Modifier.height(8.dp))
                                     
                                     Text(
-                                        text = if (capturando) "Aguarde..." else "Buscando endereço na nota fiscal",
+                                        text = when {
+                                            uiState.processandoFoto -> "Buscando endereço na nota fiscal"
+                                            mensagemStatus.contains("Processando") -> "Preparando imagem..."
+                                            else -> "Aguarde..."
+                                        },
                                         textAlign = TextAlign.Center,
                                         color = Color.Gray,
                                         fontSize = 13.sp
@@ -638,8 +697,10 @@ private fun ScannerArea(
                                         onClick = {
                                             if (hasCameraPermission) {
                                                 capturando = true
-                                                Log.d("ScannerArea", "Iniciando captura de foto...")
-                                                cameraLauncher.launch(null)
+                                                mensagemStatus = "📷 Abrindo câmera..."
+                                                Log.d("ScannerArea", "Iniciando captura de foto em alta resolução...")
+                                                photoUri = createImageUri()
+                                                cameraLauncher.launch(photoUri!!)
                                             } else {
                                                 onRequestPermission()
                                             }

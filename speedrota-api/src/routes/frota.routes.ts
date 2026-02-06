@@ -18,10 +18,8 @@
  */
 
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import distribuicaoService, { EntregaParaDistribuir, ConfiguracaoDistribuicao } from '../services/distribuicao';
-
-const prisma = new PrismaClient();
 
 // ==========================================
 // TIPOS DE REQUEST

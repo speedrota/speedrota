@@ -35,10 +35,8 @@ import {
   MotivoFalha,
   EventoStatus,
 } from '../services/statusTempoReal.js';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { randomUUID } from 'crypto';
-
-const prisma = new PrismaClient();
 
 // ==========================================
 // JSON SCHEMAS DE VALIDAÇÃO
