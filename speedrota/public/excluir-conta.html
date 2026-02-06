@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excluir Conta - SpeedRota</title>
+    <link rel="icon" type="image/png" href="/favicon.ico">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #1e3a5f 0%, #0f1c2e 100%);
+            min-height: 100vh;
+            color: #e2e8f0;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .logo {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #60a5fa;
+            margin-bottom: 10px;
+        }
+        
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            color: #f8fafc;
+        }
+        
+        .subtitle {
+            color: #94a3b8;
+            font-size: 1.1rem;
+        }
+        
+        .card {
+            background: rgba(30, 41, 59, 0.8);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 24px;
+            border: 1px solid rgba(148, 163, 184, 0.1);
+        }
+        
+        h2 {
+            color: #60a5fa;
+            font-size: 1.3rem;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .warning {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+        
+        .warning h3 {
+            color: #ef4444;
+            margin-bottom: 10px;
+        }
+        
+        .steps {
+            counter-reset: step;
+        }
+        
+        .step {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 20px;
+            padding: 16px;
+            background: rgba(96, 165, 250, 0.05);
+            border-radius: 12px;
+        }
+        
+        .step-number {
+            background: #60a5fa;
+            color: #0f172a;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        
+        .step-content h4 {
+            color: #f8fafc;
+            margin-bottom: 8px;
+        }
+        
+        .step-content p {
+            color: #94a3b8;
+            font-size: 0.95rem;
+        }
+        
+        .data-list {
+            display: grid;
+            gap: 12px;
+            margin-top: 16px;
+        }
+        
+        .data-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: rgba(15, 23, 42, 0.5);
+            border-radius: 8px;
+        }
+        
+        .data-item .label {
+            color: #94a3b8;
+        }
+        
+        .data-item .action {
+            font-weight: 500;
+        }
+        
+        .deleted {
+            color: #ef4444;
+        }
+        
+        .retained {
+            color: #f59e0b;
+        }
+        
+        .contact-section {
+            text-align: center;
+            padding: 30px;
+        }
+        
+        .contact-section p {
+            margin-bottom: 20px;
+            color: #94a3b8;
+        }
+        
+        .contact-buttons {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 28px;
+            border-radius: 12px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #dc2626;
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background: rgba(96, 165, 250, 0.1);
+            color: #60a5fa;
+            border: 1px solid rgba(96, 165, 250, 0.3);
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(96, 165, 250, 0.2);
+        }
+        
+        .btn-whatsapp {
+            background: #25d366;
+            color: white;
+        }
+        
+        .btn-whatsapp:hover {
+            background: #20bd5a;
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 30px;
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+        
+        .footer a {
+            color: #60a5fa;
+            text-decoration: none;
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px 16px;
+            }
+            
+            .card {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 1.5rem;
+            }
+            
+            .contact-buttons {
+                flex-direction: column;
+            }
+            
+            .btn {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="logo">🚀 SpeedRota</div>
+            <h1>Exclusão de Conta</h1>
+            <p class="subtitle">Informações sobre como excluir sua conta e dados</p>
+        </header>
+
+        <div class="warning">
+            <h3>⚠️ Atenção</h3>
+            <p>A exclusão da conta é <strong>permanente</strong> e não pode ser desfeita. Todos os seus dados serão removidos de nossos servidores conforme descrito abaixo.</p>
+        </div>
+
+        <div class="card">
+            <h2>📋 Como Solicitar a Exclusão</h2>
+            
+            <div class="steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h4>Pelo Aplicativo (Recomendado)</h4>
+                        <p>Abra o SpeedRota → Menu → Configurações → Conta → "Excluir minha conta". Confirme sua senha e a exclusão será processada imediatamente.</p>
+                    </div>
+                </div>
+                
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h4>Por Email</h4>
+                        <p>Envie um email para <strong>privacidade@speedrota.com.br</strong> com o assunto "Solicitar Exclusão de Conta" incluindo o email cadastrado. Responderemos em até 48 horas.</p>
+                    </div>
+                </div>
+                
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h4>Por WhatsApp</h4>
+                        <p>Entre em contato pelo WhatsApp (11) 91526-7337 informando seu email de cadastro e solicitando a exclusão. Atendimento de segunda a sexta, 9h às 18h.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>🗑️ Dados Excluídos</h2>
+            <p style="color: #94a3b8; margin-bottom: 16px;">Os seguintes dados são <strong>permanentemente excluídos</strong> em até 30 dias:</p>
+            
+            <div class="data-list">
+                <div class="data-item">
+                    <span class="label">Informações pessoais</span>
+                    <span class="action deleted">Excluído</span>
+                </div>
+                <div class="data-item">
+                    <span class="label">Nome, email e telefone</span>
+                    <span class="action deleted">Excluído</span>
+                </div>
+                <div class="data-item">
+                    <span class="label">Histórico de rotas</span>
+                    <span class="action deleted">Excluído</span>
+                </div>
+                <div class="data-item">
+                    <span class="label">Endereços salvos</span>
+                    <span class="action deleted">Excluído</span>
+                </div>
+                <div class="data-item">
+                    <span class="label">Fotos de NF-e e comprovantes</span>
+                    <span class="action deleted">Excluído</span>
+                </div>
+                <div class="data-item">
+                    <span class="label">Preferências e configurações</span>
+                    <span class="action deleted">Excluído</span>
+                </div>
+                <div class="data-item">
+                    <span class="label">Tokens de acesso</span>
+                    <span class="action deleted">Excluído</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>📁 Dados Retidos (Obrigações Legais)</h2>
+            <p style="color: #94a3b8; margin-bottom: 16px;">Alguns dados são mantidos por obrigação legal ou fiscal:</p>
+            
+            <div class="data-list">
+                <div class="data-item">
+                    <span class="label">Registros de transações financeiras</span>
+                    <span class="action retained">5 anos (Lei fiscal)</span>
+                </div>
+                <div class="data-item">
+                    <span class="label">Notas fiscais de assinaturas</span>
+                    <span class="action retained">5 anos (Lei fiscal)</span>
+                </div>
+                <div class="data-item">
+                    <span class="label">Logs de acesso (anonimizados)</span>
+                    <span class="action retained">6 meses (Marco Civil)</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>⏱️ Prazo de Processamento</h2>
+            <ul style="color: #94a3b8; padding-left: 20px;">
+                <li style="margin-bottom: 10px;"><strong>Pelo app:</strong> Imediato (conta desativada) + 30 dias para exclusão permanente</li>
+                <li style="margin-bottom: 10px;"><strong>Por email:</strong> Até 48h para confirmação + 30 dias para exclusão</li>
+                <li><strong>Período de recuperação:</strong> 7 dias após a solicitação (caso mude de ideia)</li>
+            </ul>
+        </div>
+
+        <div class="card contact-section">
+            <h2 style="justify-content: center;">📞 Precisa de Ajuda?</h2>
+            <p>Nossa equipe está pronta para ajudar com qualquer dúvida sobre exclusão de dados.</p>
+            
+            <div class="contact-buttons">
+                <a href="mailto:privacidade@speedrota.com.br?subject=Solicitar%20Exclusão%20de%20Conta" class="btn btn-primary">
+                    📧 Solicitar por Email
+                </a>
+                <a href="https://wa.me/5511915267337?text=Olá!%20Gostaria%20de%20solicitar%20a%20exclusão%20da%20minha%20conta%20SpeedRota." class="btn btn-whatsapp">
+                    💬 WhatsApp
+                </a>
+                <a href="https://speedrota.com.br" class="btn btn-secondary">
+                    🏠 Voltar ao Site
+                </a>
+            </div>
+        </div>
+
+        <footer class="footer">
+            <p>&copy; 2026 SpeedRota. Todos os direitos reservados.</p>
+            <p style="margin-top: 10px;">
+                <a href="/privacidade">Política de Privacidade</a> · 
+                <a href="mailto:sac@speedrota.com.br">sac@speedrota.com.br</a>
+            </p>
+        </footer>
+    </div>
+</body>
+</html>

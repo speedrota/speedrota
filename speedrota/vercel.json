@@ -10,6 +10,7 @@
     { "source": "/assets/:path*", "destination": "/assets/:path*" },
     { "source": "/privacidade", "destination": "/privacidade.html" },
     { "source": "/termos", "destination": "/termos.html" },
+    { "source": "/excluir-conta", "destination": "/excluir-conta.html" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [
