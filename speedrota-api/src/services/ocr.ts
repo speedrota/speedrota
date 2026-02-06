@@ -68,6 +68,7 @@ export interface OcrResult {
   confianca?: number;
   chaveAcesso?: string;
   tipoDocumento?: string;
+  fornecedor?: string;  // Fornecedor detectado: MERCADOLIVRE_AMAZON, SHOPEE, TIKTOK_KWAI, NATURA_AVON
   destinatario?: {
     nome?: string;
   };
@@ -1059,14 +1060,23 @@ function extrairCEPTexto(texto: string): string {
 }
 
 /**
+ * Resultado da extração de endereço incluindo fornecedor detectado
+ */
+interface EnderecoExtraido {
+  endereco?: OcrResult['endereco'];
+  fornecedor?: string;
+}
+
+/**
  * Extrai endereço do texto OCR usando patterns comuns de NF-e/DANFE
  * VERSÃO ROBUSTA - Portada do frontend Web
  * 
  * @pre texto não vazio
- * @post objeto com partes do endereço identificadas
+ * @post objeto com partes do endereço identificadas e fornecedor detectado
  */
-function extrairEndereco(texto: string): OcrResult['endereco'] {
+function extrairEnderecoComFornecedor(texto: string): EnderecoExtraido {
   let endereco: OcrResult['endereco'] = {};
+  let fornecedorDetectado: string | undefined;
   
   console.log('[OCR] Iniciando extração de endereço...');
   console.log(`[OCR] Texto para análise (primeiros 500 chars): ${texto.substring(0, 500)}`);
@@ -1079,6 +1089,7 @@ function extrairEndereco(texto: string): OcrResult['endereco'] {
   // Se encontrou dados via parser específico de fornecedor
   if (dadosUniversal && (dadosUniversal.endereco || dadosUniversal.cidade)) {
     console.log(`[OCR] Usando dados extraídos via parser ${dadosUniversal.fornecedor || 'universal'}`);
+    fornecedorDetectado = dadosUniversal.fornecedor;
     
     if (dadosUniversal.endereco) {
       endereco.logradouro = dadosUniversal.endereco;
@@ -1116,7 +1127,7 @@ function extrairEndereco(texto: string): OcrResult['endereco'] {
     if (partes.length >= 2) {
       endereco.enderecoCompleto = partes.join(', ');
       console.log(`[OCR] Endereço montado via ${dadosUniversal.fornecedor}: ${endereco.enderecoCompleto}`);
-      return endereco;
+      return { endereco, fornecedor: fornecedorDetectado };
     }
   }
   
@@ -1198,7 +1209,10 @@ function extrairEndereco(texto: string): OcrResult['endereco'] {
     console.log(`[OCR] Endereço montado: ${endereco.enderecoCompleto}`);
   }
   
-  return Object.keys(endereco).length > 0 ? endereco : undefined;
+  return { 
+    endereco: Object.keys(endereco).length > 0 ? endereco : undefined,
+    fornecedor: fornecedorDetectado
+  };
 }
 
 /**
@@ -1373,8 +1387,8 @@ export async function analisarImagemNota(imagemBase64: string): Promise<OcrResul
     // Extrai chave de acesso
     const chaveAcesso = extrairChave44Digitos(textoExtraido);
     
-    // Extrai endereço e valida
-    const enderecoExtraido = extrairEndereco(textoExtraido);
+    // Extrai endereço com fornecedor detectado e valida
+    const { endereco: enderecoExtraido, fornecedor } = extrairEnderecoComFornecedor(textoExtraido);
     const endereco = validarEnderecoExtraido(enderecoExtraido) ? enderecoExtraido : undefined;
     
     // Extrai destinatário
@@ -1393,7 +1407,7 @@ export async function analisarImagemNota(imagemBase64: string): Promise<OcrResul
       tipoDocumento = 'DANFE';
     }
     
-    console.log(`[OCR] Resultados - Tipo: ${tipoDocumento}, Chave: ${chaveAcesso ? 'encontrada' : 'não encontrada'}, Endereço: ${endereco ? 'encontrado' : 'não encontrado'}`);
+    console.log(`[OCR] Resultados - Tipo: ${tipoDocumento}, Fornecedor: ${fornecedor || 'genérico'}, Chave: ${chaveAcesso ? 'encontrada' : 'não encontrada'}, Endereço: ${endereco ? 'encontrado' : 'não encontrado'}`);
     
     return {
       sucesso: true,
@@ -1401,6 +1415,7 @@ export async function analisarImagemNota(imagemBase64: string): Promise<OcrResul
       confianca,
       chaveAcesso: chaveAcesso || undefined,
       tipoDocumento,
+      fornecedor, // Fornecedor detectado pelo parser
       destinatario: nomeDestinatario ? { nome: nomeDestinatario } : undefined,
       endereco,
       notaFiscal: {

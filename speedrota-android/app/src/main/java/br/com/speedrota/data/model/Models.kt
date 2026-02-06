@@ -1846,6 +1846,7 @@ data class OcrAnaliseData(
     val textoExtraido: String? = null,
     val confianca: Double? = null,
     val tipoDocumento: String? = null,
+    val fornecedor: String? = null,  // Fornecedor detectado: MERCADOLIVRE_AMAZON, SHOPEE, TIKTOK_KWAI, NATURA_AVON
     val dadosAdicionais: OcrDadosAdicionais? = null,
     // Campos adicionais para endereço parseado diretamente
     val endereco: OcrEndereco? = null,
