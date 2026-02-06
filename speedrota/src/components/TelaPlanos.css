@@ -240,12 +240,224 @@
   to { transform: rotate(360deg); }
 }
 
+/* Modal grande para tabs */
+.planos-modal--large {
+  max-width: 1100px;
+}
+
+/* Tabs de categoria */
+.planos-tabs {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0 2rem;
+  margin-bottom: 1rem;
+}
+
+.planos-tab {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  background: #f1f5f9;
+  border: 2px solid transparent;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.planos-tab:hover {
+  background: #e2e8f0;
+}
+
+.planos-tab.active {
+  background: var(--primary, #2563eb);
+  color: white;
+  border-color: var(--primary, #2563eb);
+}
+
+/* Banner de promoção */
+.promo-banner {
+  margin: 0 2rem 1rem;
+  padding: 1rem;
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  color: white;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.promo-badge {
+  background: white;
+  color: #ea580c;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.promo-code {
+  margin-left: auto;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.25rem;
+  font-family: monospace;
+  font-weight: 600;
+}
+
+/* Seção de cupom */
+.cupom-section {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0 2rem;
+  margin-bottom: 1rem;
+  align-items: center;
+}
+
+.cupom-input {
+  flex: 1;
+  max-width: 200px;
+  padding: 0.5rem 0.75rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+}
+
+.cupom-input:focus {
+  outline: none;
+  border-color: var(--primary, #2563eb);
+}
+
+.cupom-btn {
+  padding: 0.5rem 1rem;
+  background: var(--primary, #2563eb);
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.cupom-btn:hover {
+  background: #1d4ed8;
+}
+
+.cupom-sucesso {
+  color: #22c55e;
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+/* Card melhor valor */
+.plano-card.melhor-valor {
+  border-color: #a855f7;
+  box-shadow: 0 4px 20px rgba(168, 85, 247, 0.15);
+}
+
+.plano-badge.melhor {
+  background: #a855f7;
+}
+
+/* Preço riscado */
+.preco-riscado {
+  text-decoration: line-through;
+  color: #94a3b8;
+  font-size: 0.875rem;
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+/* Motoristas */
+.plano-motoristas {
+  text-align: center;
+  background: #f0fdf4;
+  color: #16a34a;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  margin-bottom: 1rem;
+}
+
+/* Comparativo */
+.comparativo-section {
+  margin: 1rem 2rem;
+  padding: 1rem;
+  background: #f8fafc;
+  border-radius: 0.75rem;
+}
+
+.comparativo-section h4 {
+  margin: 0 0 1rem;
+  font-size: 1rem;
+  color: #1e293b;
+}
+
+.comparativo-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.comparativo-table th,
+.comparativo-table td {
+  padding: 0.5rem;
+  text-align: center;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.comparativo-table th {
+  font-weight: 500;
+  color: #64748b;
+  font-size: 0.875rem;
+}
+
+.comparativo-table .destaque {
+  color: var(--primary, #2563eb);
+  font-weight: 700;
+}
+
+.comparativo-table .economia {
+  color: #22c55e;
+  font-weight: 700;
+}
+
 /* Mobile */
 @media (max-width: 640px) {
   .planos-modal {
     margin: 0;
     border-radius: 1rem 1rem 0 0;
     max-height: 95vh;
+  }
+  
+  .planos-tabs {
+    padding: 0 1rem;
+  }
+  
+  .planos-tab {
+    font-size: 0.875rem;
+    padding: 0.5rem;
+  }
+  
+  .promo-banner {
+    margin: 0 1rem 1rem;
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .promo-code {
+    margin-left: 0;
+  }
+  
+  .cupom-section {
+    padding: 0 1rem;
+    flex-wrap: wrap;
+  }
+  
+  .cupom-input {
+    max-width: 100%;
+    flex-basis: 100%;
   }
   
   .planos-grid {
@@ -256,5 +468,10 @@
   .planos-footer {
     flex-direction: column;
     gap: 0.5rem;
+  }
+  
+  .comparativo-section {
+    margin: 1rem;
+    overflow-x: auto;
   }
 }

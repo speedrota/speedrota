@@ -612,15 +612,140 @@ enum class Fornecedor(
 
 // ==================== PLANOS ====================
 
+/**
+ * Planos disponíveis baseado em análise competitiva (Fev/2026)
+ * 
+ * INDIVIDUAIS (autônomos, MEI):
+ * - FREE: Teste, 3 rotas/dia
+ * - STARTER: R$29,90 - MEI/Autônomo iniciante
+ * - PRO: R$59,90 - Autônomo full-time
+ * - FULL: R$99,90 - Power user
+ * 
+ * FROTA (transportadoras, PME):
+ * - FROTA_START: R$299/mês - Até 5 motoristas
+ * - FROTA_PRO: R$599/mês - Até 15 motoristas
+ * - FROTA_ENTERPRISE: R$999/mês - Ilimitado
+ * 
+ * @see SpeedRota_Pricing_Brasil_Revisado.docx
+ */
 enum class Plano(
     val displayName: String,
     val rotasPorDia: Int,
     val destinosPorRota: Int,
-    val preco: Double
+    val preco: Double,
+    val categoria: CategoriaPlano = CategoriaPlano.INDIVIDUAL,
+    val maxMotoristas: Int? = null,
+    val features: List<String> = emptyList()
 ) {
-    FREE("Grátis", 2, 5, 0.0),
-    PRO("Pro", 10, 20, 19.90),
-    FULL("Full", 999, 50, 39.90)
+    // Planos Individuais
+    FREE(
+        displayName = "Grátis",
+        rotasPorDia = 3,
+        destinosPorRota = 10,
+        preco = 0.0,
+        features = listOf("Roteirização básica", "3 rotas/dia", "10 paradas/rota")
+    ),
+    STARTER(
+        displayName = "Starter",
+        rotasPorDia = 10,
+        destinosPorRota = 30,
+        preco = 29.90,
+        features = listOf("OCR de NF-e", "WhatsApp Share", "10 rotas/dia", "30 paradas/rota")
+    ),
+    PRO(
+        displayName = "Pro",
+        rotasPorDia = 999,
+        destinosPorRota = 50,
+        preco = 59.90,
+        features = listOf("Rotas ilimitadas", "Analytics", "SEFAZ QR Code", "Histórico completo")
+    ),
+    FULL(
+        displayName = "Full",
+        rotasPorDia = 9999,
+        destinosPorRota = 100,
+        preco = 99.90,
+        features = listOf("POD (Comprovante)", "API Access", "ML Previsão", "Suporte prioritário")
+    ),
+    
+    // Planos Frota (B2B)
+    FROTA_START(
+        displayName = "Frota Start",
+        rotasPorDia = 9999,
+        destinosPorRota = 100,
+        preco = 299.0,
+        categoria = CategoriaPlano.FROTA,
+        maxMotoristas = 5,
+        features = listOf("Dashboard Gestor", "Tracking tempo real", "Até 5 motoristas", "Distribuição automática")
+    ),
+    FROTA_PRO(
+        displayName = "Frota Pro",
+        rotasPorDia = 99999,
+        destinosPorRota = 200,
+        preco = 599.0,
+        categoria = CategoriaPlano.FROTA,
+        maxMotoristas = 15,
+        features = listOf("Até 15 motoristas", "API + POD", "Geofencing", "Analytics avançado")
+    ),
+    FROTA_ENTERPRISE(
+        displayName = "Frota Enterprise",
+        rotasPorDia = 999999,
+        destinosPorRota = 500,
+        preco = 999.0,
+        categoria = CategoriaPlano.FROTA,
+        maxMotoristas = 999,
+        features = listOf("Motoristas ilimitados", "ML Otimização", "VTEX/Shopify", "Suporte dedicado")
+    );
+    
+    val isFrota: Boolean get() = categoria == CategoriaPlano.FROTA
+}
+
+enum class CategoriaPlano {
+    INDIVIDUAL,
+    FROTA
+}
+
+/**
+ * Promoções ativas
+ */
+data class Promocao(
+    val codigo: String,
+    val nome: String,
+    val desconto: Int, // percentual
+    val meses: Int,
+    val planosAplicaveis: List<Plano>,
+    val ativo: Boolean = true
+)
+
+object Promocoes {
+    val FROTA60 = Promocao(
+        codigo = "FROTA60",
+        nome = "60% OFF nos primeiros 3 meses",
+        desconto = 60,
+        meses = 3,
+        planosAplicaveis = listOf(Plano.FROTA_START, Plano.FROTA_PRO, Plano.FROTA_ENTERPRISE)
+    )
+    
+    val MIGRACAOVUUPT = Promocao(
+        codigo = "MIGRACAOVUUPT",
+        nome = "Migração Vuupt - 3 meses grátis",
+        desconto = 100,
+        meses = 3,
+        planosAplicaveis = listOf(Plano.FROTA_START, Plano.FROTA_PRO, Plano.FROTA_ENTERPRISE)
+    )
+    
+    val ANUAL25 = Promocao(
+        codigo = "ANUAL25",
+        nome = "25% de desconto no plano anual",
+        desconto = 25,
+        meses = 12,
+        planosAplicaveis = listOf(Plano.STARTER, Plano.PRO, Plano.FULL, Plano.FROTA_START, Plano.FROTA_PRO, Plano.FROTA_ENTERPRISE)
+    )
+    
+    val todas = listOf(FROTA60, MIGRACAOVUUPT, ANUAL25)
+    
+    fun buscarPorCodigo(codigo: String): Promocao? {
+        return todas.find { it.codigo.equals(codigo, ignoreCase = true) && it.ativo }
+    }
 }
 
 // ==================== RE-OTIMIZAÇÃO ====================

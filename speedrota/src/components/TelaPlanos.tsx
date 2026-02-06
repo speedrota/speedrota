@@ -1,49 +1,74 @@
 /**
  * @fileoverview Tela de Planos e Upgrade
+ * 
+ * Atualizado com novos planos conforme análise competitiva (Fev/2026)
+ * - Planos Individuais: FREE, STARTER, PRO, FULL
+ * - Planos Frota: FROTA_START, FROTA_PRO, FROTA_ENTERPRISE
+ * - Sistema de promoções (FROTA60, MIGRACAOVUUPT, ANUAL25)
+ * 
+ * @see SpeedRota_Pricing_Brasil_Revisado.docx
  */
 
 import { useState, useEffect } from 'react';
-import { pagamentoService, type PlanoInfo } from '../services/pagamentos';
+import { pagamentoService, type PlanoInfo, type Promocao } from '../services/pagamentos';
 import { useAuthStore } from '../store/authStore';
+import { PLANOS_CONFIG, PROMOCOES, type Plano } from '../types';
 import './TelaPlanos.css';
 
 interface TelaplanosProps {
   onClose: () => void;
 }
 
+type CategoriaPlano = 'individual' | 'frota';
+
 export function TelaPlanos({ onClose }: TelaplanosProps) {
-  const [planos, setPlanos] = useState<PlanoInfo[]>([]);
-  const [carregando, setCarregando] = useState(true);
+  const [categoria, setCategoria] = useState<CategoriaPlano>('individual');
+  const [carregando, setCarregando] = useState(false);
   const [processando, setProcessando] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+  const [cupomCodigo, setCupomCodigo] = useState('');
+  const [cupomAplicado, setCupomAplicado] = useState<string | null>(null);
+  const [descontoAtivo, setDescontoAtivo] = useState<number>(0);
   
   const { user } = useAuthStore();
   
-  useEffect(() => {
-    carregarPlanos();
-  }, []);
+  // Planos organizados por categoria
+  const planosIndividuais: Plano[] = ['FREE', 'STARTER', 'PRO', 'FULL'];
+  const planosFrota: Plano[] = ['FROTA_START', 'FROTA_PRO', 'FROTA_ENTERPRISE'];
   
-  const carregarPlanos = async () => {
-    try {
-      const data = await pagamentoService.listarPlanos();
-      setPlanos(data);
-    } catch (error: any) {
-      setErro('Erro ao carregar planos');
-    } finally {
-      setCarregando(false);
+  const planosAtuais = categoria === 'individual' ? planosIndividuais : planosFrota;
+  
+  const aplicarCupom = () => {
+    const promo = Object.values(PROMOCOES).find(p => 
+      p.codigo.toUpperCase() === cupomCodigo.toUpperCase() && p.ativo
+    );
+    
+    if (promo) {
+      setCupomAplicado(promo.codigo);
+      setDescontoAtivo(promo.desconto);
+      setErro(null);
+    } else {
+      setErro('Cupom inválido ou expirado');
+      setCupomAplicado(null);
+      setDescontoAtivo(0);
     }
   };
   
-  const handleUpgrade = async (planoId: string) => {
+  const calcularPrecoComDesconto = (preco: number): number => {
+    if (descontoAtivo > 0) {
+      return preco * (1 - descontoAtivo / 100);
+    }
+    return preco;
+  };
+  
+  const handleUpgrade = async (planoId: Plano) => {
     if (planoId === 'FREE' || planoId === user?.plano) return;
     
     setProcessando(planoId);
     setErro(null);
     
     try {
-      const { initPoint } = await pagamentoService.criarPreferencia(planoId as 'PRO' | 'FULL');
-      
-      // Redirecionar para o checkout do Mercado Pago
+      const { initPoint } = await pagamentoService.criarPreferencia(planoId as any);
       window.location.href = initPoint;
     } catch (error: any) {
       setErro(error.message || 'Erro ao iniciar pagamento');
@@ -51,30 +76,43 @@ export function TelaPlanos({ onClose }: TelaplanosProps) {
     }
   };
   
-  const planoAtual = user?.plano || 'FREE';
-  
-  if (carregando) {
-    return (
-      <div className="planos-overlay">
-        <div className="planos-modal">
-          <div className="planos-loading">
-            <span className="loading-spinner">⏳</span>
-            <p>Carregando planos...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const planoAtual = (user?.plano || 'FREE') as Plano;
+  const isGestorFrota = planoAtual.startsWith('FROTA');
   
   return (
     <div className="planos-overlay" onClick={onClose}>
-      <div className="planos-modal" onClick={(e) => e.stopPropagation()}>
+      <div className="planos-modal planos-modal--large" onClick={(e) => e.stopPropagation()}>
         <button className="planos-close" onClick={onClose}>✕</button>
         
         <div className="planos-header">
           <h2>🚀 Escolha seu Plano</h2>
-          <p>Otimize mais entregas com o plano certo para você</p>
+          <p>60-70% mais barato que qualquer concorrente brasileiro</p>
         </div>
+        
+        {/* Tabs de categoria */}
+        <div className="planos-tabs">
+          <button 
+            className={`planos-tab ${categoria === 'individual' ? 'active' : ''}`}
+            onClick={() => setCategoria('individual')}
+          >
+            🏍️ Para Entregadores
+          </button>
+          <button 
+            className={`planos-tab ${categoria === 'frota' ? 'active' : ''}`}
+            onClick={() => setCategoria('frota')}
+          >
+            🚚 Para Transportadoras
+          </button>
+        </div>
+        
+        {/* Banner de promoção para Frota */}
+        {categoria === 'frota' && (
+          <div className="promo-banner">
+            <span className="promo-badge">🔥 LANÇAMENTO</span>
+            <strong>FROTA60:</strong> 60% OFF nos primeiros 3 meses!
+            <span className="promo-code">Use: FROTA60</span>
+          </div>
+        )}
         
         {erro && (
           <div className="planos-erro">
@@ -82,49 +120,81 @@ export function TelaPlanos({ onClose }: TelaplanosProps) {
           </div>
         )}
         
+        {/* Cupom de desconto */}
+        <div className="cupom-section">
+          <input 
+            type="text" 
+            placeholder="Código promocional"
+            value={cupomCodigo}
+            onChange={(e) => setCupomCodigo(e.target.value.toUpperCase())}
+            className="cupom-input"
+          />
+          <button onClick={aplicarCupom} className="cupom-btn">
+            Aplicar
+          </button>
+          {cupomAplicado && (
+            <span className="cupom-sucesso">✓ {descontoAtivo}% de desconto aplicado!</span>
+          )}
+        </div>
+        
         <div className="planos-grid">
-          {planos.map((plano) => {
-            const isAtual = plano.id === planoAtual;
-            const isDowngrade = 
-              (planoAtual === 'FULL' && plano.id !== 'FULL') ||
-              (planoAtual === 'PRO' && plano.id === 'FREE');
+          {planosAtuais.map((planoId) => {
+            const config = PLANOS_CONFIG[planoId];
+            const isAtual = planoId === planoAtual;
+            const precoOriginal = config.preco;
+            const precoFinal = calcularPrecoComDesconto(precoOriginal);
+            const temDesconto = precoFinal < precoOriginal;
+            
+            // Determinar destaque
+            const isPopular = planoId === 'PRO' || planoId === 'FROTA_PRO';
+            const isMelhorValor = planoId === 'FULL' || planoId === 'FROTA_ENTERPRISE';
             
             return (
               <div 
-                key={plano.id} 
-                className={`plano-card ${isAtual ? 'atual' : ''} ${plano.popular ? 'popular' : ''}`}
+                key={planoId} 
+                className={`plano-card ${isAtual ? 'atual' : ''} ${isPopular ? 'popular' : ''} ${isMelhorValor ? 'melhor-valor' : ''}`}
               >
-                {plano.popular && <div className="plano-badge">⭐ Mais Popular</div>}
+                {isPopular && <div className="plano-badge">⭐ Mais Popular</div>}
+                {isMelhorValor && <div className="plano-badge melhor">💎 Melhor Custo-Benefício</div>}
                 {isAtual && <div className="plano-badge atual">✓ Seu Plano</div>}
                 
-                <h3 className="plano-nome">{plano.nome}</h3>
+                <h3 className="plano-nome">{config.nome}</h3>
                 
                 <div className="plano-preco">
-                  <span className="preco-valor">{plano.precoFormatado}</span>
-                  {plano.preco > 0 && <span className="preco-periodo">/mês</span>}
+                  {temDesconto && (
+                    <span className="preco-riscado">R$ {precoOriginal.toFixed(2)}</span>
+                  )}
+                  <span className="preco-valor">
+                    {precoFinal === 0 ? 'Grátis' : `R$ ${precoFinal.toFixed(2)}`}
+                  </span>
+                  {precoFinal > 0 && <span className="preco-periodo">/mês</span>}
                 </div>
                 
+                {config.maxMotoristas && (
+                  <div className="plano-motoristas">
+                    👥 Até {config.maxMotoristas === 999 ? 'ilimitados' : config.maxMotoristas} motoristas
+                  </div>
+                )}
+                
                 <ul className="plano-recursos">
-                  {plano.recursos.map((recurso, idx) => (
+                  {config.features.map((recurso, idx) => (
                     <li key={idx}>✓ {recurso}</li>
                   ))}
                 </ul>
                 
                 <button
-                  className={`plano-btn ${isAtual ? 'atual' : ''} ${isDowngrade ? 'downgrade' : ''}`}
-                  onClick={() => handleUpgrade(plano.id)}
-                  disabled={isAtual || isDowngrade || processando !== null}
+                  className={`plano-btn ${isAtual ? 'atual' : ''}`}
+                  onClick={() => handleUpgrade(planoId)}
+                  disabled={isAtual || planoId === 'FREE' || processando !== null}
                 >
-                  {processando === plano.id ? (
+                  {processando === planoId ? (
                     <span className="loading-spinner">⏳</span>
                   ) : isAtual ? (
                     'Plano Atual'
-                  ) : isDowngrade ? (
-                    'Não disponível'
-                  ) : plano.id === 'FREE' ? (
+                  ) : planoId === 'FREE' ? (
                     'Plano Gratuito'
                   ) : (
-                    `Assinar ${plano.nome}`
+                    `Assinar ${config.nome}`
                   )}
                 </button>
               </div>
@@ -132,9 +202,35 @@ export function TelaPlanos({ onClose }: TelaplanosProps) {
           })}
         </div>
         
+        {/* Comparativo com concorrentes para Frota */}
+        {categoria === 'frota' && (
+          <div className="comparativo-section">
+            <h4>💰 Compare com a concorrência</h4>
+            <table className="comparativo-table">
+              <thead>
+                <tr>
+                  <th>5 motoristas</th>
+                  <th>SpeedRota</th>
+                  <th>Vuupt</th>
+                  <th>Economia</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Preço/mês</td>
+                  <td className="destaque">R$ 299</td>
+                  <td>R$ 1.000+</td>
+                  <td className="economia">70% OFF</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        )}
+        
         <div className="planos-footer">
-          <p>💳 Pagamento seguro via Mercado Pago</p>
-          <p>🔒 Cancele quando quiser</p>
+          <p>💳 Pagamento seguro via Mercado Pago (PIX, Cartão, Boleto)</p>
+          <p>🔒 Cancele quando quiser • 30 dias de garantia</p>
+          <p>📞 Dúvidas? contato@speedrota.com.br</p>
         </div>
       </div>
     </div>

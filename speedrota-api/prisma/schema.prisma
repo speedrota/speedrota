@@ -33,6 +33,15 @@ model User {
   plano         Plano     @default(FREE)
   mpCustomerId  String?   @map("mp_customer_id")
   planoExpiraEm DateTime? @map("plano_expira_em")
+  
+  // Promoção ativa (se houver)
+  promocaoAtiva     String?   @map("promocao_ativa") // código da promoção
+  promocaoExpiraEm  DateTime? @map("promocao_expira_em")
+  descontoAtivo     Float?    @map("desconto_ativo") // % de desconto atual
+  
+  // Trial/Onboarding
+  trialUsado        Boolean   @default(false) @map("trial_usado")
+  trialExpiraEm     DateTime? @map("trial_expira_em")
 
   // Limites do plano atual
   rotasNoMes Int @default(0) @map("rotas_no_mes")
@@ -82,11 +91,119 @@ model PasswordResetToken {
   @@map("password_reset_tokens")
 }
 
+// ==========================================
+// PLANOS E ASSINATURAS
+// ==========================================
+
 enum Plano {
-  FREE
-  PRO
-  FULL
+  // Planos Individuais
+  FREE              // R$0 - 3 rotas/dia, 10 stops
+  STARTER           // R$29,90 - 10 rotas/dia, 30 stops, OCR + WhatsApp
+  PRO               // R$59,90 - Ilimitado + Analytics + SEFAZ
+  FULL              // R$99,90 - Ilimitado + POD + API + ML
+  
+  // Planos Frota (B2B)
+  FROTA_START       // R$299/mês - Até 5 motoristas
+  FROTA_PRO         // R$599/mês - Até 15 motoristas + API + POD + Geofencing
+  FROTA_ENTERPRISE  // R$999/mês - Ilimitado + ML + VTEX + Shopify
+  
+  // Enterprise (legacy - mantido por compatibilidade)
   ENTERPRISE
+}
+
+// Limites por plano
+model LimitesPlano {
+  id    String @id @default(uuid())
+  plano Plano  @unique
+  
+  // Limites diários/mensais
+  rotasDia          Int     @default(3) @map("rotas_dia")
+  stopsPorRota      Int     @default(10) @map("stops_por_rota")
+  rotasMes          Int     @default(90) @map("rotas_mes")
+  
+  // Features habilitadas
+  ocrHabilitado     Boolean @default(false) @map("ocr_habilitado")
+  whatsappShare     Boolean @default(false) @map("whatsapp_share")
+  analytics         Boolean @default(false)
+  sefazIntegration  Boolean @default(false) @map("sefaz_integration")
+  podHabilitado     Boolean @default(false) @map("pod_habilitado")
+  apiAccess         Boolean @default(false) @map("api_access")
+  mlFeatures        Boolean @default(false) @map("ml_features")
+  
+  // Limites Frota
+  maxMotoristas     Int?    @map("max_motoristas")
+  geofencing        Boolean @default(false)
+  vtexIntegration   Boolean @default(false) @map("vtex_integration")
+  shopifyIntegration Boolean @default(false) @map("shopify_integration")
+  
+  // Preço
+  precoMensal       Float   @map("preco_mensal")
+  precoAnual        Float?  @map("preco_anual") // com 25% desconto
+  
+  @@map("limites_plano")
+}
+
+// Promoções ativas
+model Promocao {
+  id          String   @id @default(uuid())
+  codigo      String   @unique // FROTA60, MIGRACAOVUUPT, etc.
+  nome        String
+  descricao   String?
+  
+  // Tipo de desconto
+  tipoDesconto    TipoDesconto @map("tipo_desconto")
+  valorDesconto   Float        @map("valor_desconto") // % ou valor fixo
+  
+  // Aplicabilidade
+  planosAplicaveis String[] @map("planos_aplicaveis") // ["FROTA_START", "FROTA_PRO"]
+  
+  // Duração
+  mesesGratis      Int?     @map("meses_gratis")
+  mesesDesconto    Int?     @map("meses_desconto")
+  
+  // Validade
+  inicioValidade   DateTime @map("inicio_validade")
+  fimValidade      DateTime @map("fim_validade")
+  
+  // Limites
+  usoMaximo        Int?     @map("uso_maximo")
+  usosAtuais       Int      @default(0) @map("usos_atuais")
+  
+  // Status
+  ativo            Boolean  @default(true)
+  createdAt        DateTime @default(now()) @map("created_at")
+  
+  // Relacionamentos
+  cuponsUsados     CupomUso[]
+  
+  @@map("promocoes")
+}
+
+enum TipoDesconto {
+  PERCENTUAL    // 60% off
+  VALOR_FIXO    // R$50 off
+  MESES_GRATIS  // 3 meses grátis
+}
+
+// Registro de uso de cupom/promoção
+model CupomUso {
+  id          String   @id @default(uuid())
+  promocaoId  String   @map("promocao_id")
+  userId      String   @map("user_id")
+  
+  // Detalhes do uso
+  planoAplicado     Plano     @map("plano_aplicado")
+  descontoAplicado  Float     @map("desconto_aplicado")
+  dataUso           DateTime  @default(now()) @map("data_uso")
+  
+  // Validade do benefício
+  beneficioInicio   DateTime  @map("beneficio_inicio")
+  beneficioFim      DateTime  @map("beneficio_fim")
+  
+  promocao Promocao @relation(fields: [promocaoId], references: [id])
+  
+  @@unique([promocaoId, userId])
+  @@map("cupom_uso")
 }
 
 // ==========================================

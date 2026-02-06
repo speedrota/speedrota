@@ -11,7 +11,31 @@
 // PLANOS DE ASSINATURA
 // ==========================================
 
-export type Plano = 'FREE' | 'PRO' | 'FULL' | 'ENTERPRISE';
+/**
+ * Planos disponíveis baseado em análise competitiva (Fev/2026)
+ * 
+ * INDIVIDUAIS (autônomos, MEI):
+ * - FREE: Teste, 3 rotas/dia
+ * - STARTER: R$29,90 - MEI/Autônomo iniciante
+ * - PRO: R$59,90 - Autônomo full-time
+ * - FULL: R$99,90 - Power user
+ * 
+ * FROTA (transportadoras, PME):
+ * - FROTA_START: R$299/mês - Até 5 motoristas
+ * - FROTA_PRO: R$599/mês - Até 15 motoristas
+ * - FROTA_ENTERPRISE: R$999/mês - Ilimitado
+ * 
+ * @see SpeedRota_Pricing_Brasil_Revisado.docx
+ */
+export type Plano = 
+  | 'FREE' 
+  | 'STARTER'
+  | 'PRO' 
+  | 'FULL' 
+  | 'FROTA_START'
+  | 'FROTA_PRO'
+  | 'FROTA_ENTERPRISE'
+  | 'ENTERPRISE'; // legacy
 
 /**
  * Tipo de usuário - define quais funcionalidades são exibidas
@@ -24,14 +48,115 @@ export type TipoUsuario = 'ENTREGADOR' | 'GESTOR_FROTA';
 
 export const PLANOS_CONFIG: Record<Plano, { 
   nome: string; 
+  preco: number; // R$
   rotasPorMes: number; 
   paradasPorRota: number;
   fornecedores: number;
+  maxMotoristas?: number; // para planos frota
+  features: string[];
 }> = {
-  FREE: { nome: 'Gratuito', rotasPorMes: 5, paradasPorRota: 10, fornecedores: 3 },
-  PRO: { nome: 'Pro', rotasPorMes: 50, paradasPorRota: 30, fornecedores: 8 },
-  FULL: { nome: 'Full', rotasPorMes: 999, paradasPorRota: 100, fornecedores: 14 },
-  ENTERPRISE: { nome: 'Enterprise', rotasPorMes: 999999, paradasPorRota: 500, fornecedores: 14 },
+  // Planos Individuais
+  FREE: { 
+    nome: 'Gratuito', 
+    preco: 0,
+    rotasPorMes: 3, 
+    paradasPorRota: 10, 
+    fornecedores: 3,
+    features: ['Roteirização básica', '3 rotas/dia', '10 paradas/rota']
+  },
+  STARTER: { 
+    nome: 'Starter', 
+    preco: 29.90,
+    rotasPorMes: 10, 
+    paradasPorRota: 30, 
+    fornecedores: 5,
+    features: ['OCR de NF-e', 'WhatsApp Share', '10 rotas/dia', '30 paradas/rota']
+  },
+  PRO: { 
+    nome: 'Pro', 
+    preco: 59.90,
+    rotasPorMes: 999, 
+    paradasPorRota: 50, 
+    fornecedores: 8,
+    features: ['Rotas ilimitadas', 'Analytics', 'SEFAZ QR Code', 'Histórico completo']
+  },
+  FULL: { 
+    nome: 'Full', 
+    preco: 99.90,
+    rotasPorMes: 9999, 
+    paradasPorRota: 100, 
+    fornecedores: 14,
+    features: ['POD (Comprovante)', 'API Access', 'ML Previsão', 'Suporte prioritário']
+  },
+  
+  // Planos Frota (B2B)
+  FROTA_START: { 
+    nome: 'Frota Start', 
+    preco: 299,
+    rotasPorMes: 9999, 
+    paradasPorRota: 100, 
+    fornecedores: 14,
+    maxMotoristas: 5,
+    features: ['Dashboard Gestor', 'Tracking tempo real', 'Até 5 motoristas', 'Distribuição automática']
+  },
+  FROTA_PRO: { 
+    nome: 'Frota Pro', 
+    preco: 599,
+    rotasPorMes: 99999, 
+    paradasPorRota: 200, 
+    fornecedores: 14,
+    maxMotoristas: 15,
+    features: ['Até 15 motoristas', 'API + POD', 'Geofencing', 'Analytics avançado']
+  },
+  FROTA_ENTERPRISE: { 
+    nome: 'Frota Enterprise', 
+    preco: 999,
+    rotasPorMes: 999999, 
+    paradasPorRota: 500, 
+    fornecedores: 14,
+    maxMotoristas: 999,
+    features: ['Motoristas ilimitados', 'ML Otimização', 'VTEX/Shopify', 'Suporte dedicado']
+  },
+  
+  // Legacy
+  ENTERPRISE: { 
+    nome: 'Enterprise', 
+    preco: 999,
+    rotasPorMes: 999999, 
+    paradasPorRota: 500, 
+    fornecedores: 14,
+    features: ['Legado - migrar para FROTA_ENTERPRISE']
+  },
+};
+
+/**
+ * Promoções ativas
+ */
+export const PROMOCOES = {
+  FROTA60: {
+    codigo: 'FROTA60',
+    nome: '60% OFF nos primeiros 3 meses',
+    desconto: 60,
+    meses: 3,
+    planosAplicaveis: ['FROTA_START', 'FROTA_PRO', 'FROTA_ENTERPRISE'] as Plano[],
+    ativo: true
+  },
+  MIGRACAOVUUPT: {
+    codigo: 'MIGRACAOVUUPT',
+    nome: 'Migração Vuupt - 3 meses grátis',
+    desconto: 100,
+    meses: 3,
+    planosAplicaveis: ['FROTA_START', 'FROTA_PRO', 'FROTA_ENTERPRISE'] as Plano[],
+    ativo: true
+  },
+  ANUAL25: {
+    codigo: 'ANUAL25',
+    nome: '25% de desconto no plano anual',
+    desconto: 25,
+    meses: 12,
+    planosAplicaveis: ['STARTER', 'PRO', 'FULL', 'FROTA_START', 'FROTA_PRO', 'FROTA_ENTERPRISE'] as Plano[],
+    ativo: true
+  }
 };
 
 // ==========================================

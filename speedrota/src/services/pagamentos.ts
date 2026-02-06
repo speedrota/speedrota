@@ -1,18 +1,24 @@
 /**
  * @fileoverview Serviço de Pagamentos com Mercado Pago
+ * 
+ * Atualizado com novos planos conforme análise competitiva (Fev/2026)
+ * @see SpeedRota_Pricing_Brasil_Revisado.docx
  */
 
 import { api } from './api';
+import type { Plano } from '../types';
 
 // ==========================================
 // TIPOS
 // ==========================================
 
 export interface PlanoInfo {
-  id: string;
+  id: Plano;
   nome: string;
   preco: number;
   precoFormatado: string;
+  precoAnual?: number;
+  categoria: 'individual' | 'frota';
   recursos: string[];
   limites: {
     rotasPorMes: number | null;
@@ -21,8 +27,20 @@ export interface PlanoInfo {
     historicosDias: number;
     pdfUpload: boolean;
     apiAccess: boolean;
+    maxMotoristas?: number;
   };
   popular?: boolean;
+  destaque?: string; // "MAIS POPULAR", "MELHOR CUSTO-BENEFÍCIO"
+}
+
+export interface Promocao {
+  codigo: string;
+  nome: string;
+  desconto: number; // percentual
+  meses: number;
+  planosAplicaveis: Plano[];
+  ativo: boolean;
+  validoAte?: string;
 }
 
 export interface PreferenceResponse {
@@ -32,11 +50,13 @@ export interface PreferenceResponse {
 }
 
 export interface SubscriptionStatus {
-  plano: string;
+  plano: Plano;
   expiraEm?: string;
   ativo: boolean;
   rotasNoMes: number;
   limites: PlanoInfo['limites'];
+  promocaoAtiva?: string;
+  descontoAtivo?: number;
 }
 
 // ==========================================
