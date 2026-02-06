@@ -128,6 +128,99 @@ function verificarQualidadeOCR(texto: string): boolean {
 }
 
 /**
+ * Valida se o endereço extraído é válido (não é lixo de OCR)
+ * @pre endereço extraído
+ * @post true se parece um endereço real
+ */
+function validarEnderecoExtraido(endereco: OcrResult['endereco']): boolean {
+  if (!endereco) return false;
+  
+  // Deve ter pelo menos logradouro OU cep OU cidade
+  const temLogradouro = endereco.logradouro && endereco.logradouro.length > 5;
+  const temCep = endereco.cep && /^\d{5}-?\d{3}$/.test(endereco.cep);
+  const temCidade = endereco.cidade && endereco.cidade.length > 2;
+  
+  if (!temLogradouro && !temCep && !temCidade) {
+    console.log('[OCR] Endereço rejeitado: sem dados mínimos');
+    return false;
+  }
+  
+  // Verificar se logradouro não é lixo
+  if (temLogradouro) {
+    const logUpper = endereco.logradouro!.toUpperCase();
+    
+    // Padrões de lixo comuns
+    const padroesLixo = [
+      /^[A-Z]{1,2}\s+[A-Z]{1,2}\s+[A-Z]{1,2}/,  // "E E EA" - letras soltas
+      /ASTRA|VOS\b|ASS\s+CS/i,                   // palavras sem sentido
+      /DISTRITO\s+CEP\s+DATA/i,                  // texto de cabeçalho
+      /SAIDA|ENTRADA|EMISSAO/i,                  // campos do DANFE, não endereço
+      /^\s*[|=\[\]{}]+/,                         // caracteres de ruído
+    ];
+    
+    for (const padrao of padroesLixo) {
+      if (padrao.test(logUpper)) {
+        console.log(`[OCR] Endereço rejeitado: padrão lixo detectado - ${logUpper}`);
+        return false;
+      }
+    }
+    
+    // Verificar se tem palavras válidas (não só ruído)
+    const palavras = logUpper.split(/\s+/).filter(p => p.length > 1);
+    const palavrasValidas = palavras.filter(p => /^[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ]+$/.test(p));
+    
+    // Pelo menos 50% das palavras devem ser válidas
+    if (palavras.length > 0 && palavrasValidas.length / palavras.length < 0.5) {
+      console.log(`[OCR] Endereço rejeitado: muitas palavras inválidas - ${palavrasValidas.length}/${palavras.length}`);
+      return false;
+    }
+  }
+  
+  // Verificar coerência CEP/UF se ambos existem
+  if (temCep && endereco.uf) {
+    const cepPrefix = endereco.cep!.substring(0, 2);
+    const cepUfMap: Record<string, string[]> = {
+      'SP': ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19'],
+      'RJ': ['20', '21', '22', '23', '24', '25', '26', '27', '28'],
+      'ES': ['29'],
+      'MG': ['30', '31', '32', '33', '34', '35', '36', '37', '38', '39'],
+      'BA': ['40', '41', '42', '43', '44', '45', '46', '47', '48'],
+      'SE': ['49'],
+      'PE': ['50', '51', '52', '53', '54', '55', '56'],
+      'AL': ['57'],
+      'PB': ['58'],
+      'RN': ['59'],
+      'CE': ['60', '61', '62', '63'],
+      'PI': ['64'],
+      'MA': ['65'],
+      'PA': ['66', '67', '68'],
+      'AP': ['68'],
+      'AM': ['69'],
+      'AC': ['69'],
+      'RO': ['76', '78'],
+      'RR': ['69'],
+      'DF': ['70', '71', '72', '73'],
+      'GO': ['74', '75', '76'],
+      'TO': ['77'],
+      'MT': ['78'],
+      'MS': ['79'],
+      'PR': ['80', '81', '82', '83', '84', '85', '86', '87'],
+      'SC': ['88', '89'],
+      'RS': ['90', '91', '92', '93', '94', '95', '96', '97', '98', '99'],
+    };
+    
+    const ufValidos = cepUfMap[endereco.uf];
+    if (ufValidos && !ufValidos.includes(cepPrefix)) {
+      console.log(`[OCR] Endereço rejeitado: CEP ${endereco.cep} não corresponde a UF ${endereco.uf}`);
+      return false;
+    }
+  }
+  
+  console.log('[OCR] Endereço validado com sucesso');
+  return true;
+}
+
+/**
  * Aplica rotação à imagem usando Sharp
  * @pre buffer da imagem, graus ∈ {90, 180, 270}
  * @post buffer da imagem rotacionada
@@ -479,8 +572,9 @@ export async function analisarImagemNota(imagemBase64: string): Promise<OcrResul
     // Extrai chave de acesso
     const chaveAcesso = extrairChave44Digitos(textoExtraido);
     
-    // Extrai endereço
-    const endereco = extrairEndereco(textoExtraido);
+    // Extrai endereço e valida
+    const enderecoExtraido = extrairEndereco(textoExtraido);
+    const endereco = validarEnderecoExtraido(enderecoExtraido) ? enderecoExtraido : undefined;
     
     // Extrai destinatário
     const nomeDestinatario = extrairDestinatario(textoExtraido);
