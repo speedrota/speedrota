@@ -29,6 +29,7 @@ import {
   extrairChaveDeBarcode,
   importarQrCodeComoParada
 } from '../services/sefaz.js';
+import { analisarImagemNota } from '../services/ocr.js';
 
 // ==========================================
 // SCHEMAS DE VALIDAÇÃO
@@ -525,6 +526,63 @@ export async function sefazRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // ==========================================
+  // ENDPOINTS OCR
+  // ==========================================
+
+  /**
+   * POST /sefaz/ocr/analisar
+   * Analisa imagem de nota fiscal via OCR para extrair dados
+   * 
+   * @pre Imagem em base64 (JPEG/PNG)
+   * @post Dados extraídos: chave de acesso, endereco, destinatário
+   */
+  fastify.post<{
+    Body: { imagem: string }
+  }>('/ocr/analisar', async (request, reply) => {
+    try {
+      const { imagem } = request.body;
+
+      if (!imagem) {
+        return reply.status(400).send({
+          success: false,
+          error: 'Imagem base64 é obrigatória'
+        });
+      }
+
+      console.log('[SEFAZ OCR] Recebida requisição de análise de imagem');
+
+      const resultado = await analisarImagemNota(imagem);
+
+      if (!resultado.sucesso) {
+        return reply.status(400).send({
+          success: false,
+          error: resultado.erro || 'Falha na análise OCR'
+        });
+      }
+
+      return {
+        success: true,
+        data: {
+          chaveAcesso: resultado.chaveAcesso,
+          tipoDocumento: resultado.tipoDocumento,
+          confianca: resultado.confianca,
+          destinatario: resultado.destinatario,
+          endereco: resultado.endereco,
+          notaFiscal: resultado.notaFiscal,
+          dadosAdicionais: resultado.dadosAdicionais
+        }
+      };
+    } catch (error) {
+      console.error('[SEFAZ OCR] Erro:', error);
+      const mensagem = error instanceof Error ? error.message : 'Erro desconhecido no OCR';
+      return reply.status(500).send({
+        success: false,
+        error: mensagem
+      });
+    }
+  });
+
   /**
    * GET /sefaz/status
    * Status da integração SEFAZ (para monitoramento)
@@ -534,7 +592,7 @@ export async function sefazRoutes(fastify: FastifyInstance) {
       success: true,
       data: {
         servico: 'SEFAZ Integration',
-        versao: '1.1.0',
+        versao: '1.2.0',
         ambientesSuportados: ['HOMOLOGACAO', 'PRODUCAO'],
         limitesConsulta: {
           porMinuto: 20,
@@ -553,7 +611,8 @@ export async function sefazRoutes(fastify: FastifyInstance) {
             'POST /sefaz/qrcode/consultar',
             'POST /sefaz/qrcode/importar',
             'POST /sefaz/barcode/extrair',
-            'POST /sefaz/barcode/importar'
+            'POST /sefaz/barcode/importar',
+            'POST /sefaz/ocr/analisar'
           ]
         }
       }

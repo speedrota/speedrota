@@ -522,4 +522,14 @@ interface SpeedRotaApi {
     suspend fun extrairBarcode(
         @Body dados: Map<String, String>
     ): retrofit2.Response<BarcodeExtracaoResponse>
+
+    /**
+     * Analisar imagem de nota fiscal via OCR
+     * @pre imagem em base64
+     * @post Chave de acesso extraída da imagem
+     */
+    @POST("sefaz/ocr/analisar")
+    suspend fun analisarImagemNota(
+        @Body dados: Map<String, String>
+    ): retrofit2.Response<OcrAnaliseResponse>
 }

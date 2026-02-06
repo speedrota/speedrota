@@ -213,6 +213,9 @@ fun SpeedRotaNavHost() {
                 onCalcularRota = {
                     navController.navigate(Screen.Rota.createRoute())
                 },
+                onScanQrCode = {
+                    navController.navigate(Screen.QrCodeScanner.route)
+                },
                 onBack = {
                     navController.popBackStack()
                 }

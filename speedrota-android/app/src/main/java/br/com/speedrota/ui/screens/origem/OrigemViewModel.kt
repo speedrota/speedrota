@@ -27,7 +27,10 @@ data class OrigemUiState(
     val isLoadingLocation: Boolean = false,
     val isSearching: Boolean = false,
     val error: String? = null,
-    val locationPermissionGranted: Boolean = false
+    val locationPermissionGranted: Boolean = false,
+    // Ponto de retorno
+    val retornarAoMesmoLocal: Boolean = true,
+    val enderecoRetorno: String = ""
 )
 
 @HiltViewModel
@@ -152,5 +155,12 @@ class OrigemViewModel @Inject constructor(
         return _uiState.value.endereco.isNotBlank() && 
                _uiState.value.latitude != null && 
                _uiState.value.longitude != null
+    }
+
+    fun setRetorno(retornarAoMesmoLocal: Boolean, enderecoRetorno: String) {
+        _uiState.value = _uiState.value.copy(
+            retornarAoMesmoLocal = retornarAoMesmoLocal,
+            enderecoRetorno = if (retornarAoMesmoLocal) _uiState.value.endereco else enderecoRetorno
+        )
     }
 }

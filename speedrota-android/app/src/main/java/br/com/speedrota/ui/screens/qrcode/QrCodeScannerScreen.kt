@@ -2,8 +2,16 @@ package br.com.speedrota.ui.screens.qrcode
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.util.Log
+import android.view.ViewGroup
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.ImageProxy
+import androidx.camera.core.Preview
+import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.camera.view.PreviewView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -20,14 +28,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.google.mlkit.vision.barcode.BarcodeScannerOptions
+import com.google.mlkit.vision.barcode.BarcodeScanning
+import com.google.mlkit.vision.barcode.common.Barcode
+import com.google.mlkit.vision.common.InputImage
+import java.util.concurrent.Executors
 
 /**
  * Tela de Scanner QR Code para NF-e/NFC-e
@@ -123,8 +139,12 @@ fun QrCodeScannerScreen(
                         },
                         onInputChange = viewModel::onInputChange,
                         onProcessar = { viewModel.processarQrCode(uiState.inputText) },
+                        onProcessarCodigo = viewModel::processarQrCode,  // Processa código diretamente
                         onLimpar = viewModel::limpar,
-                        onAlternarModo = viewModel::alternarModo
+                        onAlternarModo = viewModel::alternarModo,
+                        onFotoCapturada = viewModel::setFotoCapturada,
+                        onProcessarFoto = viewModel::processarFotoNota,
+                        onLimparFoto = viewModel::limparFoto
                     )
                 }
                 
@@ -294,7 +314,7 @@ fun QrCodeScannerScreen(
 }
 
 /**
- * Área de escaneamento (câmera ou input manual)
+ * Área de escaneamento (câmera, input manual ou foto)
  */
 @Composable
 private fun ScannerArea(
@@ -303,9 +323,31 @@ private fun ScannerArea(
     onRequestPermission: () -> Unit,
     onInputChange: (String) -> Unit,
     onProcessar: () -> Unit,
+    onProcessarCodigo: (String) -> Unit,  // Processa código diretamente (evita race condition)
     onLimpar: () -> Unit,
-    onAlternarModo: (ModoScanner) -> Unit
+    onAlternarModo: (ModoScanner) -> Unit,
+    onFotoCapturada: (String?) -> Unit,
+    onProcessarFoto: () -> Unit,
+    onLimparFoto: () -> Unit
 ) {
+    val context = LocalContext.current
+
+    // Launcher para capturar foto
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicturePreview()
+    ) { bitmap ->
+        if (bitmap != null) {
+            // Converter bitmap para base64
+            val outputStream = java.io.ByteArrayOutputStream()
+            bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 85, outputStream)
+            val base64 = android.util.Base64.encodeToString(
+                outputStream.toByteArray(),
+                android.util.Base64.NO_WRAP
+            )
+            onFotoCapturada(base64)
+        }
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -314,10 +356,10 @@ private fun ScannerArea(
         Column(
             modifier = Modifier.padding(16.dp)
         ) {
-            // Toggle de modo
+            // Toggle de modo - 3 opções
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 ModoButton(
                     text = "📷 Câmera",
@@ -332,37 +374,37 @@ private fun ScannerArea(
                     onClick = { onAlternarModo(ModoScanner.MANUAL) },
                     modifier = Modifier.weight(1f)
                 )
+
+                ModoButton(
+                    text = "📸 Foto",
+                    selected = uiState.modoScanner == ModoScanner.FOTO,
+                    onClick = { onAlternarModo(ModoScanner.FOTO) },
+                    modifier = Modifier.weight(1f)
+                )
             }
             
             Spacer(modifier = Modifier.height(16.dp))
             
             when (uiState.modoScanner) {
                 ModoScanner.CAMERA -> {
-                    // Câmera (placeholder - precisa ZXing ou ML Kit)
+                    // Câmera real com CameraX + ML Kit
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(250.dp)
+                            .height(300.dp)
                             .clip(RoundedCornerShape(12.dp))
                             .background(Color(0xFF1A1A1A)),
                         contentAlignment = Alignment.Center
                     ) {
                         if (hasCameraPermission) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Text("📷", fontSize = 48.sp)
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    text = "Scanner de câmera",
-                                    color = Color.White.copy(alpha = 0.8f)
-                                )
-                                Text(
-                                    text = "(Requer biblioteca ML Kit ou ZXing)",
-                                    color = Color.White.copy(alpha = 0.5f),
-                                    fontSize = 12.sp
-                                )
-                            }
+                            CameraPreviewWithScanner(
+                                onQrCodeDetected = { qrCode ->
+                                    // Usa callback direto para evitar race condition
+                                    // onInputChange atualiza UI, onProcessarCodigo processa imediatamente
+                                    onInputChange(qrCode)
+                                    onProcessarCodigo(qrCode)
+                                }
+                            )
                         } else {
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally
@@ -443,6 +485,158 @@ private fun ScannerArea(
                             ) {
                                 Text("✕")
                             }
+                        }
+                    }
+                }
+
+                ModoScanner.FOTO -> {
+                    // Modo de captura de foto da nota
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(280.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color(0xFFF5F5F5)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (uiState.fotoCapturada != null) {
+                            // Exibir preview da foto capturada
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                // Imagem preview
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .fillMaxWidth()
+                                        .padding(8.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(Color.LightGray),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    // Decodificar e mostrar a imagem
+                                    val imageBytes = android.util.Base64.decode(
+                                        uiState.fotoCapturada,
+                                        android.util.Base64.NO_WRAP
+                                    )
+                                    val bitmap = android.graphics.BitmapFactory.decodeByteArray(
+                                        imageBytes, 0, imageBytes.size
+                                    )
+                                    if (bitmap != null) {
+                                        androidx.compose.foundation.Image(
+                                            bitmap = bitmap.asImageBitmap(),
+                                            contentDescription = "Foto da nota",
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentScale = androidx.compose.ui.layout.ContentScale.Fit
+                                        )
+                                    }
+                                }
+
+                                // Botões
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(8.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    OutlinedButton(
+                                        onClick = onLimparFoto,
+                                        modifier = Modifier.weight(1f),
+                                        shape = RoundedCornerShape(8.dp)
+                                    ) {
+                                        Text("🔄 Nova Foto")
+                                    }
+
+                                    Button(
+                                        onClick = onProcessarFoto,
+                                        modifier = Modifier.weight(1f),
+                                        enabled = !uiState.processandoFoto,
+                                        shape = RoundedCornerShape(8.dp)
+                                    ) {
+                                        if (uiState.processandoFoto) {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier.size(20.dp),
+                                                strokeWidth = 2.dp,
+                                                color = Color.White
+                                            )
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text("Analisando...")
+                                        } else {
+                                            Text("🔍 Analisar Foto")
+                                        }
+                                    }
+                                }
+                            }
+                        } else {
+                            // Botão para tirar foto
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Button(
+                                    onClick = {
+                                        if (hasCameraPermission) {
+                                            cameraLauncher.launch(null)
+                                        } else {
+                                            onRequestPermission()
+                                        }
+                                    },
+                                    modifier = Modifier.size(100.dp),
+                                    shape = CircleShape,
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color(0xFF2563EB)
+                                    )
+                                ) {
+                                    Text("📸", fontSize = 40.sp)
+                                }
+
+                                Spacer(modifier = Modifier.height(16.dp))
+
+                                Text(
+                                    text = "Tirar Foto da Nota Fiscal",
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 16.sp
+                                )
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                Text(
+                                    text = "Fotografe a área onde está a\nchave de acesso (44 dígitos)",
+                                    textAlign = TextAlign.Center,
+                                    color = Color.Gray,
+                                    fontSize = 13.sp
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Dicas
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color(0xFFEFF6FF)
+                        ),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp)
+                        ) {
+                            Text(
+                                text = "💡 Dicas para melhor resultado:",
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 13.sp,
+                                color = Color(0xFF1E40AF)
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "• Fotografe a chave de 44 dígitos (números abaixo do código de barras)\n• Garanta boa iluminação\n• Evite reflexos e sombras\n• Mantenha o documento reto",
+                                fontSize = 12.sp,
+                                color = Color(0xFF3B82F6),
+                                lineHeight = 18.sp
+                            )
                         }
                     }
                 }
@@ -685,5 +879,204 @@ private fun ImportadoCard(
                 Text("🗑️", fontSize = 18.sp)
             }
         }
+    }
+}
+
+/**
+ * Preview de câmera com scanner de QR Code usando CameraX + ML Kit
+ */
+@Composable
+private fun CameraPreviewWithScanner(
+    onQrCodeDetected: (String) -> Unit
+) {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    var lastScannedCode by remember { mutableStateOf<String?>(null) }
+
+    val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        AndroidView(
+            factory = { ctx ->
+                val previewView = PreviewView(ctx).apply {
+                    layoutParams = ViewGroup.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                    )
+                    scaleType = PreviewView.ScaleType.FILL_CENTER
+                }
+
+                val executor = Executors.newSingleThreadExecutor()
+
+                cameraProviderFuture.addListener({
+                    val cameraProvider = cameraProviderFuture.get()
+
+                    val preview = Preview.Builder().build().also {
+                        it.surfaceProvider = previewView.surfaceProvider
+                    }
+
+                    // Configurar scanner para detectar TODOS os formatos de código
+                    val options = BarcodeScannerOptions.Builder()
+                        .setBarcodeFormats(
+                            Barcode.FORMAT_ALL_FORMATS  // Detecta QR Code, Code 128, Code 39, EAN-13, etc.
+                        )
+                        .build()
+                    val barcodeScanner = BarcodeScanning.getClient(options)
+
+                    val imageAnalysis = ImageAnalysis.Builder()
+                        .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                        .build()
+                        .also { analysis ->
+                            analysis.setAnalyzer(executor) { imageProxy ->
+                                processImageProxy(barcodeScanner, imageProxy) { barcode ->
+                                    if (barcode != lastScannedCode) {
+                                        lastScannedCode = barcode
+                                        onQrCodeDetected(barcode)
+                                    }
+                                }
+                            }
+                        }
+
+                    val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+
+                    try {
+                        cameraProvider.unbindAll()
+                        cameraProvider.bindToLifecycle(
+                            lifecycleOwner,
+                            cameraSelector,
+                            preview,
+                            imageAnalysis
+                        )
+                    } catch (e: Exception) {
+                        Log.e("QrCodeScanner", "Erro ao iniciar câmera", e)
+                    }
+                }, ContextCompat.getMainExecutor(ctx))
+
+                previewView
+            },
+            modifier = Modifier.fillMaxSize()
+        )
+
+        // Overlay com quadrado de foco
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(40.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(200.dp)
+                    .background(Color.Transparent)
+            ) {
+                // Cantos do quadrado de foco
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .size(30.dp, 4.dp)
+                        .background(Color.White)
+                )
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .size(4.dp, 30.dp)
+                        .background(Color.White)
+                )
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .size(30.dp, 4.dp)
+                        .background(Color.White)
+                )
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .size(4.dp, 30.dp)
+                        .background(Color.White)
+                )
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .size(30.dp, 4.dp)
+                        .background(Color.White)
+                )
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .size(4.dp, 30.dp)
+                        .background(Color.White)
+                )
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .size(30.dp, 4.dp)
+                        .background(Color.White)
+                )
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .size(4.dp, 30.dp)
+                        .background(Color.White)
+                )
+            }
+        }
+
+        // Texto de instrução
+        Text(
+            text = "Aponte para o QR Code ou Código de Barras da NF-e",
+            color = Color.White,
+            fontSize = 14.sp,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 16.dp)
+                .background(
+                    Color.Black.copy(alpha = 0.6f),
+                    RoundedCornerShape(8.dp)
+                )
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+        )
+    }
+}
+
+/**
+ * Processa a imagem para detectar códigos de barras/QR Codes
+ * Aceita TODOS os formatos: QR Code, Code 128, Code 39, EAN-13, EAN-8, ITF, PDF417, etc.
+ */
+@androidx.annotation.OptIn(androidx.camera.core.ExperimentalGetImage::class)
+private fun processImageProxy(
+    barcodeScanner: com.google.mlkit.vision.barcode.BarcodeScanner,
+    imageProxy: ImageProxy,
+    onBarcodeDetected: (String) -> Unit
+) {
+    val mediaImage = imageProxy.image
+    if (mediaImage != null) {
+        val inputImage = InputImage.fromMediaImage(
+            mediaImage,
+            imageProxy.imageInfo.rotationDegrees
+        )
+
+        barcodeScanner.process(inputImage)
+            .addOnSuccessListener { barcodes ->
+                for (barcode in barcodes) {
+                    barcode.rawValue?.let { value ->
+                        // Aceita QUALQUER código detectado (QR Code ou código de barras)
+                        // Formatos suportados: QR_CODE, CODE_128, CODE_39, CODE_93, CODABAR,
+                        // EAN_13, EAN_8, ITF, UPC_A, UPC_E, PDF417, AZTEC, DATA_MATRIX
+                        if (value.isNotBlank()) {
+                            Log.d("QrCodeScanner", "Código detectado - Formato: ${barcode.format}, Valor: $value")
+                            onBarcodeDetected(value)
+                        }
+                    }
+                }
+            }
+            .addOnFailureListener { e ->
+                Log.e("QrCodeScanner", "Erro ao processar imagem", e)
+            }
+            .addOnCompleteListener {
+                imageProxy.close()
+            }
+    } else {
+        imageProxy.close()
     }
 }

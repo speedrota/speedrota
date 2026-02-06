@@ -25,13 +25,13 @@ import br.com.speedrota.ui.theme.*
 fun DestinosScreen(
     viewModel: DestinosViewModel = hiltViewModel(),
     onCalcularRota: () -> Unit,
+    onScanQrCode: () -> Unit = {},
     onBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showAddDialog by remember { mutableStateOf(false) }
     var novoEndereco by remember { mutableStateOf("") }
     var selectedFornecedor by remember { mutableStateOf(Fornecedor.OUTRO) }
-    // Novos campos - janela de tempo e prioridade
     var janelaInicio by remember { mutableStateOf("") }
     var janelaFim by remember { mutableStateOf("") }
     var prioridade by remember { mutableStateOf("MEDIA") }
@@ -39,7 +39,7 @@ fun DestinosScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Destinos (${uiState.destinos.size})") },
+                title = { Text("Adicionar Destinos") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar")
@@ -49,26 +49,6 @@ fun DestinosScreen(
                     containerColor = MaterialTheme.colorScheme.background
                 )
             )
-        },
-        floatingActionButton = {
-            Column {
-                // FAB Câmera (OCR)
-                FloatingActionButton(
-                    onClick = viewModel::openCamera,
-                    containerColor = MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                ) {
-                    Icon(Icons.Default.CameraAlt, contentDescription = "Escanear NF-e")
-                }
-                
-                // FAB Adicionar manual
-                FloatingActionButton(
-                    onClick = { showAddDialog = true },
-                    containerColor = Primary
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = "Adicionar endereço")
-                }
-            }
         }
     ) { paddingValues ->
         Column(
@@ -76,7 +56,53 @@ fun DestinosScreen(
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
                 .padding(paddingValues)
+                .padding(16.dp)
         ) {
+            // ========== BOTÕES DE AÇÃO NO TOPO ==========
+
+            // Botão Escanear NF-e
+            Button(
+                onClick = onScanQrCode,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Primary)
+            ) {
+                Text("📷 Escanear NF-e (Imagem/PDF)", fontSize = 16.sp)
+            }
+
+            Text(
+                text = "Formatos aceitos: PNG, JPG, JPEG, PDF",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 4.dp, top = 4.dp)
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Botão Adicionar Manualmente
+            OutlinedButton(
+                onClick = { showAddDialog = true },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text("✏️ Adicionar Manualmente")
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // ========== LISTA DE ENTREGAS ==========
+            Text(
+                text = "Entregas (${uiState.destinos.size})",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
             // Info quando vazio
             if (uiState.destinos.isEmpty()) {
                 Box(
@@ -89,17 +115,16 @@ fun DestinosScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier.padding(32.dp)
                     ) {
-                        Text("📍", fontSize = 64.sp)
+                        Text("📦", fontSize = 48.sp)
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            text = "Nenhum destino adicionado",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Escaneie notas fiscais ou adicione endereços manualmente",
+                            text = "Nenhum destino adicionado.",
                             style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "Escaneie uma NF-e ou adicione manualmente.",
+                            style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -110,7 +135,6 @@ fun DestinosScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f),
-                    contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     itemsIndexed(
@@ -120,34 +144,48 @@ fun DestinosScreen(
                         DestinoCard(
                             destino = destino,
                             index = index + 1,
-                            onRemove = { viewModel.removeDestino(destino.id) },
-                            onFornecedorChange = { viewModel.setFornecedor(destino.id, it) }
+                            onRemove = { viewModel.removeDestino(destino.id) }
                         )
                     }
                 }
-                
-                // Botão calcular rota
-                Box(
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // ========== BOTÃO CALCULAR ROTA ==========
+            Button(
+                onClick = onCalcularRota,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(12.dp),
+                enabled = uiState.destinos.isNotEmpty(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (uiState.destinos.isNotEmpty()) Primary else Primary.copy(alpha = 0.5f)
+                )
+            ) {
+                Text("🧭 Calcular Rota Otimizada", fontSize = 16.sp)
+            }
+
+            if (uiState.destinos.isEmpty()) {
+                Text(
+                    text = "Adicione pelo menos 1 destino para calcular",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                ) {
-                    Button(
-                        onClick = onCalcularRota,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        enabled = uiState.destinos.isNotEmpty()
-                    ) {
-                        Icon(Icons.Default.Route, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Calcular Rota Otimizada",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
+                        .align(Alignment.CenterHorizontally)
+                        .padding(top = 4.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Botão Alterar Origem
+            TextButton(
+                onClick = onBack,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            ) {
+                Text("← Alterar Origem")
             }
         }
     }
@@ -166,16 +204,16 @@ fun DestinosScreen(
                         placeholder = { Text("Ex: Rua das Flores, 123 - SP") },
                         modifier = Modifier.fillMaxWidth()
                     )
-                    
+
                     Spacer(modifier = Modifier.height(16.dp))
-                    
+
                     Text(
                         text = "Fornecedor",
                         style = MaterialTheme.typography.labelMedium
                     )
-                    
+
                     Spacer(modifier = Modifier.height(8.dp))
-                    
+
                     // Chips de fornecedores
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -189,17 +227,17 @@ fun DestinosScreen(
                             )
                         }
                     }
-                    
+
                     Spacer(modifier = Modifier.height(16.dp))
-                    
+
                     // Janela de tempo
                     Text(
                         text = "⏰ Janela de Entrega (opcional)",
                         style = MaterialTheme.typography.labelMedium
                     )
-                    
+
                     Spacer(modifier = Modifier.height(8.dp))
-                    
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -221,17 +259,17 @@ fun DestinosScreen(
                             singleLine = true
                         )
                     }
-                    
+
                     Spacer(modifier = Modifier.height(16.dp))
-                    
+
                     // Prioridade
                     Text(
                         text = "🎯 Prioridade",
                         style = MaterialTheme.typography.labelMedium
                     )
-                    
+
                     Spacer(modifier = Modifier.height(8.dp))
-                    
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -290,8 +328,7 @@ fun DestinosScreen(
 fun DestinoCard(
     destino: DestinoItem,
     index: Int,
-    onRemove: () -> Unit,
-    onFornecedorChange: (Fornecedor) -> Unit
+    onRemove: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -320,9 +357,9 @@ fun DestinoCard(
                     fontSize = 20.sp
                 )
             }
-            
+
             Spacer(modifier = Modifier.width(12.dp))
-            
+
             // Endereço
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -336,7 +373,7 @@ fun DestinoCard(
                     maxLines = 2
                 )
             }
-            
+
             // Botão remover
             IconButton(onClick = onRemove) {
                 Icon(

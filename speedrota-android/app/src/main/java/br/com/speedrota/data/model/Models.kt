@@ -1827,3 +1827,66 @@ data class BarcodeExtracaoData(
     val barcodeOriginal: String? = null,
     val componentes: QrCodeComponentes? = null
 )
+
+/**
+ * Response de análise OCR de imagem de nota fiscal
+ */
+@Serializable
+data class OcrAnaliseResponse(
+    val success: Boolean,
+    val data: OcrAnaliseData? = null,
+    val error: String? = null
+)
+
+@Serializable
+data class OcrAnaliseData(
+    val chaveAcesso: String? = null,
+    val textoExtraido: String? = null,
+    val confianca: Double? = null,
+    val tipoDocumento: String? = null,
+    val dadosAdicionais: OcrDadosAdicionais? = null,
+    // Campos adicionais para endereço parseado diretamente
+    val endereco: OcrEndereco? = null,
+    val destinatario: OcrDestinatario? = null,
+    val notaFiscal: OcrNotaFiscal? = null
+)
+
+@Serializable
+data class OcrDadosAdicionais(
+    val numeroNota: String? = null,
+    val dataEmissao: String? = null,
+    val valorTotal: Double? = null,
+    val cnpjEmitente: String? = null,
+    val nomeEmitente: String? = null,
+    val nomeDestinatario: String? = null,
+    val enderecoDestinatario: String? = null
+)
+
+@Serializable
+data class OcrEndereco(
+    val logradouro: String? = null,
+    val numero: String? = null,
+    val complemento: String? = null,
+    val bairro: String? = null,
+    val cidade: String? = null,
+    val uf: String? = null,
+    val cep: String? = null,
+    val enderecoCompleto: String? = null
+)
+
+@Serializable
+data class OcrDestinatario(
+    val nome: String? = null,
+    val cpfCnpj: String? = null,
+    val telefone: String? = null
+)
+
+@Serializable
+data class OcrNotaFiscal(
+    val numero: String? = null,
+    val serie: String? = null,
+    val dataEmissao: String? = null,
+    val valorTotal: Double? = null,
+    val chaveAcesso: String? = null
+)
+

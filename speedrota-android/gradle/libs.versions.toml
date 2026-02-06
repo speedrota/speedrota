@@ -40,6 +40,7 @@ playServicesLocation = "21.3.0"
 
 # ML Kit
 mlkitTextRecognition = "16.0.1"
+mlkitBarcodeScanning = "17.3.0"
 
 # CameraX
 camerax = "1.4.0"
@@ -111,6 +112,7 @@ play-services-location = { group = "com.google.android.gms", name = "play-servic
 
 # ML Kit
 mlkit-text-recognition = { group = "com.google.mlkit", name = "text-recognition", version.ref = "mlkitTextRecognition" }
+mlkit-barcode-scanning = { group = "com.google.mlkit", name = "barcode-scanning", version.ref = "mlkitBarcodeScanning" }
 
 # CameraX
 androidx-camera-core = { group = "androidx.camera", name = "camera-core", version.ref = "camerax" }
