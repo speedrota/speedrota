@@ -266,6 +266,64 @@ async function preprocessarGrayscale(imagem: File | Blob | string): Promise<stri
   return canvas.toDataURL('image/png', 1.0);
 }
 
+/**
+ * Preprocessa imagem com rotação específica
+ * @pre graus ∈ {90, 180, 270}
+ * @post Retorna imagem rotacionada e preprocessada
+ */
+async function preprocessarComRotacao(imagem: File | Blob | string, graus: number): Promise<string> {
+  console.log(`[OCR] Aplicando rotação de ${graus}°`);
+  
+  // Corrigir orientação EXIF primeiro
+  const bitmap = await corrigirOrientacaoEXIF(imagem);
+  
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
+  
+  // Para 90 e 270 graus, trocar width/height
+  if (graus === 90 || graus === 270) {
+    canvas.width = bitmap.height;
+    canvas.height = bitmap.width;
+  } else {
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+  }
+  
+  // Aplicar rotação
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.save();
+  ctx.translate(canvas.width / 2, canvas.height / 2);
+  ctx.rotate((graus * Math.PI) / 180);
+  
+  if (graus === 90 || graus === 270) {
+    ctx.drawImage(bitmap, -bitmap.width / 2, -bitmap.height / 2);
+  } else {
+    ctx.drawImage(bitmap, -canvas.width / 2, -canvas.height / 2);
+  }
+  ctx.restore();
+  
+  // Liberar bitmap original
+  bitmap.close();
+  
+  // Agora preprocessar a imagem rotacionada
+  // Capturar como blob e reprocessar com preprocessarImagem padrão
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(async (blob) => {
+      if (!blob) {
+        reject(new Error('Falha ao criar blob da imagem rotacionada'));
+        return;
+      }
+      try {
+        const processado = await preprocessarImagem(blob);
+        resolve(processado);
+      } catch (err) {
+        reject(err);
+      }
+    }, 'image/png');
+  });
+}
+
 export async function extrairTexto(
   imagem: File | Blob | string,
   _onProgress?: (progress: OCRProgress) => void
@@ -304,6 +362,28 @@ export async function extrairTexto(
     console.log('[OCR] Usando resultado da tentativa 2');
     logTexto(texto2);
     return texto2;
+  }
+  
+  // Se nenhuma tentativa teve palavras-chave, tentar ROTAÇÕES
+  // (documento pode estar rotacionado 90° dentro da foto)
+  if (!temPalavrasChave1 && !temPalavrasChave2) {
+    console.log('[OCR] Nenhuma palavra-chave encontrada, tentando rotações...');
+    
+    const rotacoes = [90, 270, 180]; // 90° mais comum para DANFEs horizontais
+    
+    for (const graus of rotacoes) {
+      console.log(`[OCR] Tentativa com rotação de ${graus}°...`);
+      const imagemRotacionada = await preprocessarComRotacao(imagem, graus);
+      const resultRot = await worker.recognize(imagemRotacionada);
+      const textoRot = resultRot.data.text;
+      console.log(`[OCR] Rotação ${graus}° - tamanho: ${textoRot.length}`);
+      
+      if (verificarQualidadeOCR(textoRot)) {
+        console.log(`[OCR] Rotação ${graus}° tem palavras-chave! Usando...`);
+        logTexto(textoRot);
+        return textoRot;
+      }
+    }
   }
   
   // Usar o mais longo
