@@ -151,13 +151,17 @@ fun QrCodeScannerScreen(
                     )
                 }
                 
-                // Erro
+                // Erro/Aviso - amarelo se tem resultado (apenas aviso), vermelho se erro real
                 if (uiState.error != null) {
+                    val isAviso = uiState.resultado != null  // Tem resultado = é aviso, não erro
                     item {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             colors = CardDefaults.cardColors(
-                                containerColor = Color(0xFFEF4444).copy(alpha = 0.1f)
+                                containerColor = if (isAviso) 
+                                    Color(0xFFFEF3C7)  // Amarelo claro para aviso
+                                else 
+                                    Color(0xFFEF4444).copy(alpha = 0.1f)  // Vermelho para erro
                             ),
                             shape = RoundedCornerShape(8.dp)
                         ) {
@@ -167,11 +171,11 @@ fun QrCodeScannerScreen(
                                     .padding(12.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text("⚠️", fontSize = 18.sp)
+                                Text(if (isAviso) "ℹ️" else "⚠️", fontSize = 18.sp)
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
                                     text = uiState.error ?: "",
-                                    color = Color(0xFFDC2626),
+                                    color = if (isAviso) Color(0xFF92400E) else Color(0xFFDC2626),
                                     fontSize = 14.sp
                                 )
                             }
@@ -185,6 +189,8 @@ fun QrCodeScannerScreen(
                         ResultadoCard(
                             resultado = uiState.resultado!!,
                             isLoading = uiState.isLoading,
+                            enderecoManual = uiState.enderecoManual,
+                            onEnderecoManualChange = viewModel::atualizarEnderecoManual,
                             onImportar = viewModel::importarResultado,
                             onNovoScan = viewModel::limpar
                         )
@@ -240,6 +246,8 @@ fun QrCodeScannerScreen(
                     item {
                         Button(
                             onClick = {
+                                // Transferir importados para o holder antes de navegar
+                                viewModel.transferirParaDestinos()
                                 onImportarParadas(uiState.importados.map { it.chaveNfe })
                             },
                             modifier = Modifier
@@ -800,14 +808,22 @@ private fun ModoButton(
 
 /**
  * Card de resultado do scan
+ * 
+ * @param precisaEnderecoManual quando true, mostra campo para digitação do endereço
  */
 @Composable
 private fun ResultadoCard(
     resultado: QrCodeResultado,
     isLoading: Boolean,
+    enderecoManual: String = "",
+    onEnderecoManualChange: (String) -> Unit = {},
     onImportar: () -> Unit,
     onNovoScan: () -> Unit
 ) {
+    // Determina se pode adicionar: precisa ter endereço
+    val podeAdicionar = resultado.endereco != null || 
+        (resultado.precisaEnderecoManual && enderecoManual.trim().isNotEmpty())
+    
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -825,15 +841,20 @@ private fun ResultadoCard(
                         .size(48.dp)
                         .clip(CircleShape)
                         .background(
-                            if (resultado.nomeDestinatario != null) 
-                                Color(0xFF22C55E).copy(alpha = 0.1f)
-                            else 
-                                Color(0xFFF59E0B).copy(alpha = 0.1f)
+                            when {
+                                resultado.endereco != null -> Color(0xFF22C55E).copy(alpha = 0.1f)  // Verde - OK
+                                resultado.precisaEnderecoManual -> Color(0xFFF59E0B).copy(alpha = 0.1f)  // Amarelo - Precisa endereço
+                                else -> Color(0xFFEF4444).copy(alpha = 0.1f)  // Vermelho - Erro
+                            }
                         ),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        if (resultado.nomeDestinatario != null) "✅" else "⚠️",
+                        when {
+                            resultado.endereco != null -> "✅"
+                            resultado.precisaEnderecoManual -> "📍"
+                            else -> "⚠️"
+                        },
                         fontSize = 24.sp
                     )
                 }
@@ -886,6 +907,49 @@ private fun ResultadoCard(
                 }
             }
             
+            // Campo de endereço manual quando SEFAZ indisponível
+            if (resultado.precisaEnderecoManual) {
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = Color(0xFFFEF3C7),  // Amarelo claro
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("⚠️", fontSize = 16.sp)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "SEFAZ indisponível - Digite o endereço:",
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 14.sp,
+                                color = Color(0xFF92400E)
+                            )
+                        }
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        OutlinedTextField(
+                            value = enderecoManual,
+                            onValueChange = onEnderecoManualChange,
+                            placeholder = { Text("Ex: Rua das Flores, 123 - Centro, São Paulo - SP") },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = Color(0xFFF59E0B),
+                                unfocusedBorderColor = Color(0xFFD97706)
+                            ),
+                            singleLine = false,
+                            maxLines = 3
+                        )
+                    }
+                }
+            }
+            
             Spacer(modifier = Modifier.height(16.dp))
             
             // Ações
@@ -896,13 +960,18 @@ private fun ResultadoCard(
                 Button(
                     onClick = onImportar,
                     modifier = Modifier.weight(1f),
-                    enabled = !isLoading,
+                    enabled = !isLoading && podeAdicionar,
                     shape = RoundedCornerShape(8.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color(0xFF22C55E)
                     )
                 ) {
-                    Text("📍 Adicionar à Rota")
+                    Text(
+                        if (resultado.precisaEnderecoManual && enderecoManual.isEmpty()) 
+                            "📍 Digite endereço acima" 
+                        else 
+                            "📍 Adicionar à Rota"
+                    )
                 }
                 
                 OutlinedButton(

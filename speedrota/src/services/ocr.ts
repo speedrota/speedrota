@@ -606,24 +606,31 @@ function extrairDadosNaturaAvon(texto: string): Partial<DadosExtraidos> {
   // Padrão 1: "R DOUTOR JOAO ZANAGA , 600" ou "RUA DOUTOR JOAO ZANAGA, 600"
   const padroesEndereco = [
     // RUA/R seguido de nome de rua e número
-    /\b(R(?:UA)?\.?\s+(?:DOUTOR|DR\.?|PROFESSOR|PROF\.?|MAJOR|CORONEL|CAP)?\s*[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]{3,40})[,\s]+(\d{1,5})\b/i,
+    /\b(R(?:UA)?\.?\s+(?:DOUTOR|DR\.?|PROFESSOR|PROF\.?|MAJOR|CORONEL|CAP)?\s*[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]{3,40})[,\s]+(\d{1,5})\b/gi,
     // AV/AVENIDA seguido de nome e número
-    /\b(AV(?:ENIDA)?\.?\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]{3,40})[,\s]+(\d{1,5})\b/i,
+    /\b(AV(?:ENIDA)?\.?\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]{3,40})[,\s]+(\d{1,5})\b/gi,
     // Qualquer logradouro genérico
-    /\b((?:ALAMEDA|TRAVESSA|PRAÇA|ESTRADA|RODOVIA|VIA)\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]{3,40})[,\s]+(\d{1,5})\b/i,
+    /\b((?:ALAMEDA|TRAVESSA|PRAÇA|ESTRADA|RODOVIA|VIA)\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]{3,40})[,\s]+(\d{1,5})\b/gi,
   ];
   
-  for (const p of padroesEndereco) {
-    const m = texto.match(p);
-    if (m) {
+  // Usar matchAll para encontrar TODAS as ocorrências (emitente E destinatário)
+  enderecoLoop: for (const p of padroesEndereco) {
+    const matches = [...texto.matchAll(p)];
+    for (const m of matches) {
       const enderecoExtraido = m[1].trim().toUpperCase();
       const numeroExtraido = m[2];
-      // Verificar se não é o endereço do remetente (NATURA)
-      if (!enderecoExtraido.includes('TOLEDO') && !enderecoExtraido.includes('CABREUVA')) {
+      // Verificar se não é o endereço do remetente (NATURA em CABREUVA)
+      // O endereço do emitente geralmente contém: TOLEDO, PINTO TOLEDO, CABREUVA, PINHAL
+      if (!enderecoExtraido.includes('TOLEDO') && 
+          !enderecoExtraido.includes('CABREUVA') &&
+          !enderecoExtraido.includes('PINHAL') &&
+          !enderecoExtraido.includes('LAURO')) {
         dados.endereco = enderecoExtraido;
         dados.numero = numeroExtraido;
         console.log(`[Parser] Endereço extraído: ${enderecoExtraido}, ${numeroExtraido}`);
-        break;
+        break enderecoLoop;
+      } else {
+        console.log(`[Parser] Endereço ignorado (emitente): ${enderecoExtraido}`);
       }
     }
   }

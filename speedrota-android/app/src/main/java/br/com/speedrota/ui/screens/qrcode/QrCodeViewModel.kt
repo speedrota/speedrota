@@ -21,11 +21,14 @@ data class QrCodeState(
     val importados: List<NfeImportada> = emptyList(),
     val modoScanner: ModoScanner = ModoScanner.MANUAL,
     val fotoCapturada: String? = null,  // Base64 da imagem capturada
-    val processandoFoto: Boolean = false
+    val processandoFoto: Boolean = false,
+    val enderecoManual: String = ""  // Endereço digitado manualmente quando SEFAZ indisponível
 )
 
 /**
  * Resultado da extração/consulta do QR Code
+ * 
+ * @property precisaEnderecoManual indica que SEFAZ não retornou endereço
  */
 data class QrCodeResultado(
     val chaveAcesso: String,
@@ -33,7 +36,8 @@ data class QrCodeResultado(
     val nomeDestinatario: String? = null,
     val endereco: String? = null,
     val valor: Double? = null,
-    val dataEmissao: String? = null
+    val dataEmissao: String? = null,
+    val precisaEnderecoManual: Boolean = false
 )
 
 /**
@@ -64,7 +68,8 @@ enum class ModoScanner {
  */
 @HiltViewModel
 class QrCodeViewModel @Inject constructor(
-    private val api: SpeedRotaApi
+    private val api: SpeedRotaApi,
+    private val rotaDataHolder: br.com.speedrota.data.RotaDataHolder
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(QrCodeState())
@@ -310,14 +315,15 @@ class QrCodeViewModel @Inject constructor(
                     else -> "Consulta SEFAZ indisponível"
                 }
                 
-                // Consulta SEFAZ falhou, mas extração OK
+                // Consulta SEFAZ falhou, mas extração OK - precisa endereço manual
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     resultado = QrCodeResultado(
                         chaveAcesso = extracaoData?.chaveAcesso ?: "",
-                        tipoQrCode = extracaoData?.tipo ?: "NF-e"
+                        tipoQrCode = extracaoData?.tipo ?: "NF-e",
+                        precisaEnderecoManual = true
                     ),
-                    error = "Chave extraída. $mensagemErro"
+                    error = "Chave extraída. $mensagemErro. Digite o endereço manualmente."
                 )
             }
         } catch (e: Exception) {
@@ -330,9 +336,10 @@ class QrCodeViewModel @Inject constructor(
                     isLoading = false,
                     resultado = QrCodeResultado(
                         chaveAcesso = chave,
-                        tipoQrCode = "NF-e (extraída localmente)"
+                        tipoQrCode = "NF-e (extraída localmente)",
+                        precisaEnderecoManual = true
                     ),
-                    error = "Chave extraída offline. Servidor indisponível."
+                    error = "Chave extraída offline. Digite o endereço manualmente."
                 )
             } else {
                 throw e
@@ -372,25 +379,27 @@ class QrCodeViewModel @Inject constructor(
                     else -> "Consulta SEFAZ indisponível"
                 }
                 
-                // Consulta falhou, mas temos a chave
+                // Consulta falhou, mas temos a chave - precisa endereço manual
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     resultado = QrCodeResultado(
                         chaveAcesso = chave,
-                        tipoQrCode = "CHAVE_44"
+                        tipoQrCode = "CHAVE_44",
+                        precisaEnderecoManual = true
                     ),
-                    error = mensagemErro
+                    error = "$mensagemErro. Digite o endereço manualmente."
                 )
             }
         } catch (@Suppress("UNUSED_PARAMETER") e: Exception) {
-            // Erro de rede, mas temos a chave
+            // Erro de rede, mas temos a chave - precisa endereço manual
             _uiState.value = _uiState.value.copy(
                 isLoading = false,
                 resultado = QrCodeResultado(
                     chaveAcesso = chave,
-                    tipoQrCode = "CHAVE_44"
+                    tipoQrCode = "CHAVE_44",
+                    precisaEnderecoManual = true
                 ),
-                error = "Chave extraída. Sem conexão para consultar SEFAZ."
+                error = "Chave extraída. Sem conexão. Digite o endereço manualmente."
             )
         }
     }
@@ -490,22 +499,46 @@ class QrCodeViewModel @Inject constructor(
      * Importa NF-e atual como parada
      * 
      * @pre resultado não nulo
+     * @pre se precisaEnderecoManual, enderecoManual deve estar preenchido
      * @post NF-e adicionada à lista de importados
      */
     fun importarResultado() {
         val resultado = _uiState.value.resultado ?: return
+        val enderecoManual = _uiState.value.enderecoManual.trim()
+        
+        // Se precisa endereço manual e não foi preenchido, não permite importar
+        if (resultado.precisaEnderecoManual && enderecoManual.isEmpty()) {
+            _uiState.value = _uiState.value.copy(
+                error = "Digite o endereço de entrega antes de adicionar"
+            )
+            return
+        }
+        
+        // Usa endereço do SEFAZ, ou o manual se necessário
+        val enderecoFinal = resultado.endereco ?: if (enderecoManual.isNotEmpty()) enderecoManual else "Endereço não disponível"
         
         val novaImportacao = NfeImportada(
             id = "qr-${System.currentTimeMillis()}",
             chaveNfe = resultado.chaveAcesso,
             nome = resultado.nomeDestinatario ?: "Destinatário",
-            endereco = resultado.endereco ?: "Endereço não disponível"
+            endereco = enderecoFinal
         )
         
         _uiState.value = _uiState.value.copy(
             importados = _uiState.value.importados + novaImportacao,
             resultado = null,
-            inputText = ""
+            inputText = "",
+            enderecoManual = ""  // Limpa o endereço manual após uso
+        )
+    }
+    
+    /**
+     * Atualiza o endereço manual digitado pelo usuário
+     */
+    fun atualizarEnderecoManual(endereco: String) {
+        _uiState.value = _uiState.value.copy(
+            enderecoManual = endereco,
+            error = null  // Limpa erro ao digitar
         )
     }
     
@@ -526,7 +559,8 @@ class QrCodeViewModel @Inject constructor(
             resultado = null,
             inputText = "",
             error = null,
-            fotoCapturada = null
+            fotoCapturada = null,
+            enderecoManual = ""
         )
     }
 
@@ -676,5 +710,34 @@ class QrCodeViewModel @Inject constructor(
     fun processarBarcode(barcode: String) {
         // Usa o método unificado que detecta automaticamente o tipo
         processarQrCode(barcode)
+    }
+    
+    /**
+     * Transfere os importados para o RotaDataHolder para serem consumidos pela tela de Destinos
+     * 
+     * @pre importados não vazio
+     * @post Destinos disponíveis no RotaDataHolder
+     * @return true se transferiu com sucesso
+     */
+    fun transferirParaDestinos(): Boolean {
+        val importados = _uiState.value.importados
+        if (importados.isEmpty()) {
+            android.util.Log.w("QrCodeViewModel", "Nenhum importado para transferir")
+            return false
+        }
+        
+        // Converter NfeImportada para DestinoItem
+        val destinos = importados.map { nfe ->
+            br.com.speedrota.ui.screens.destinos.DestinoItem(
+                id = nfe.id,
+                endereco = nfe.endereco,
+                fornecedor = br.com.speedrota.data.model.Fornecedor.OUTRO // TODO: detectar fornecedor
+            )
+        }
+        
+        rotaDataHolder.setDestinos(destinos)
+        android.util.Log.d("QrCodeViewModel", "Transferidos ${destinos.size} destinos para o holder")
+        
+        return true
     }
 }

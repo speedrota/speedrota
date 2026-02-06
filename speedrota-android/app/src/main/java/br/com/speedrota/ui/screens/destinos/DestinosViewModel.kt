@@ -32,10 +32,21 @@ data class DestinosUiState(
 )
 
 @HiltViewModel
-class DestinosViewModel @Inject constructor() : ViewModel() {
+class DestinosViewModel @Inject constructor(
+    private val rotaDataHolder: br.com.speedrota.data.RotaDataHolder
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DestinosUiState())
     val uiState: StateFlow<DestinosUiState> = _uiState.asStateFlow()
+    
+    init {
+        // Carregar destinos pendentes do RotaDataHolder (pode vir do QrCodeScanner)
+        val destinosPendentes = rotaDataHolder.destinos.value
+        if (destinosPendentes.isNotEmpty()) {
+            _uiState.value = _uiState.value.copy(destinos = destinosPendentes)
+            android.util.Log.d("DestinosViewModel", "Carregados ${destinosPendentes.size} destinos do holder")
+        }
+    }
 
     fun addDestino(
         endereco: String,
@@ -139,6 +150,25 @@ class DestinosViewModel @Inject constructor() : ViewModel() {
 
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
+    }
+    
+    /**
+     * Prepara os dados para calcular rota
+     * Salva destinos no RotaDataHolder para serem consumidos pelo RotaViewModel
+     * 
+     * @return true se há destinos para calcular, false caso contrário
+     */
+    fun prepararParaCalcularRota(): Boolean {
+        val destinos = _uiState.value.destinos
+        if (destinos.isEmpty()) {
+            _uiState.value = _uiState.value.copy(error = "Adicione pelo menos 1 destino")
+            return false
+        }
+        
+        // Salvar destinos no holder para RotaViewModel consumir
+        rotaDataHolder.setDestinos(destinos)
+        android.util.Log.d("DestinosViewModel", "Preparados ${destinos.size} destinos para rota")
+        return true
     }
 
     fun getDestinosForApi(): List<Destino> {

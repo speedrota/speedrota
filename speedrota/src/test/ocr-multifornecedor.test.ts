@@ -21,6 +21,47 @@ import { parsearNFe, validarDadosExtraidos } from '../services/ocr';
 // ==========================================
 
 /**
+ * Amostra Natura REAL - Baseada em imagem de NF-e real (ELLEN KATHERINE)
+ * Chave: 35260271673990005136550010176713531728760835
+ * Cidade: AMERICANA/SP
+ */
+const AMOSTRA_NATURA_REAL = `
+NF-e Nr.017.671.353
+Série: 001
+
+Recebemos de Natura Cosméticos S/A Os produtos constantes na nota fiscal indicada ao lado.
+DT: 0009276658 | Pedido: 842051123 | Rota: 00010 | Volumes: 1 | Total de Itens: 10
+
+natura AVON consultoria de beleza
+
+DANFE
+Documento Auxiliar da
+Nota Fiscal Eletrônica
+1 - Entrada
+2 - Saída                    2
+Nr. 017.671.353 - Série: 001
+FL 1/1
+
+NATURA COSMÉTICOS S/A
+R Lauro Pinto Toledo, 410 SL 1      PINHAL
+13317-300 - CABREUVA / SP            Tel: (11) 4389-7317
+
+CHAVE DE ACESSO
+35260271673990005136550010176713531728760835
+
+DESTINATÁRIO / REMETENTE
+NOME / RAZÃO SOCIAL                                              CNPJ/CPF
+ELLEN KATHERINE SANT ANNA TESSER                               222.606.858-97
+ENDEREÇO                               BAIRRO/DISTRITO          CEP
+R DOUTOR JOAO ZANAGA, 609             CHACARA MACHADINHO II    13478-220
+MUNICÍPIO                  FONE/FAX                  UF    INSCRIÇÃO ESTADUAL
+AMERICANA                  Tel: 11915419889          SP    ISENTO
+
+DATA DA EMISSÃO: 02/02/26
+VALOR TOTAL DA NOTA: 181,88
+`;
+
+/**
  * Amostra Natura - Formato típico já validado
  */
 const AMOSTRA_NATURA = `
@@ -256,6 +297,25 @@ describe('OCR Multi-Fornecedor', () => {
       expect(resultado?.destinatario.cep).toBe('13010-000');
       // O endereço deve conter alguma informação útil
       expect(resultado?.destinatario.endereco.length).toBeGreaterThan(5);
+    });
+    
+    it('deve extrair dados da nota Natura REAL (ELLEN KATHERINE - AMERICANA)', () => {
+      const resultado = parsearNFe(AMOSTRA_NATURA_REAL);
+      
+      expect(resultado).not.toBeNull();
+      
+      // Campos críticos do DESTINATÁRIO (não do emitente!)
+      expect(resultado?.destinatario.nome).toContain('ELLEN');
+      expect(resultado?.destinatario.endereco).toContain('DOUTOR JOAO ZANAGA');
+      expect(resultado?.destinatario.numero).toBe('609');
+      expect(resultado?.destinatario.bairro).toContain('CHACARA MACHADINHO');
+      expect(resultado?.destinatario.cidade).toBe('AMERICANA');
+      expect(resultado?.destinatario.uf).toBe('SP');
+      expect(resultado?.destinatario.cep).toBe('13478-220');
+      
+      // Validar que NÃO extraiu dados do emitente (CABREUVA é do remetente!)
+      expect(resultado?.destinatario.cidade).not.toBe('CABREUVA');
+      expect(resultado?.destinatario.endereco).not.toContain('TOLEDO');
     });
   });
   

@@ -256,38 +256,46 @@ export function TelaQrCodeScanner() {
       
       // Criar instância do scanner se não existir
       if (!html5QrCodeRef.current) {
+        // CORREÇÃO: Formatos específicos para NF-e brasileira
+        // Códigos de barras DANFE usam Interleaved 2 of 5 (ITF) com 44 dígitos
         html5QrCodeRef.current = new Html5Qrcode(scannerContainerId, {
-          verbose: false,
+          verbose: true,  // Habilitado para debug
           formatsToSupport: [
-            // QR Codes
+            // QR Codes (NFC-e e DANFE)
             Html5QrcodeSupportedFormats.QR_CODE,
             Html5QrcodeSupportedFormats.DATA_MATRIX,
-            // Códigos de barras usados em NF-e
-            Html5QrcodeSupportedFormats.CODE_128,
+            // Códigos de barras NF-e/DANFE (prioritários)
+            Html5QrcodeSupportedFormats.ITF,  // Interleaved 2 of 5 - padrão DANFE
+            Html5QrcodeSupportedFormats.CODE_128,  // Alternativo
+            // Outros formatos comuns
             Html5QrcodeSupportedFormats.CODE_39,
-            Html5QrcodeSupportedFormats.ITF,
             Html5QrcodeSupportedFormats.EAN_13,
             Html5QrcodeSupportedFormats.EAN_8,
             Html5QrcodeSupportedFormats.UPC_A,
             Html5QrcodeSupportedFormats.UPC_E,
+            Html5QrcodeSupportedFormats.CODABAR,  // Adicionado
+            Html5QrcodeSupportedFormats.PDF_417,  // Adicionado para DANFE 2D
           ]
         });
       }
 
       // Configurar e iniciar scanner
+      // CORREÇÃO v2: qrbox otimizado para códigos de barras de NF-e
+      // Códigos de barras são finos e largos - altura menor, largura maior
       await html5QrCodeRef.current.start(
         { facingMode: 'environment' },
         {
-          fps: 10,
-          qrbox: { width: 280, height: 180 },
-          aspectRatio: 1.5,
+          fps: 20,  // Alta taxa para captura rápida
+          qrbox: { width: 350, height: 100 },  // Retângulo largo e fino para barcode
+          aspectRatio: 1.777,  // 16:9 para smartphones modernos
+          disableFlip: false,
         },
         onScanSuccess,
         () => {} // Ignora erros de scan contínuo
       );
 
       setCameraAtiva(true);
-      console.log('[Scanner] Câmera iniciada com suporte a QR Code + Barcode');
+      console.log('[Scanner] Câmera iniciada - otimizado para código de barras NF-e (350x100)');
 
     } catch (err) {
       console.error('Erro ao acessar câmera:', err);

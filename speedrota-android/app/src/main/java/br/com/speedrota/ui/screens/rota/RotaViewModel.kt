@@ -2,6 +2,7 @@ package br.com.speedrota.ui.screens.rota
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import br.com.speedrota.data.RotaDataHolder
 import br.com.speedrota.data.model.Coordenada
 import br.com.speedrota.data.model.Destino
 import br.com.speedrota.data.repository.RotaRepository
@@ -24,19 +25,85 @@ data class RotaUiState(
 
 @HiltViewModel
 class RotaViewModel @Inject constructor(
-    private val rotaRepository: RotaRepository
+    private val rotaRepository: RotaRepository,
+    private val rotaDataHolder: RotaDataHolder
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(RotaUiState())
     val uiState: StateFlow<RotaUiState> = _uiState.asStateFlow()
 
-    // Dados temporários para demonstração
-    // Em produção, esses dados viriam da tela anterior via SavedStateHandle ou shared ViewModel
     init {
-        loadMockData()
+        // Carregar destinos do RotaDataHolder (vindos da tela de Destinos)
+        carregarDestinosDoHolder()
     }
 
-    private fun loadMockData() {
+    /**
+     * Carrega destinos do RotaDataHolder e calcula rota
+     * @pre RotaDataHolder tem destinos preenchidos pela DestinosScreen
+     * @post UI atualizada com rota otimizada ou erro
+     */
+    private fun carregarDestinosDoHolder() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            
+            val destinosDoHolder = rotaDataHolder.destinos.value
+            
+            if (destinosDoHolder.isEmpty()) {
+                android.util.Log.w("RotaViewModel", "Nenhum destino no holder - usando dados simulados")
+                loadFallbackData()
+                return@launch
+            }
+            
+            android.util.Log.d("RotaViewModel", "Carregados ${destinosDoHolder.size} destinos do holder")
+            
+            // Converter DestinoItem para Destino (modelo da API)
+            val destinos = destinosDoHolder.mapIndexed { index, item ->
+                Destino(
+                    endereco = item.endereco,
+                    coordenadas = item.coordenadas,
+                    fornecedor = item.fornecedor.name.lowercase(),
+                    ordem = index,
+                    janelaInicio = item.janelaInicio,
+                    janelaFim = item.janelaFim,
+                    prioridade = item.prioridade
+                )
+            }
+            
+            // Atualiza UI com destinos (por enquanto sem otimização real via API)
+            // TODO: Chamar rotaRepository.otimizarRota() quando origem estiver disponível
+            _uiState.value = _uiState.value.copy(
+                destinosOtimizados = destinos,
+                distanciaTotal = calcularDistanciaEstimada(destinos.size),
+                tempoEstimado = calcularTempoEstimado(destinos.size),
+                custoEstimado = calcularCustoEstimado(destinos.size),
+                economiaPercentual = 15.0 + (destinos.size * 2.0), // Estimativa
+                isLoading = false
+            )
+        }
+    }
+    
+    /**
+     * Calcula estimativas baseadas no número de destinos
+     */
+    private fun calcularDistanciaEstimada(numDestinos: Int): Double {
+        // Estimativa: ~3km por destino em média urbana
+        return numDestinos * 3.0
+    }
+    
+    private fun calcularTempoEstimado(numDestinos: Int): Int {
+        // Estimativa: ~15min por destino (deslocamento + entrega)
+        return numDestinos * 15
+    }
+    
+    private fun calcularCustoEstimado(numDestinos: Int): Double {
+        // Estimativa: ~R$2 por destino (combustível)
+        return numDestinos * 2.0
+    }
+    
+    /**
+     * Dados de fallback quando não há destinos no holder
+     */
+    private fun loadFallbackData() {
         // Simula dados otimizados
         // Na implementação real, os destinos viriam da tela de destinos
         viewModelScope.launch {

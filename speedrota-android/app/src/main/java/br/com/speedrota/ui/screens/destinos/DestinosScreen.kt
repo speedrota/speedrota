@@ -154,7 +154,12 @@ fun DestinosScreen(
 
             // ========== BOTÃO CALCULAR ROTA ==========
             Button(
-                onClick = onCalcularRota,
+                onClick = {
+                    // Preparar dados e salvar no holder antes de navegar
+                    if (viewModel.prepararParaCalcularRota()) {
+                        onCalcularRota()
+                    }
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
