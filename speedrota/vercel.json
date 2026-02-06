@@ -8,6 +8,8 @@
     { "source": "/manifest.json", "destination": "/manifest.json" },
     { "source": "/robots.txt", "destination": "/robots.txt" },
     { "source": "/assets/:path*", "destination": "/assets/:path*" },
+    { "source": "/privacidade", "destination": "/privacidade.html" },
+    { "source": "/termos", "destination": "/termos.html" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [
