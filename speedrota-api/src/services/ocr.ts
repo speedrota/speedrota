@@ -468,6 +468,357 @@ function corrigirCidade(cidadeRaw: string): string {
 }
 
 // ==========================================
+// PARSERS ESPECÍFICOS POR FORNECEDOR/PLATAFORMA
+// ==========================================
+
+interface DadosExtraidosFornecedor {
+  fornecedor?: string;
+  nome?: string;
+  endereco?: string;
+  numero?: string;
+  complemento?: string;
+  bairro?: string;
+  cidade?: string;
+  uf?: string;
+  cep?: string;
+  enderecoCompleto?: string;
+}
+
+/**
+ * Parser para Mercado Livre e Amazon (DANFE Padrão Retrato)
+ * 
+ * Âncora: "DESTINATÁRIO" ou "DESTINATÁRIO / REMETENTE"
+ * O endereço está na 2ª e 3ª linha abaixo dessa palavra
+ * CEP #####-### marca o fim do bloco
+ * 
+ * @pre texto OCR contendo DANFE padrão
+ * @post dados do destinatário extraídos
+ */
+function extrairMercadoLivreAmazon(texto: string): DadosExtraidosFornecedor | null {
+  console.log('[Parser] Tentando extração Mercado Livre/Amazon (DANFE padrão)...');
+  
+  // Padrões de âncora para seção DESTINATÁRIO
+  const ancorasDestinatario = [
+    /DESTINAT[ÁA]RIO\s*[\/\\]\s*REMETENTE/i,
+    /DESTINAT[ÁA]RIO[\s\S]{0,20}REMETENTE/i,
+    /DADOS\s+DO\s+DESTINAT[ÁA]RIO/i,
+    /DESTINAT[ÁA]RIO/i,
+  ];
+  
+  let posicaoAncora = -1;
+  let textoAposAncora = '';
+  
+  for (const ancora of ancorasDestinatario) {
+    const match = texto.match(ancora);
+    if (match && match.index !== undefined) {
+      posicaoAncora = match.index + match[0].length;
+      textoAposAncora = texto.substring(posicaoAncora, posicaoAncora + 500);
+      console.log(`[Parser ML/Amazon] Âncora encontrada: "${match[0]}"`);
+      break;
+    }
+  }
+  
+  if (!textoAposAncora) {
+    console.log('[Parser ML/Amazon] Âncora DESTINATÁRIO não encontrada');
+    return null;
+  }
+  
+  const dados: DadosExtraidosFornecedor = { fornecedor: 'MERCADOLIVRE_AMAZON' };
+  
+  // Dividir em linhas e pegar as próximas linhas relevantes
+  const linhas = textoAposAncora.split(/\n/).map(l => l.trim()).filter(l => l.length > 3);
+  console.log(`[Parser ML/Amazon] Linhas após âncora: ${linhas.slice(0, 5).join(' | ')}`);
+  
+  // Linha 1: Nome do destinatário (geralmente após "Nome/Razão Social")
+  // Linha 2-3: Endereço
+  for (let i = 0; i < Math.min(5, linhas.length); i++) {
+    const linha = linhas[i];
+    
+    // Detectar nome
+    if (!dados.nome && /^[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]+$/.test(linha) && linha.length > 5 && linha.length < 60) {
+      // Verificar que não é um campo de formulário
+      if (!/^(NOME|ENDERECO|RUA|BAIRRO|CEP|CIDADE|UF|CNPJ|CPF|INSCR)/i.test(linha)) {
+        dados.nome = linha;
+        continue;
+      }
+    }
+    
+    // Detectar endereço (RUA, AV, AL, etc.)
+    if (!dados.endereco && /^(R(?:UA)?\.?|AV(?:ENIDA)?\.?|AL(?:AMEDA)?\.?|TV|TRAV|EST(?:RADA)?|ROD)/i.test(linha)) {
+      // Extrair logradouro e número
+      const matchEnd = linha.match(/^(.+?)[,\s]+(\d{1,5})(?:\s|,|$)/);
+      if (matchEnd) {
+        dados.endereco = matchEnd[1].trim();
+        dados.numero = matchEnd[2];
+      } else {
+        dados.endereco = linha;
+      }
+      continue;
+    }
+    
+    // Detectar CEP (marca final do bloco)
+    const cepMatch = linha.match(/(\d{5})-?(\d{3})/);
+    if (cepMatch) {
+      dados.cep = `${cepMatch[1]}-${cepMatch[2]}`;
+      
+      // Tentar extrair cidade-UF do mesmo contexto
+      const cidadeUfMatch = linha.match(/(\d{5}-?\d{3})\s+([A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]+?)[\s\-\/]+([A-Z]{2})\b/);
+      if (cidadeUfMatch) {
+        dados.cidade = cidadeUfMatch[2].trim();
+        dados.uf = cidadeUfMatch[3];
+      }
+      break; // CEP marca fim do bloco
+    }
+    
+    // Detectar bairro
+    if (!dados.bairro && /^(JD\.?|JARDIM|VILA|VL\.?|PARQUE|PQ\.?|CENTRO|BAIRRO)/i.test(linha)) {
+      dados.bairro = linha.replace(/^BAIRRO[:\s]*/i, '').trim();
+    }
+  }
+  
+  // Se não encontrou cidade, buscar no texto geral
+  if (!dados.cidade) {
+    const cidadeMatch = textoAposAncora.match(/([A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]{3,25})\s*[\-\/]\s*([A-Z]{2})\b/);
+    if (cidadeMatch) {
+      dados.cidade = cidadeMatch[1].trim();
+      dados.uf = cidadeMatch[2];
+    }
+  }
+  
+  console.log('[Parser ML/Amazon] Dados extraídos:', JSON.stringify(dados, null, 2));
+  return (dados.endereco || dados.cidade || dados.cep) ? dados : null;
+}
+
+/**
+ * Parser para Shopee (DANFE Simplificado / Etiqueta)
+ * 
+ * Âncora: "DADOS DO DESTINATÁRIO" ou "DESTINATÁRIO"
+ * Geralmente fica na metade inferior da etiqueta
+ * Logo acima do código de barras de postagem
+ * 
+ * @pre texto OCR contendo DANFE simplificado Shopee
+ * @post dados do destinatário extraídos
+ */
+function extrairShopee(texto: string): DadosExtraidosFornecedor | null {
+  console.log('[Parser] Tentando extração Shopee (DANFE simplificado)...');
+  
+  // Detectar se é Shopee
+  if (!texto.toUpperCase().includes('SHOPEE') && 
+      !texto.toUpperCase().includes('SHOPPE') &&
+      !texto.toUpperCase().includes('SPX') &&
+      !texto.toUpperCase().includes('XPRESS')) {
+    console.log('[Parser Shopee] Não parece ser nota Shopee');
+    return null;
+  }
+  
+  const ancorasShopee = [
+    /DADOS\s+DO\s+DESTINAT[ÁA]RIO/i,
+    /DESTINAT[ÁA]RIO/i,
+    /ENTREGAR\s+PARA/i,
+    /ENVIAR\s+PARA/i,
+  ];
+  
+  let textoAposAncora = '';
+  
+  for (const ancora of ancorasShopee) {
+    const match = texto.match(ancora);
+    if (match && match.index !== undefined) {
+      textoAposAncora = texto.substring(match.index + match[0].length, match.index + match[0].length + 400);
+      console.log(`[Parser Shopee] Âncora encontrada: "${match[0]}"`);
+      break;
+    }
+  }
+  
+  if (!textoAposAncora) {
+    // Tentar pegar metade inferior do texto
+    const metade = Math.floor(texto.length / 2);
+    textoAposAncora = texto.substring(metade);
+    console.log('[Parser Shopee] Usando metade inferior do texto');
+  }
+  
+  const dados: DadosExtraidosFornecedor = { fornecedor: 'SHOPEE' };
+  
+  // Extrair endereço completo em uma linha
+  const enderecoCompleto = textoAposAncora.match(/([A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][^\n]{10,100}?\d{1,5}[^\n]*\d{5}-?\d{3})/);
+  if (enderecoCompleto) {
+    dados.enderecoCompleto = enderecoCompleto[1].trim();
+  }
+  
+  // Extrair componentes
+  const cepMatch = textoAposAncora.match(/(\d{5})-?(\d{3})/);
+  if (cepMatch) {
+    dados.cep = `${cepMatch[1]}-${cepMatch[2]}`;
+  }
+  
+  // Endereço com número
+  const endMatch = textoAposAncora.match(/\b((?:RUA|R\.?|AVENIDA|AV\.?|ALAMEDA|AL\.?)[^\n,]{5,50})[,\s]+(\d{1,5})\b/i);
+  if (endMatch) {
+    dados.endereco = endMatch[1].trim();
+    dados.numero = endMatch[2];
+  }
+  
+  // Cidade-UF
+  const cidadeUfMatch = textoAposAncora.match(/([A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]{3,25})\s*[\-\/]\s*([A-Z]{2})\b/);
+  if (cidadeUfMatch) {
+    dados.cidade = cidadeUfMatch[1].trim();
+    dados.uf = cidadeUfMatch[2];
+  }
+  
+  // Bairro
+  const bairroMatch = textoAposAncora.match(/\b(JD\.?\s+\w+|JARDIM\s+\w+|VILA\s+\w+|PARQUE\s+\w+|CENTRO)\b/i);
+  if (bairroMatch) {
+    dados.bairro = bairroMatch[1].toUpperCase();
+  }
+  
+  console.log('[Parser Shopee] Dados extraídos:', JSON.stringify(dados, null, 2));
+  return (dados.endereco || dados.cidade || dados.cep) ? dados : null;
+}
+
+/**
+ * Parser para TikTok e Kwai (Declaração de Conteúdo)
+ * 
+ * Âncora: "ENDEREÇO" dentro do campo "2. DESTINATÁRIO"
+ * O texto está entre "ENDEREÇO:" e "CIDADE:"
+ * 
+ * @pre texto OCR contendo Declaração de Conteúdo
+ * @post dados do destinatário extraídos
+ */
+function extrairTikTokKwai(texto: string): DadosExtraidosFornecedor | null {
+  console.log('[Parser] Tentando extração TikTok/Kwai (Declaração de Conteúdo)...');
+  
+  // Detectar se é TikTok/Kwai
+  const isTikTok = texto.toUpperCase().includes('TIKTOK') || 
+                   texto.toUpperCase().includes('TIK TOK') ||
+                   texto.toUpperCase().includes('KWAI') ||
+                   texto.toUpperCase().includes('DECLARACAO DE CONTEUDO') ||
+                   texto.toUpperCase().includes('DECLARAÇÃO DE CONTEÚDO');
+  
+  if (!isTikTok) {
+    // Tentar detectar pelo formato da declaração
+    const temFormatoDeclaracao = /2\.\s*DESTINAT[ÁA]RIO/i.test(texto) || 
+                                  /ENDERECO[:\s]+.*CIDADE[:\s]+/i.test(texto);
+    if (!temFormatoDeclaracao) {
+      console.log('[Parser TikTok/Kwai] Não parece ser nota TikTok/Kwai');
+      return null;
+    }
+  }
+  
+  const dados: DadosExtraidosFornecedor = { fornecedor: 'TIKTOK_KWAI' };
+  
+  // Padrão específico: ENDEREÇO: xxx CIDADE: yyy
+  const enderecoMatch = texto.match(/ENDERECO\s*[:\s]\s*(.+?)(?:CIDADE|CEP|BAIRRO|\d{5}-?\d{3})/is);
+  if (enderecoMatch) {
+    const enderecoBruto = enderecoMatch[1].trim().replace(/\s+/g, ' ');
+    console.log(`[Parser TikTok/Kwai] Endereço bruto: ${enderecoBruto}`);
+    
+    // Extrair número
+    const numMatch = enderecoBruto.match(/^(.+?)[,\s]+(\d{1,5})(?:\s|,|$)/);
+    if (numMatch) {
+      dados.endereco = numMatch[1].trim();
+      dados.numero = numMatch[2];
+    } else {
+      dados.endereco = enderecoBruto;
+    }
+  }
+  
+  // CIDADE: xxx
+  const cidadeMatch = texto.match(/CIDADE\s*[:\s]\s*([A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]{2,25})/i);
+  if (cidadeMatch) {
+    dados.cidade = cidadeMatch[1].trim().toUpperCase();
+  }
+  
+  // UF/ESTADO
+  const ufMatch = texto.match(/(?:UF|ESTADO)\s*[:\s]\s*([A-Z]{2})\b/i);
+  if (ufMatch) {
+    dados.uf = ufMatch[1].toUpperCase();
+  }
+  
+  // CEP
+  const cepMatch = texto.match(/CEP\s*[:\s]*(\d{5})-?(\d{3})/i);
+  if (cepMatch) {
+    dados.cep = `${cepMatch[1]}-${cepMatch[2]}`;
+  } else {
+    // CEP solto
+    const cepSolto = texto.match(/(\d{5})-?(\d{3})/);
+    if (cepSolto) {
+      dados.cep = `${cepSolto[1]}-${cepSolto[2]}`;
+    }
+  }
+  
+  // BAIRRO
+  const bairroMatch = texto.match(/BAIRRO\s*[:\s]\s*([A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]{2,30})/i);
+  if (bairroMatch) {
+    dados.bairro = bairroMatch[1].trim().toUpperCase();
+  }
+  
+  // NOME/DESTINATÁRIO
+  const nomeMatch = texto.match(/(?:DESTINAT[ÁA]RIO|NOME)\s*[:\s]\s*([A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]{5,50})/i);
+  if (nomeMatch) {
+    dados.nome = nomeMatch[1].trim();
+  }
+  
+  console.log('[Parser TikTok/Kwai] Dados extraídos:', JSON.stringify(dados, null, 2));
+  return (dados.endereco || dados.cidade || dados.cep) ? dados : null;
+}
+
+/**
+ * Parser Universal - Tenta todos os fornecedores em ordem de especificidade
+ * 
+ * Ordem:
+ * 1. TikTok/Kwai (formato mais específico com campos rotulados)
+ * 2. Shopee (tem identificador SPX/SHOPEE)
+ * 3. Mercado Livre/Amazon (DANFE padrão)
+ * 4. Natura/Avon (Destino cidade)
+ * 
+ * @pre texto OCR de qualquer nota
+ * @post dados extraídos do melhor parser que funcionou
+ */
+function extrairDadosUniversal(texto: string): DadosExtraidosFornecedor | null {
+  console.log('[Parser Universal] Iniciando tentativa de todos os parsers...');
+  
+  // 1. TikTok/Kwai (mais específico)
+  const dadosTikTok = extrairTikTokKwai(texto);
+  if (dadosTikTok && (dadosTikTok.endereco || dadosTikTok.cidade)) {
+    console.log('[Parser Universal] Sucesso com parser TikTok/Kwai');
+    return dadosTikTok;
+  }
+  
+  // 2. Shopee
+  const dadosShopee = extrairShopee(texto);
+  if (dadosShopee && (dadosShopee.endereco || dadosShopee.cidade)) {
+    console.log('[Parser Universal] Sucesso com parser Shopee');
+    return dadosShopee;
+  }
+  
+  // 3. Mercado Livre/Amazon (DANFE padrão)
+  const dadosML = extrairMercadoLivreAmazon(texto);
+  if (dadosML && (dadosML.endereco || dadosML.cidade)) {
+    console.log('[Parser Universal] Sucesso com parser Mercado Livre/Amazon');
+    return dadosML;
+  }
+  
+  // 4. Natura/Avon (fallback para notas de cosméticos)
+  const dadosNatura = extrairDadosNaturaAvon(texto);
+  if (dadosNatura && (dadosNatura.endereco || dadosNatura.cidade)) {
+    console.log('[Parser Universal] Sucesso com parser Natura/Avon');
+    return {
+      fornecedor: 'NATURA_AVON',
+      nome: dadosNatura.nome,
+      endereco: dadosNatura.endereco,
+      numero: dadosNatura.numero,
+      complemento: dadosNatura.complemento,
+      bairro: dadosNatura.bairro,
+      cidade: dadosNatura.cidade,
+      uf: dadosNatura.uf,
+      cep: dadosNatura.cep,
+    };
+  }
+  
+  console.log('[Parser Universal] Nenhum parser específico funcionou');
+  return null;
+}
+
+// ==========================================
 // FUNÇÕES AUXILIARES DE EXTRAÇÃO (PORTADAS DO WEB)
 // ==========================================
 
@@ -721,34 +1072,34 @@ function extrairEndereco(texto: string): OcrResult['endereco'] {
   console.log(`[OCR] Texto para análise (primeiros 500 chars): ${texto.substring(0, 500)}`);
   
   // ==========================================
-  // 0. PRIMEIRO: Tentar extração específica Natura/Avon
+  // 0. PRIMEIRO: Tentar parser UNIVERSAL (todos os fornecedores)
   // ==========================================
-  const dadosNatura = extrairDadosNaturaAvon(texto);
+  const dadosUniversal = extrairDadosUniversal(texto);
   
-  // Se encontrou dados específicos Natura/Avon, usar como base
-  if (dadosNatura.endereco || dadosNatura.cidade) {
-    console.log('[OCR] Usando dados extraídos via Natura/Avon parser');
+  // Se encontrou dados via parser específico de fornecedor
+  if (dadosUniversal && (dadosUniversal.endereco || dadosUniversal.cidade)) {
+    console.log(`[OCR] Usando dados extraídos via parser ${dadosUniversal.fornecedor || 'universal'}`);
     
-    if (dadosNatura.endereco) {
-      endereco.logradouro = dadosNatura.endereco;
+    if (dadosUniversal.endereco) {
+      endereco.logradouro = dadosUniversal.endereco;
     }
-    if (dadosNatura.numero) {
-      endereco.numero = dadosNatura.numero;
+    if (dadosUniversal.numero) {
+      endereco.numero = dadosUniversal.numero;
     }
-    if (dadosNatura.bairro) {
-      endereco.bairro = dadosNatura.bairro;
+    if (dadosUniversal.bairro) {
+      endereco.bairro = dadosUniversal.bairro;
     }
-    if (dadosNatura.cidade) {
-      endereco.cidade = dadosNatura.cidade;
+    if (dadosUniversal.cidade) {
+      endereco.cidade = dadosUniversal.cidade;
     }
-    if (dadosNatura.uf) {
-      endereco.uf = dadosNatura.uf;
+    if (dadosUniversal.uf) {
+      endereco.uf = dadosUniversal.uf;
     }
-    if (dadosNatura.cep) {
-      endereco.cep = dadosNatura.cep;
+    if (dadosUniversal.cep) {
+      endereco.cep = dadosUniversal.cep;
     }
-    if (dadosNatura.complemento) {
-      endereco.complemento = dadosNatura.complemento;
+    if (dadosUniversal.complemento) {
+      endereco.complemento = dadosUniversal.complemento;
     }
     
     // Montar endereçoCompleto
@@ -764,7 +1115,7 @@ function extrairEndereco(texto: string): OcrResult['endereco'] {
     
     if (partes.length >= 2) {
       endereco.enderecoCompleto = partes.join(', ');
-      console.log(`[OCR] Endereço Natura montado: ${endereco.enderecoCompleto}`);
+      console.log(`[OCR] Endereço montado via ${dadosUniversal.fornecedor}: ${endereco.enderecoCompleto}`);
       return endereco;
     }
   }
