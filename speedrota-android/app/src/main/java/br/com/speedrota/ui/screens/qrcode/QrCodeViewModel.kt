@@ -301,6 +301,15 @@ class QrCodeViewModel @Inject constructor(
                     )
                 )
             } else {
+                // Verifica se a API retornou erro específico
+                val apiError = consultaResponse.body()?.error
+                val mensagemErro = when {
+                    apiError?.contains("inválid", ignoreCase = true) == true -> apiError
+                    apiError?.contains("verificador", ignoreCase = true) == true -> "Chave com dígito verificador inválido"
+                    apiError != null -> apiError
+                    else -> "Consulta SEFAZ indisponível"
+                }
+                
                 // Consulta SEFAZ falhou, mas extração OK
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
@@ -308,7 +317,7 @@ class QrCodeViewModel @Inject constructor(
                         chaveAcesso = extracaoData?.chaveAcesso ?: "",
                         tipoQrCode = extracaoData?.tipo ?: "NF-e"
                     ),
-                    error = "Chave extraída. Consulta SEFAZ indisponível."
+                    error = "Chave extraída. $mensagemErro"
                 )
             }
         } catch (e: Exception) {
@@ -354,6 +363,15 @@ class QrCodeViewModel @Inject constructor(
                     )
                 )
             } else {
+                // Verifica se a API retornou erro específico
+                val apiError = consultaResponse.body()?.error
+                val mensagemErro = when {
+                    apiError?.contains("inválid", ignoreCase = true) == true -> apiError
+                    apiError?.contains("verificador", ignoreCase = true) == true -> "Chave com dígito verificador inválido"
+                    apiError != null -> apiError
+                    else -> "Consulta SEFAZ indisponível"
+                }
+                
                 // Consulta falhou, mas temos a chave
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
@@ -361,7 +379,7 @@ class QrCodeViewModel @Inject constructor(
                         chaveAcesso = chave,
                         tipoQrCode = "CHAVE_44"
                     ),
-                    error = "Chave válida. Consulta SEFAZ indisponível."
+                    error = mensagemErro
                 )
             }
         } catch (@Suppress("UNUSED_PARAMETER") e: Exception) {
