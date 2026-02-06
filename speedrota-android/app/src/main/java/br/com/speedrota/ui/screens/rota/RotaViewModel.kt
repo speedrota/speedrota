@@ -101,45 +101,16 @@ class RotaViewModel @Inject constructor(
     }
     
     /**
-     * Dados de fallback quando não há destinos no holder
+     * Mostra erro quando não há destinos
+     * @pre Chamado quando RotaDataHolder está vazio
+     * @post UI mostra mensagem de erro orientando usuário
      */
     private fun loadFallbackData() {
-        // Simula dados otimizados
-        // Na implementação real, os destinos viriam da tela de destinos
+        // NÃO usar dados fictícios - mostrar erro orientando o usuário
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
-            
-            // Simula delay de processamento
-            kotlinx.coroutines.delay(1500)
-            
-            val mockDestinos = listOf(
-                Destino(
-                    endereco = "Rua das Flores, 123 - Pinheiros, São Paulo",
-                    coordenadas = Coordenada(-23.5631, -46.6914),
-                    fornecedor = "natura",
-                    ordem = 1
-                ),
-                Destino(
-                    endereco = "Av. Paulista, 1000 - Bela Vista, São Paulo",
-                    coordenadas = Coordenada(-23.5614, -46.6558),
-                    fornecedor = "mercado_livre",
-                    ordem = 2
-                ),
-                Destino(
-                    endereco = "Rua Augusta, 500 - Consolação, São Paulo",
-                    coordenadas = Coordenada(-23.5534, -46.6558),
-                    fornecedor = "shopee",
-                    ordem = 3
-                )
-            )
-            
             _uiState.value = _uiState.value.copy(
-                destinosOtimizados = mockDestinos,
-                distanciaTotal = 12.5,
-                tempoEstimado = 45,
-                custoEstimado = 7.35,
-                economiaPercentual = 23.0,
-                isLoading = false
+                isLoading = false,
+                error = "Nenhum destino adicionado. Volte e adicione destinos via QR Code ou manualmente."
             )
         }
     }

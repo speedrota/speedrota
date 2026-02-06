@@ -178,7 +178,8 @@ fun SpeedRotaNavHost() {
                     navController.popBackStack()
                 },
                 onImportarDestinos = { pedidos ->
-                    // TODO: Importar pedidos para destinos
+                    // Destinos já foram transferidos para RotaDataHolder pelo ViewModel
+                    android.util.Log.d("NavHost", "Importados ${pedidos.size} pedidos do e-commerce, navegando para Destinos")
                     navController.navigate(Screen.Destinos.route)
                 }
             )
@@ -191,7 +192,9 @@ fun SpeedRotaNavHost() {
                     navController.popBackStack()
                 },
                 onImportarParadas = { chaves ->
-                    // TODO: Importar NF-e como destinos
+                    // Destinos já foram transferidos para RotaDataHolder pelo ViewModel
+                    // Apenas navegar para a tela de destinos
+                    android.util.Log.d("NavHost", "Importadas ${chaves.size} NF-e, navegando para Destinos")
                     navController.navigate(Screen.Destinos.route)
                 }
             )

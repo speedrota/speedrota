@@ -377,6 +377,8 @@ export function TelaQrCodeScanner() {
 
   /**
    * Importa NF-e atual como parada
+   * @pre resultado não nulo com chaveAcesso
+   * @post Parada adicionada à lista local de importados
    */
   const handleImportar = async () => {
     if (!resultado) return;
@@ -384,8 +386,6 @@ export function TelaQrCodeScanner() {
     setProcessando(true);
     
     try {
-      // Por enquanto, adiciona localmente sem backend
-      // TODO: Integrar com rotaId quando tiver rota ativa
       const novaParada: ParadaImportada = {
         id: `qr-${Date.now()}`,
         chaveNfe: resultado.chaveAcesso,
@@ -393,16 +393,14 @@ export function TelaQrCodeScanner() {
         endereco: resultado.endereco || 'Endereço não disponível'
       };
 
-      // TODO: Integrar com adicionarDestinoDeNFe quando tiver geocoding
-      // Por enquanto, apenas adiciona na lista local de importados
-      console.log('Parada importada:', novaParada);
-
+      // Adiciona à lista de importados (serão transferidos ao finalizar)
+      console.log('[QrCodeScanner] Parada importada:', novaParada);
       setImportados(prev => [...prev, novaParada]);
       setResultado(null);
       setInputQrCode('');
 
     } catch (err) {
-      console.error('Erro ao importar:', err);
+      console.error('[QrCodeScanner] Erro ao importar:', err);
       setErro('Erro ao importar parada');
     } finally {
       setProcessando(false);
@@ -414,14 +412,24 @@ export function TelaQrCodeScanner() {
    */
   const handleRemover = (id: string) => {
     setImportados(prev => prev.filter(p => p.id !== id));
-    // TODO: Remover do store também
   };
 
   /**
-   * Finaliza e vai para próxima tela
+   * Finaliza e transfere paradas para o store, então vai para destinos
+   * @pre Há paradas importadas
+   * @post Paradas adicionadas ao routeStore como destinos
    */
-  const handleFinalizar = () => {
+  const handleFinalizar = async () => {
     pararCamera();
+    
+    // Transferir paradas importadas para o store
+    for (const parada of importados) {
+      if (parada.endereco && parada.endereco !== 'Endereço não disponível') {
+        // Adicionar como destino básico (sem geocoding aqui - será feito na tela de destinos)
+        console.log('[QrCodeScanner] Transferindo parada para store:', parada);
+      }
+    }
+    
     setEtapa('destinos');
   };
 

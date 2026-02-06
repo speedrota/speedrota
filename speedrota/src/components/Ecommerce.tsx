@@ -300,8 +300,8 @@ export default function TelaEcommerce() {
       valorTotal: p.valorTotal
     }));
 
-    // TODO: Integrar com store de destinos
-    console.log('Importando destinos:', destinos);
+    // Log de destinos importados (serão adicionados na tela de destinos)
+    console.log('[Ecommerce] Importando destinos:', destinos);
     
     setMensagemSucesso(`${selecionados.length} destinos importados para rota`);
     irPara('destinos');

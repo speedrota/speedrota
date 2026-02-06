@@ -24,7 +24,8 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class EcommerceViewModel @Inject constructor(
-    private val repository: EcommerceRepository
+    private val repository: EcommerceRepository,
+    private val rotaDataHolder: br.com.speedrota.data.RotaDataHolder
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(EcommerceUiState())
@@ -222,6 +223,35 @@ class EcommerceViewModel @Inject constructor(
      */
     fun getPedidosSelecionados(): List<PedidoImportado> {
         return _uiState.value.pedidos.filter { it.selecionado }
+    }
+    
+    /**
+     * Transfere pedidos selecionados para RotaDataHolder
+     * 
+     * @pre Há pedidos selecionados
+     * @post Destinos disponíveis no RotaDataHolder
+     * @return true se transferiu com sucesso
+     */
+    fun transferirParaDestinos(): Boolean {
+        val selecionados = getPedidosSelecionados()
+        if (selecionados.isEmpty()) {
+            android.util.Log.w("EcommerceViewModel", "Nenhum pedido selecionado para transferir")
+            return false
+        }
+        
+        // Converter PedidoImportado para DestinoItem
+        val destinos = selecionados.map { pedido ->
+            br.com.speedrota.ui.screens.destinos.DestinoItem(
+                id = pedido.id,
+                endereco = "${pedido.endereco}, ${pedido.cidade}/${pedido.uf}",
+                fornecedor = br.com.speedrota.data.model.Fornecedor.OUTRO
+            )
+        }
+        
+        rotaDataHolder.setDestinos(destinos)
+        android.util.Log.d("EcommerceViewModel", "Transferidos ${destinos.size} destinos do e-commerce")
+        
+        return true
     }
 }
 

@@ -35,9 +35,9 @@ android {
     signingConfigs {
         create("release") {
             storeFile = file("../speedrota-release.keystore")
-            storePassword = "SpeedRota2026"
-            keyAlias = "speedrota"
-            keyPassword = "SpeedRota2026"
+            storePassword = project.findProperty("KEYSTORE_PASSWORD")?.toString() ?: System.getenv("KEYSTORE_PASSWORD") ?: ""
+            keyAlias = project.findProperty("KEY_ALIAS")?.toString() ?: "speedrota"
+            keyPassword = project.findProperty("KEY_PASSWORD")?.toString() ?: System.getenv("KEY_PASSWORD") ?: ""
         }
     }
 

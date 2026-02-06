@@ -139,7 +139,9 @@ fun EcommerceScreen(
                         isLoading = uiState.isLoadingPedidos,
                         onToggle = { id -> viewModel.togglePedido(id) },
                         onToggleTodos = { viewModel.toggleTodos() },
-                        onImportar = { 
+                        onImportar = {
+                            // Transferir para RotaDataHolder antes de navegar
+                            viewModel.transferirParaDestinos()
                             onImportarDestinos(viewModel.getPedidosSelecionados())
                         },
                         onSincronizar = {
