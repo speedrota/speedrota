@@ -129,6 +129,7 @@ function verificarQualidadeOCR(texto: string): boolean {
 
 /**
  * Valida se o endereço extraído é válido (não é lixo de OCR)
+ * VERSÃO TOLERANTE - aceita mais, rejeita menos
  * @pre endereço extraído
  * @post true se parece um endereço real
  */
@@ -139,85 +140,39 @@ function validarEnderecoExtraido(endereco: OcrResult['endereco']): boolean {
   const temLogradouro = endereco.logradouro && endereco.logradouro.length > 5;
   const temCep = endereco.cep && /^\d{5}-?\d{3}$/.test(endereco.cep);
   const temCidade = endereco.cidade && endereco.cidade.length > 2;
+  const temBairro = endereco.bairro && endereco.bairro.length > 2;
   
-  if (!temLogradouro && !temCep && !temCidade) {
-    console.log('[OCR] Endereço rejeitado: sem dados mínimos');
-    return false;
-  }
+  console.log(`[OCR Validação] Logradouro: ${temLogradouro ? endereco.logradouro : 'não'}, CEP: ${temCep ? endereco.cep : 'não'}, Cidade: ${temCidade ? endereco.cidade : 'não'}, Bairro: ${temBairro ? endereco.bairro : 'não'}`);
   
-  // Verificar se logradouro não é lixo
+  // Aceita se tem pelo menos 2 componentes válidos OU logradouro com número
   if (temLogradouro) {
-    const logUpper = endereco.logradouro!.toUpperCase();
-    
-    // Padrões de lixo comuns
-    const padroesLixo = [
-      /^[A-Z]{1,2}\s+[A-Z]{1,2}\s+[A-Z]{1,2}/,  // "E E EA" - letras soltas
-      /ASTRA|VOS\b|ASS\s+CS/i,                   // palavras sem sentido
-      /DISTRITO\s+CEP\s+DATA/i,                  // texto de cabeçalho
-      /SAIDA|ENTRADA|EMISSAO/i,                  // campos do DANFE, não endereço
-      /^\s*[|=\[\]{}]+/,                         // caracteres de ruído
-    ];
-    
-    for (const padrao of padroesLixo) {
-      if (padrao.test(logUpper)) {
-        console.log(`[OCR] Endereço rejeitado: padrão lixo detectado - ${logUpper}`);
-        return false;
-      }
-    }
-    
-    // Verificar se tem palavras válidas (não só ruído)
-    const palavras = logUpper.split(/\s+/).filter(p => p.length > 1);
-    const palavrasValidas = palavras.filter(p => /^[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ]+$/.test(p));
-    
-    // Pelo menos 50% das palavras devem ser válidas
-    if (palavras.length > 0 && palavrasValidas.length / palavras.length < 0.5) {
-      console.log(`[OCR] Endereço rejeitado: muitas palavras inválidas - ${palavrasValidas.length}/${palavras.length}`);
-      return false;
-    }
+    // Se tem logradouro, já é minimamente válido
+    console.log('[OCR] Endereço aceito: tem logradouro');
+    return true;
   }
   
-  // Verificar coerência CEP/UF se ambos existem
-  if (temCep && endereco.uf) {
-    const cepPrefix = endereco.cep!.substring(0, 2);
-    const cepUfMap: Record<string, string[]> = {
-      'SP': ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19'],
-      'RJ': ['20', '21', '22', '23', '24', '25', '26', '27', '28'],
-      'ES': ['29'],
-      'MG': ['30', '31', '32', '33', '34', '35', '36', '37', '38', '39'],
-      'BA': ['40', '41', '42', '43', '44', '45', '46', '47', '48'],
-      'SE': ['49'],
-      'PE': ['50', '51', '52', '53', '54', '55', '56'],
-      'AL': ['57'],
-      'PB': ['58'],
-      'RN': ['59'],
-      'CE': ['60', '61', '62', '63'],
-      'PI': ['64'],
-      'MA': ['65'],
-      'PA': ['66', '67', '68'],
-      'AP': ['68'],
-      'AM': ['69'],
-      'AC': ['69'],
-      'RO': ['76', '78'],
-      'RR': ['69'],
-      'DF': ['70', '71', '72', '73'],
-      'GO': ['74', '75', '76'],
-      'TO': ['77'],
-      'MT': ['78'],
-      'MS': ['79'],
-      'PR': ['80', '81', '82', '83', '84', '85', '86', '87'],
-      'SC': ['88', '89'],
-      'RS': ['90', '91', '92', '93', '94', '95', '96', '97', '98', '99'],
-    };
-    
-    const ufValidos = cepUfMap[endereco.uf];
-    if (ufValidos && !ufValidos.includes(cepPrefix)) {
-      console.log(`[OCR] Endereço rejeitado: CEP ${endereco.cep} não corresponde a UF ${endereco.uf}`);
-      return false;
-    }
+  if (temCep && temCidade) {
+    console.log('[OCR] Endereço aceito: tem CEP + cidade');
+    return true;
   }
   
-  console.log('[OCR] Endereço validado com sucesso');
-  return true;
+  if (temBairro && temCidade) {
+    console.log('[OCR] Endereço aceito: tem bairro + cidade');
+    return true;
+  }
+  
+  if (temCidade) {
+    console.log('[OCR] Endereço aceito: tem cidade');
+    return true;
+  }
+  
+  if (temCep) {
+    console.log('[OCR] Endereço aceito: tem CEP');
+    return true;
+  }
+  
+  console.log('[OCR] Endereço rejeitado: sem dados mínimos');
+  return false;
 }
 
 /**
@@ -536,6 +491,9 @@ function extrairCEPTexto(texto: string): string {
 function extrairEndereco(texto: string): OcrResult['endereco'] {
   let endereco: OcrResult['endereco'] = {};
   
+  console.log('[OCR] Iniciando extração de endereço...');
+  console.log(`[OCR] Texto para análise (primeiros 500 chars): ${texto.substring(0, 500)}`);
+  
   // 1. Extrair componentes usando funções especializadas
   const logradouroCompleto = extrairEnderecoCompleto(texto);
   const numero = extrairNumero(texto, logradouroCompleto);
@@ -543,6 +501,8 @@ function extrairEndereco(texto: string): OcrResult['endereco'] {
   const cidade = extrairCidadeTexto(texto);
   const uf = extrairUFTexto(texto);
   const cep = extrairCEPTexto(texto);
+  
+  console.log(`[OCR] Componentes extraídos - Logradouro: ${logradouroCompleto || 'N/A'}, Número: ${numero || 'N/A'}, Bairro: ${bairro || 'N/A'}, Cidade: ${cidade || 'N/A'}, UF: ${uf || 'N/A'}, CEP: ${cep || 'N/A'}`);
   
   // 2. Montar objeto de endereço
   if (logradouroCompleto) {
@@ -563,7 +523,37 @@ function extrairEndereco(texto: string): OcrResult['endereco'] {
   if (uf) endereco.uf = uf;
   if (cep) endereco.cep = cep;
   
-  // 3. Monta endereço completo se tiver informações
+  // 3. Fallback: buscar seção DESTINATÁRIO do DANFE
+  if (!endereco.logradouro && !endereco.bairro) {
+    console.log('[OCR] Tentando fallback de seção DESTINATÁRIO...');
+    
+    // Padrões para seção DESTINATÁRIO de DANFE
+    const padroesDestinatario = [
+      // Seção DESTINATÁRIO com endereço após
+      /DESTINAT[ÁA]RIO[\s\S]{0,100}?(?:Endere[çc]o|Logradouro)?[:\s]*([^\n]+)/i,
+      // Linha que começa com endereço após DESTINATÁRIO
+      /REMETENTE[\s\S]{50,300}?DESTINAT[ÁA]RIO[\s\S]{0,50}?([A-ZÀ-Ú][\s\S]{10,80})\n/i,
+      // Endereço genérico após identificador de seção
+      /(?:DADOS DO DESTINAT|DEST\.|RECEBEDOR)[\s\S]{0,100}?([RUA|AV|ALAMEDA|TRAVESSA][^\n]+)/i,
+    ];
+    
+    for (const p of padroesDestinatario) {
+      const m = texto.match(p);
+      if (m && m[1]) {
+        let textoEnd = m[1].trim();
+        // Limpar
+        textoEnd = textoEnd.replace(/\s+/g, ' ').substring(0, 100);
+        console.log(`[OCR] Fallback encontrou: ${textoEnd}`);
+        
+        if (textoEnd.length > 10 && !textoEnd.includes('REMETENTE') && !textoEnd.includes('EMITENTE')) {
+          endereco.enderecoCompleto = textoEnd;
+          break;
+        }
+      }
+    }
+  }
+  
+  // 4. Monta endereço completo se tiver informações
   if (endereco.logradouro || endereco.bairro || endereco.cidade) {
     const partes = [
       endereco.logradouro,
