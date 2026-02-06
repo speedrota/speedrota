@@ -259,7 +259,7 @@ export function TelaQrCodeScanner() {
         // CORREÇÃO: Formatos específicos para NF-e brasileira
         // Códigos de barras DANFE usam Interleaved 2 of 5 (ITF) com 44 dígitos
         html5QrCodeRef.current = new Html5Qrcode(scannerContainerId, {
-          verbose: true,  // Habilitado para debug
+          verbose: false,
           formatsToSupport: [
             // QR Codes (NFC-e e DANFE)
             Html5QrcodeSupportedFormats.QR_CODE,
@@ -273,21 +273,27 @@ export function TelaQrCodeScanner() {
             Html5QrcodeSupportedFormats.EAN_8,
             Html5QrcodeSupportedFormats.UPC_A,
             Html5QrcodeSupportedFormats.UPC_E,
-            Html5QrcodeSupportedFormats.CODABAR,  // Adicionado
-            Html5QrcodeSupportedFormats.PDF_417,  // Adicionado para DANFE 2D
+            Html5QrcodeSupportedFormats.CODABAR,
+            Html5QrcodeSupportedFormats.PDF_417,
           ]
         });
       }
 
-      // Configurar e iniciar scanner
-      // CORREÇÃO v2: qrbox otimizado para códigos de barras de NF-e
-      // Códigos de barras são finos e largos - altura menor, largura maior
+      // Calcular qrbox dinamicamente baseado no tamanho da tela
+      // Para códigos de barras NF-e: área retangular larga
+      const containerEl = document.getElementById(scannerContainerId);
+      const containerWidth = containerEl?.clientWidth || 400;
+      
+      // QRbox ocupa 90% da largura, altura proporcional para barcode
+      const qrboxWidth = Math.min(containerWidth * 0.9, 500);
+      const qrboxHeight = Math.min(qrboxWidth * 0.5, 250); // Mais alto para facilitar mirar
+      
       await html5QrCodeRef.current.start(
         { facingMode: 'environment' },
         {
-          fps: 20,  // Alta taxa para captura rápida
-          qrbox: { width: 350, height: 100 },  // Retângulo largo e fino para barcode
-          aspectRatio: 1.777,  // 16:9 para smartphones modernos
+          fps: 15,  // Balanceado para performance
+          qrbox: { width: qrboxWidth, height: qrboxHeight },
+          aspectRatio: 1.0,  // Quadrado para melhor visualização
           disableFlip: false,
         },
         onScanSuccess,
@@ -295,7 +301,7 @@ export function TelaQrCodeScanner() {
       );
 
       setCameraAtiva(true);
-      console.log('[Scanner] Câmera iniciada - otimizado para código de barras NF-e (350x100)');
+      console.log(`[Scanner] Câmera iniciada - qrbox: ${qrboxWidth}x${qrboxHeight}`);
 
     } catch (err) {
       console.error('Erro ao acessar câmera:', err);

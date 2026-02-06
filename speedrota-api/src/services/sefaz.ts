@@ -254,28 +254,28 @@ async function buscarCache(chaveAcesso: string): Promise<DadosNfe | null> {
     return null;
   }
 
-  // Parse dados do cache
+  // Parse dados do cache (usando nomes de campo corretos do schema)
   return {
     chaveAcesso: cache.chaveAcesso,
     status: cache.status,
-    numero: cache.numero || 0,
-    serie: cache.serie || 0,
+    numero: cache.numero ? parseInt(cache.numero, 10) : 0,
+    serie: cache.serie ? parseInt(cache.serie, 10) : 0,
     dataEmissao: cache.dataEmissao || new Date(),
     valorTotal: cache.valorTotal || 0,
-    pesoTotal: cache.pesoTotal || undefined,
-    volumesTotal: cache.volumesTotal || undefined,
+    pesoTotal: cache.pesoBruto || undefined,
+    volumesTotal: cache.volumes || undefined,
     emitente: {
-      cnpj: cache.cnpjEmitente || '',
-      nome: cache.nomeEmitente || ''
+      cnpj: cache.emitenteCnpj || '',
+      nome: cache.emitenteNome || ''
     },
     destinatario: {
-      nome: cache.nomeDestinatario || '',
-      documento: cache.documentoDestinatario || '',
-      endereco: cache.enderecoDestinatario || '',
-      bairro: cache.bairroDestinatario || '',
-      cidade: cache.cidadeDestinatario || '',
-      uf: cache.ufDestinatario || '',
-      cep: cache.cepDestinatario || ''
+      nome: cache.destNome || '',
+      documento: cache.destCpfCnpj || '',
+      endereco: cache.destEndereco || '',
+      bairro: cache.destBairro || '',
+      cidade: cache.destCidade || '',
+      uf: cache.destUf || '',
+      cep: cache.destCep || ''
     },
     itens: []
   };
@@ -285,33 +285,43 @@ async function buscarCache(chaveAcesso: string): Promise<DadosNfe | null> {
  * Salva NF-e no cache
  */
 async function salvarCache(dados: DadosNfe): Promise<void> {
+  // Extrair UF da chave de acesso (primeiros 2 dígitos)
+  const ufCode = dados.chaveAcesso.substring(0, 2);
+  
+  // Expirar cache em 7 dias
+  const expiraEm = new Date();
+  expiraEm.setDate(expiraEm.getDate() + 7);
+  
   await prisma.cacheSefaz.upsert({
     where: { chaveAcesso: dados.chaveAcesso },
     create: {
       chaveAcesso: dados.chaveAcesso,
+      uf: ufCode,
       status: dados.status,
-      numero: dados.numero,
-      serie: dados.serie,
+      numero: dados.numero?.toString() || null,
+      serie: dados.serie?.toString() || null,
       dataEmissao: dados.dataEmissao,
       valorTotal: dados.valorTotal,
-      pesoTotal: dados.pesoTotal,
-      volumesTotal: dados.volumesTotal,
-      cnpjEmitente: dados.emitente.cnpj,
-      nomeEmitente: dados.emitente.nome,
-      nomeDestinatario: dados.destinatario.nome,
-      documentoDestinatario: dados.destinatario.documento,
-      enderecoDestinatario: dados.destinatario.endereco,
-      bairroDestinatario: dados.destinatario.bairro,
-      cidadeDestinatario: dados.destinatario.cidade,
-      ufDestinatario: dados.destinatario.uf,
-      cepDestinatario: dados.destinatario.cep,
-      consultadoEm: new Date()
+      pesoBruto: dados.pesoTotal || null,
+      volumes: dados.volumesTotal || 1,
+      emitenteCnpj: dados.emitente.cnpj,
+      emitenteNome: dados.emitente.nome,
+      emitenteUf: ufCode,
+      destCpfCnpj: dados.destinatario.documento || null,
+      destNome: dados.destinatario.nome,
+      destEndereco: dados.destinatario.endereco || null,
+      destBairro: dados.destinatario.bairro || null,
+      destCidade: dados.destinatario.cidade || null,
+      destUf: dados.destinatario.uf || null,
+      destCep: dados.destinatario.cep || null,
+      consultadoEm: new Date(),
+      expiraEm: expiraEm
     },
     update: {
       status: dados.status,
       valorTotal: dados.valorTotal,
-      pesoTotal: dados.pesoTotal,
-      volumesTotal: dados.volumesTotal,
+      pesoBruto: dados.pesoTotal || null,
+      volumes: dados.volumesTotal || 1,
       consultadoEm: new Date()
     }
   });
