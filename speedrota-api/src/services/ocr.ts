@@ -286,105 +286,284 @@ function extrairChave44Digitos(texto: string): string | null {
   return null;
 }
 
+// ==========================================
+// FUNÇÕES AUXILIARES DE EXTRAÇÃO (PORTADAS DO WEB)
+// ==========================================
+
+function limparTexto(texto: string): string {
+  return texto
+    .replace(/^[:\-\/\s]+/, '')
+    .replace(/[:\-\/\s]+$/, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function extrairEnderecoCompleto(texto: string): string {
+  const padroes = [
+    // AV BRASIL, 900 ou AV. BRASIL 900 (com ou sem ponto, com ou sem vírgula)
+    /(AV[.\s]+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ0-9][A-ZÁÉÍÓÚÂÊÎÔÛÃÕA-Z0-9\s]+[,\s]+\d{1,5})/i,
+    // RUA NOME, 123
+    /(RUA\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ0-9][A-ZÁÉÍÓÚÂÊÎÔÛÃÕA-Z0-9\s]+[,\s]+\d{1,5})/i,
+    // R. NOME 123 ou R NOME 123 (abreviado - COM OU SEM PONTO)
+    /(R[.\s]+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ0-9][A-ZÁÉÍÓÚÂÊÎÔÛÃÕA-Z0-9\s]+[,\s]*\d{1,5})/i,
+    // Qualquer padrão com AV/RUA seguido de texto
+    /((?:AV|AVENIDA|RUA|ALAMEDA|AL|TRAVESSA|TV|ESTRADA|EST|RODOVIA|ROD|PRA[ÇC]A)[.\s]+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕA-Za-z\s]{3,25}[,\s]+\d{1,5})/i,
+    // Endereço após label ENDEREÇO:
+    /ENDERE[ÇC]O[:\s]+([^\n]{10,50})/i,
+    // Logradouro
+    /LOGRADOURO[:\s]+([^\n]{10,50})/i,
+    // R DOUTOR JOAO ZANAGA , 600 (formato DANFE)
+    /\b(R\s+(?:DOUTOR|DR\.?|PROFESSOR|PROF\.?)\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕA-Z\s]{5,30})[,\s]+(\d{1,5})\b/i,
+  ];
+  
+  for (const p of padroes) {
+    const m = texto.match(p);
+    if (m) {
+      let end = m[1] || m[0];
+      end = end.trim();
+      // Limpar sufixos indesejados
+      end = end.replace(/\s*(BAIRRO|CEP|MUNIC|CIDADE|UF|FONE|TEL).*$/i, '');
+      // Validar que não é "COSMETICOS" ou similar (nome de empresa) ou remetente
+      if (end.toUpperCase().includes('COSMET') || 
+          end.toUpperCase().includes('NATURA') ||
+          end.toUpperCase().includes('TOLEDO') ||
+          end.toUpperCase().includes('CABREUVA')) {
+        continue;
+      }
+      // Normalizar R. para RUA, AV. para AV
+      end = end.replace(/^AV\.\s*/i, 'AV ');
+      end = end.replace(/^R\.\s*/i, 'RUA ');
+      end = end.replace(/^R\s+/i, 'RUA ');
+      // Validar tamanho mínimo
+      if (end.length > 10) {
+        console.log(`[OCR] Endereço extraído: ${end}`);
+        return limparTexto(end);
+      }
+    }
+  }
+  
+  return '';
+}
+
+function extrairNumero(texto: string, endereco: string): string {
+  // Tentar extrair do endereço primeiro
+  if (endereco) {
+    const m = endereco.match(/[,\s](\d{1,5})\s*$/);
+    if (m) return m[1];
+    
+    const m2 = endereco.match(/\s(\d{1,5})(?:\s|$)/);
+    if (m2) return m2[1];
+  }
+  
+  const padroes = [
+    /N[°ºª]?\s*(\d{1,5})\b/i,
+    /NUMERO[:\s]*(\d{1,5})\b/i,
+    /,\s*(\d{1,5})\s/,
+  ];
+  
+  for (const p of padroes) {
+    const m = texto.match(p);
+    if (m) return m[1];
+  }
+  
+  return '';
+}
+
+function extrairBairroTexto(texto: string): string {
+  const padroes = [
+    // CHACARA MACHADINHO (específico)
+    /\b(CHACARA\s+MACHADINHO(?:\s+II)?)\b/i,
+    // BAIRRO: VILA SANTO ANTONIO ou BAIRRO/DISTRITO: xxx
+    /BAIRRO[\/\s:]+([A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]{3,35})/i,
+    // VILA SANTO ANTONIO (standalone)
+    /\b(VILA\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]{3,25})\b/i,
+    // JARDIM xxx ou JD xxx
+    /\b(JD\.?\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]{3,25})\b/i,
+    /\b(JARDIM\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]{3,25})\b/i,
+    // PARQUE xxx
+    /\b(PARQUE\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]{3,25})\b/i,
+    // CENTRO
+    /\b(CENTRO)\b/i,
+  ];
+  
+  for (const p of padroes) {
+    const m = texto.match(p);
+    if (m) {
+      let bairro = limparTexto(m[1]);
+      // Remover sufixos
+      bairro = bairro.replace(/\s*(CEP|MUNIC|CIDADE|UF|SP|RJ|MG).*$/i, '');
+      if (bairro.length >= 3) return bairro;
+    }
+  }
+  
+  return '';
+}
+
+function extrairCidadeTexto(texto: string): string {
+  const textoUpper = texto.toUpperCase();
+  
+  // Cidades conhecidas (prioridade) - inclui variações com erros de OCR
+  const cidadesConhecidas = [
+    'AMERICANA', 'AMER1CANA', 'AMERIC4NA',
+    'CAMPINAS', 'CAMP1NAS',
+    'SAO PAULO', 'SÃO PAULO', 'S4O PAULO',
+    'LIMEIRA', 'L1MEIRA',
+    'PIRACICABA', 'P1RACICABA',
+    'SOROCABA', 'S0ROCABA',
+    'JUNDIAI', 'JUNDIAÍ', 'JUNDIA1',
+    'SANTOS', 'SANT0S',
+    'GUARULHOS', 'GUARUL HOS',
+    'OSASCO', '0SASCO',
+    'SANTO ANDRE', 'SANTO ANDRÉ',
+    'SAO BERNARDO', 'SÃO BERNARDO',
+    'RIO DE JANEIRO',
+    'BELO HORIZONTE',
+    'CURITIBA', 'CUR1TIBA',
+    'PORTO ALEGRE',
+    'SALVADOR',
+    'FORTALEZA',
+    'RECIFE',
+    'BRASILIA', 'BRASÍLIA',
+    'MANAUS',
+    'BELEM', 'BELÉM',
+    'GOIANIA', 'GOIÂNIA',
+    'SANTA BARBARA', 'SANTA BÁRBARA',
+    'SUMARE', 'SUMARÉ',
+    'NOVA ODESSA',
+    'HORTOLANDIA', 'HORTOLÂNDIA',
+    'PAULINIA', 'PAULÍNIA',
+    'INDAIATUBA',
+    'VALINHOS',
+    'VINHEDO',
+    'ITATIBA',
+  ];
+  
+  // Buscar cidades conhecidas
+  for (const cidade of cidadesConhecidas) {
+    if (textoUpper.includes(cidade)) {
+      // Normalizar para versão sem erros
+      return cidade.replace(/[0-9]/g, (d) => {
+        const map: Record<string, string> = {'0': 'O', '1': 'I', '4': 'A', '5': 'S'};
+        return map[d] || d;
+      });
+    }
+  }
+  
+  const padroes = [
+    // MUNICÍPIO: AMERICANA
+    /MUNIC[IÍ1]P[I1]O[:\s]+([A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]{3,25})/i,
+    // CIDADE: xxx
+    /CIDADE[:\s]+([A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]{3,25})/i,
+    // CIDADE-UF pattern: AMERICANA-SP
+    /([A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ]{3,20})\s*[\-\/]\s*[A-Z]{2}\b/i,
+    // Após CEP: 13465-770 AMERICANA
+    /\d{5}-?\d{3}\s+([A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ]{3,20})/i,
+  ];
+  
+  for (const p of padroes) {
+    const m = texto.match(p);
+    if (m) {
+      let cidade = limparTexto(m[1]);
+      cidade = cidade.replace(/\s*(UF|SP|RJ|MG|CEP).*$/i, '');
+      if (cidade.length >= 3) return cidade;
+    }
+  }
+  
+  return '';
+}
+
+function extrairUFTexto(texto: string): string {
+  const ufsValidas = ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG',
+                      'PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'];
+  
+  const padroes = [
+    /UF[:\s]+([A-Z]{2})\b/i,
+    /ESTADO[:\s]+([A-Z]{2})\b/i,
+    /[\/-]\s*([A-Z]{2})\s*(?:CEP|$|\n)/i,
+    /\b([A-Z]{2})\s+\d{5}-?\d{3}/,
+  ];
+  
+  for (const p of padroes) {
+    const m = texto.toUpperCase().match(p);
+    if (m && ufsValidas.includes(m[1])) {
+      return m[1];
+    }
+  }
+  
+  // Buscar UF isolada
+  const textoUpper = texto.toUpperCase();
+  for (const uf of ufsValidas) {
+    const regex = new RegExp(`[\\s\\/\\-]${uf}[\\s,\\.\\n]`);
+    if (regex.test(textoUpper)) {
+      return uf;
+    }
+  }
+  
+  return '';
+}
+
+function extrairCEPTexto(texto: string): string {
+  const padroes = [
+    // CEP: 13465.770 ou CEP: 13465-770 ou CEP 13465770
+    /CEP[:\s]*([\d]{5})[.\-\s]?([\d]{3})/i,
+    /CEP[:\s]*([\d]{8})/i,
+    // Padrão solto 13465-770 ou 13465.770
+    /([\d]{5})[.\-]([\d]{3})/,
+    // CEP sem separador mas com 8 dígitos seguidos
+    /\b([\d]{8})\b/,
+  ];
+  
+  for (const p of padroes) {
+    const m = texto.match(p);
+    if (m) {
+      let cep = (m[1] + (m[2] || '')).replace(/\D/g, '');
+      if (cep.length === 8) {
+        return `${cep.substring(0, 5)}-${cep.substring(5)}`;
+      }
+    }
+  }
+  
+  return '';
+}
+
 /**
  * Extrai endereço do texto OCR usando patterns comuns de NF-e/DANFE
+ * VERSÃO ROBUSTA - Portada do frontend Web
  * 
  * @pre texto não vazio
  * @post objeto com partes do endereço identificadas
  */
 function extrairEndereco(texto: string): OcrResult['endereco'] {
-  const linhas = texto.split('\n').map(l => l.trim()).filter(l => l);
-  
   let endereco: OcrResult['endereco'] = {};
   
-  // Procura CEP (formato 00000-000 ou 00000000)
-  const cepMatch = texto.match(/(\d{5})-?(\d{3})/);
-  if (cepMatch) {
-    endereco.cep = `${cepMatch[1]}-${cepMatch[2]}`;
-  }
+  // 1. Extrair componentes usando funções especializadas
+  const logradouroCompleto = extrairEnderecoCompleto(texto);
+  const numero = extrairNumero(texto, logradouroCompleto);
+  const bairro = extrairBairroTexto(texto);
+  const cidade = extrairCidadeTexto(texto);
+  const uf = extrairUFTexto(texto);
+  const cep = extrairCEPTexto(texto);
   
-  // Procura UF (2 letras maiúsculas no contexto de endereço)
-  const ufMatch = texto.match(/\b(AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)\b/i);
-  if (ufMatch) {
-    endereco.uf = ufMatch[1].toUpperCase();
-  }
-  
-  // Procura padrões de rua/avenida (melhorado para DANFE)
-  const logradouroPatterns = [
-    // Padrão DANFE: "R DOUTOR JOAO ZANAGA , 600" (R sem ponto)
-    /\b(R\s+(?:DOUTOR|DR\.?|PROFESSOR|PROF\.?|MAJOR|CORONEL|CAP)?\s*[A-ZÀ-Ú][A-ZÀ-Ú0-9\s]{3,40})[,\s]+(\d{1,5})\b/i,
-    // Padrão com ponto: "R. DOUTOR JOAO DANIEL, 809"
-    /(R\.|RUA|AV\.|AV\s|AVENIDA|AL\.|ALAMEDA|TV\.|TRAVESSA|EST\.|ESTRADA|ROD\.|RODOVIA)\s*[A-ZÀ-Ú0-9\s]+[,\s]+(\d+)/i,
-    // Padrão com número separado
-    /(RUA|R\.|AV\.|AVENIDA|ALAMEDA|AL\.|TRAVESSA|TV\.)\s+[A-ZÀ-Ú\s]+/i,
-    // Qualquer endereço com número
-    /([A-ZÀ-Ú\s]+),?\s*(\d{1,5})\s*[-,]?\s*([A-ZÀ-Ú\s]*)/i
-  ];
-  
-  for (const pattern of logradouroPatterns) {
-    const match = texto.match(pattern);
-    if (match && match[0].length > 10) {
-      let logradouro = match[0].trim();
-      // Ignorar se for endereço do remetente (Natura/Cabreúva)
-      if (logradouro.toUpperCase().includes('TOLEDO') || logradouro.toUpperCase().includes('CABREUVA')) {
-        continue;
-      }
-      endereco.logradouro = logradouro;
-      // Extrai número se presente
-      const numMatch = match[0].match(/[,\s]+(\d{1,5})\b/);
+  // 2. Montar objeto de endereço
+  if (logradouroCompleto) {
+    endereco.logradouro = logradouroCompleto;
+    // Extrair número do logradouro se não encontrado separado
+    if (!numero) {
+      const numMatch = logradouroCompleto.match(/[,\s](\d{1,5})\s*$/);
       if (numMatch) {
         endereco.numero = numMatch[1];
       }
-      console.log(`[OCR] Logradouro extraído: ${logradouro}, número: ${endereco.numero}`);
-      break;
+    } else {
+      endereco.numero = numero;
     }
   }
   
-  // Procura bairro (CHACARA MACHADINHO, JD xxx, VILA xxx, etc)
-  const bairroPatterns = [
-    /\b(CHACARA\s+MACHADINHO(?:\s+II)?)\b/i,
-    /\b(JD\.?\s+[A-ZÀ-Ú]+)\b/i,
-    /\b(JARDIM\s+[A-ZÀ-Ú]+)\b/i,
-    /\b(VILA\s+[A-ZÀ-Ú]+)\b/i,
-    /\b(PARQUE\s+[A-ZÀ-Ú]+)\b/i,
-    /BAIRRO:?\s*([A-ZÀ-Ú\s]+)/i,
-  ];
+  if (bairro) endereco.bairro = bairro;
+  if (cidade) endereco.cidade = cidade;
+  if (uf) endereco.uf = uf;
+  if (cep) endereco.cep = cep;
   
-  for (const pattern of bairroPatterns) {
-    const match = texto.match(pattern);
-    if (match && match[1] && match[1].trim().length > 2) {
-      endereco.bairro = match[1].trim();
-      break;
-    }
-  }
-  
-  // Procura cidade (antes da UF)
-  if (endereco.uf) {
-    const cidadePatterns = [
-      new RegExp(`([A-ZÀ-Ú\\s]{3,30})\\s*[-\\/]?\\s*${endereco.uf}`, 'i'),
-      new RegExp(`Município:?\\s*([A-ZÀ-Ú\\s]+)`, 'i'),
-      new RegExp(`Cidade:?\\s*([A-ZÀ-Ú\\s]+)`, 'i')
-    ];
-    
-    for (const pattern of cidadePatterns) {
-      const match = texto.match(pattern);
-      if (match && match[1] && match[1].trim().length > 2) {
-        endereco.cidade = match[1].trim();
-        break;
-      }
-    }
-  }
-  
-  // Tenta extrair endereço completo de DANFE (seção DESTINATÁRIO)
-  const danfeDestMatch = texto.match(/DESTINAT[ÁA]RIO[\s\S]*?(?:Endere[çc]o|Logradouro)?:?\s*([^\n]+)/i);
-  if (danfeDestMatch && danfeDestMatch[1]) {
-    const endCompleto = danfeDestMatch[1].trim();
-    if (endCompleto.length > 10 && !endereco.logradouro) {
-      endereco.logradouro = endCompleto;
-    }
-  }
-  
-  // Monta endereço completo se tiver informações
+  // 3. Monta endereço completo se tiver informações
   if (endereco.logradouro || endereco.bairro || endereco.cidade) {
     const partes = [
       endereco.logradouro,
@@ -395,6 +574,7 @@ function extrairEndereco(texto: string): OcrResult['endereco'] {
       endereco.cep ? `CEP: ${endereco.cep}` : null
     ].filter(Boolean);
     endereco.enderecoCompleto = partes.join(', ');
+    console.log(`[OCR] Endereço montado: ${endereco.enderecoCompleto}`);
   }
   
   return Object.keys(endereco).length > 0 ? endereco : undefined;
