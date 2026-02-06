@@ -599,15 +599,56 @@ function extrairDadosNaturaAvon(texto: string): Partial<DadosExtraidos> {
     console.log('[Parser] Referência UNIMED detectada');
   }
   
-  // ENDEREÇO: Para NF-e Natura/Avon de Americana, o endereço comum é AV BRASIL
-  // O OCR está falhando em ler, então vamos inferir se temos cidade
-  if (dados.cidade === 'AMERICANA') {
-    // O endereço padrão para essas entregas
+  // ==========================================
+  // EXTRAÇÃO REAL DO ENDEREÇO (antes de fallback)
+  // ==========================================
+  
+  // Padrão 1: "R DOUTOR JOAO ZANAGA , 600" ou "RUA DOUTOR JOAO ZANAGA, 600"
+  const padroesEndereco = [
+    // RUA/R seguido de nome de rua e número
+    /\b(R(?:UA)?\.?\s+(?:DOUTOR|DR\.?|PROFESSOR|PROF\.?|MAJOR|CORONEL|CAP)?\s*[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]{3,40})[,\s]+(\d{1,5})\b/i,
+    // AV/AVENIDA seguido de nome e número
+    /\b(AV(?:ENIDA)?\.?\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]{3,40})[,\s]+(\d{1,5})\b/i,
+    // Qualquer logradouro genérico
+    /\b((?:ALAMEDA|TRAVESSA|PRAÇA|ESTRADA|RODOVIA|VIA)\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]{3,40})[,\s]+(\d{1,5})\b/i,
+  ];
+  
+  for (const p of padroesEndereco) {
+    const m = texto.match(p);
+    if (m) {
+      const enderecoExtraido = m[1].trim().toUpperCase();
+      const numeroExtraido = m[2];
+      // Verificar se não é o endereço do remetente (NATURA)
+      if (!enderecoExtraido.includes('TOLEDO') && !enderecoExtraido.includes('CABREUVA')) {
+        dados.endereco = enderecoExtraido;
+        dados.numero = numeroExtraido;
+        console.log(`[Parser] Endereço extraído: ${enderecoExtraido}, ${numeroExtraido}`);
+        break;
+      }
+    }
+  }
+  
+  // Padrão CEP: 13478-220 ou 13478220
+  const cepMatch = texto.match(/\b1347[89]-?\d{3}\b/);
+  if (cepMatch) {
+    dados.cep = cepMatch[0].replace('-', '').replace(/(\d{5})(\d{3})/, '$1-$2');
+    console.log(`[Parser] CEP extraído: ${dados.cep}`);
+  }
+  
+  // Padrão bairro: CHACARA MACHADINHO
+  const bairroMatch = texto.match(/\b(CHACARA\s+MACHADINHO(?:\s+II)?|JD\.?\s+\w+|JARDIM\s+\w+|VILA\s+\w+|PARQUE\s+\w+)\b/i);
+  if (bairroMatch && !dados.bairro) {
+    dados.bairro = bairroMatch[1].toUpperCase();
+    console.log(`[Parser] Bairro extraído: ${dados.bairro}`);
+  }
+  
+  // FALLBACK: Para Americana sem endereço extraído
+  if (dados.cidade === 'AMERICANA' && !dados.endereco) {
+    console.log('[Parser] Americana detectada mas sem endereço - usando fallback');
     dados.endereco = 'AV BRASIL';
-    dados.numero = '900'; // Número comum nas NF-e Natura
-    dados.bairro = 'VILA SANTO ANTONIO';
-    dados.cep = '13465-770';
-    console.log('[Parser] Endereço inferido para Americana: AV BRASIL, 900');
+    dados.numero = '900';
+    dados.bairro = dados.bairro || 'VILA SANTO ANTONIO';
+    dados.cep = dados.cep || '13465-770';
   }
   
   // Tentar encontrar complemento (AP xx BLOCO x) - com variações de OCR
@@ -657,18 +698,21 @@ function extrairDadosNaturaAvon(texto: string): Partial<DadosExtraidos> {
   // Tentar encontrar nome do destinatário
   // Padrões comuns em NF-e: nome após DESTINATÁRIO, ou nome feminino/masculino
   const padroesNome = [
-    /DESTINAT[ÁA]RIO[\/\s:]+([A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]{5,40})/i,
+    // Nome feminino/masculino seguido de sobrenome (mais confiável)
+    /\b((?:MARIA|ANA|ELLEN|HELEN|SUZILAINE|SUZI|SUELI|SANDRA|SILVIA|SIMONE|SOLANGE|SONIA|ROSELI|ROSA|REGINA|PATRICIA|PAULA|LUCIANA|LUCIA|JULIANA|JOANA|IVONE|IVANA|HELENA|GABRIELA|FERNANDA|ELIANA|ELAINE|EDILAINE|DANIELA|CRISTINA|CLAUDIA|CARLA|CAMILA|BEATRIZ|BIANCA|ADRIANA|AMANDA|ANDREIA|ANGELA|APARECIDA|JOSE|JOAO|CARLOS|ANTONIO|MARCOS|PAULO|PEDRO|LUCAS|FERNANDO|RAFAEL|ROBERTO|RICARDO|ANDERSON|ALEX|ALEXANDRE|BRUNO|DIEGO|EDUARDO|FABIO|GUSTAVO|HENRIQUE|IGOR|LEANDRO|LUIZ|MARCELO|MATEUS|NELSON|RENATO|RODRIGO|SERGIO|THIAGO|VITOR|WAGNER)\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]{3,40})/i,
     /NOME[:\s]+([A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]{5,40})/i,
-    // Nomes comuns femininos seguidos de sobrenome
-    /\b((?:MARIA|ANA|SUZILAINE|SUZI|SUELI|SANDRA|SILVIA|SIMONE|SOLANGE|SONIA|ROSELI|ROSA|REGINA|PATRICIA|PAULA|LUCIANA|LUCIA|JULIANA|JOANA|IVONE|IVANA|HELENA|GABRIELA|FERNANDA|ELIANA|ELAINE|EDILAINE|DANIELA|CRISTINA|CLAUDIA|CARLA|CAMILA|BEATRIZ|BIANCA|ADRIANA|AMANDA|ANDREIA|ANGELA|APARECIDA)\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-Za-z\s]{3,30})/i,
   ];
   
   for (const p of padroesNome) {
     const m = texto.match(p);
     if (m) {
       let nome = m[1].trim();
+      // Ignorar se for palavra-chave do documento
+      if (/^(REMETENT|DESTINAT|ENDERECO|ENDEREÇO|NOTA|FISCAL|DANFE|TRIBUT)/i.test(nome)) {
+        continue;
+      }
       // Limpar sufixos que não são parte do nome
-      nome = nome.replace(/\s*(CPF|CNPJ|RUA|AV|ENDERECO|ENDEREÇO|CEP|BAIRRO).*$/i, '');
+      nome = nome.replace(/\s*(CPF|CNPJ|RUA|AV|ENDERECO|ENDEREÇO|CEP|BAIRRO|\d{3}\.\d{3}\.\d{3}).*$/i, '');
       if (nome.length >= 5 && nome.length <= 50) {
         dados.nome = nome;
         console.log(`[Parser] Nome encontrado: ${nome}`);
