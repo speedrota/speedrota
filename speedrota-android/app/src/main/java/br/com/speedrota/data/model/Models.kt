@@ -1760,8 +1760,8 @@ data class QrCodeConsultaResponse(
 @Serializable
 data class QrCodeConsultaData(
     val nfe: NfeData? = null,
-    val chaveAcesso: String,
-    val tipoQrCode: String,
+    val chaveAcesso: String? = null,
+    val tipoQrCode: String? = null,
     val enderecoFormatado: String? = null,
     val cache: Boolean? = null,
     val consultaEm: String? = null
@@ -1769,6 +1769,8 @@ data class QrCodeConsultaData(
 
 @Serializable
 data class NfeData(
+    val chaveAcesso: String? = null,
+    val tipoNfe: String? = null,
     val numero: Int? = null,
     val valor: Double? = null,
     val dataEmissao: String? = null,
