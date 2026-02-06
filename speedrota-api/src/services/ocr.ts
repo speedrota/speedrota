@@ -10,6 +10,7 @@
  */
 
 import Tesseract from 'tesseract.js';
+import sharp from 'sharp';
 
 // ==========================================
 // CIDADES CONHECIDAS COM CORREÇÃO OCR
@@ -331,6 +332,28 @@ export async function analisarImagemNota(imagemBase64: string): Promise<OcrResul
         sucesso: false,
         erro: 'Falha ao decodificar imagem base64'
       };
+    }
+    
+    console.log('[OCR] Pré-processando imagem com Sharp (EXIF + otimização)...');
+    
+    // PRÉ-PROCESSAMENTO COM SHARP:
+    // 1. rotate() sem argumentos = aplica correção EXIF automaticamente
+    // 2. grayscale() = melhor para OCR
+    // 3. normalize() = melhora contraste
+    // 4. sharpen() = melhora nitidez do texto
+    try {
+      imageBuffer = await sharp(imageBuffer)
+        .rotate() // Aplica orientação EXIF (crítico para fotos de iPhone/Android)
+        .grayscale() // Converte para escala de cinza
+        .normalize() // Melhora contraste automaticamente
+        .sharpen({ sigma: 1.5 }) // Melhora nitidez do texto
+        .png() // Formato sem perdas para OCR
+        .toBuffer();
+      
+      console.log('[OCR] Pré-processamento concluído');
+    } catch (sharpError) {
+      console.warn('[OCR] Erro no pré-processamento Sharp, usando imagem original:', sharpError);
+      // Continua com imagem original se Sharp falhar
     }
     
     console.log('[OCR] Executando Tesseract...');
