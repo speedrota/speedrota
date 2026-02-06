@@ -421,9 +421,42 @@ function logTexto(texto: string): void {
 // PARSER DE NF-e v2.0 - SUPER ROBUSTO
 // ==========================================
 
+/**
+ * Limpa texto OCR removendo ruídos comuns de moiré e caracteres ruins
+ * @pre texto cru do OCR
+ * @post texto limpo pronto para parsing
+ */
+function limparTextoOCR(texto: string): string {
+  return texto
+    // Remover sequências de caracteres repetidos que são ruído
+    .replace(/([A-Z])\1{3,}/gi, '$1')
+    // Limpar padrões típicos de moiré: "EAR NAT RAE" -> ""
+    .replace(/\b[A-Z]{2,3}\s+[A-Z]{2,3}\s+[A-Z]{2,3}\b/g, '')
+    // Remover caracteres soltos entre espaços: "a B c D" -> ""
+    .replace(/\s[a-zA-Z]\s/g, ' ')
+    // Corrigir letras confundidas com números
+    .replace(/\bO(\d)/g, '0$1') // O1 -> 01
+    .replace(/(\d)O\b/g, '$10') // 1O -> 10
+    .replace(/\bl(\d)/gi, '1$1') // l1 -> 11
+    .replace(/(\d)l\b/gi, '$11') // 1l -> 11
+    // Normalizar espaços
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
+/**
+ * Corrige erros de OCR em CEPs
+ */
+function corrigirCEPTexto(texto: string): string {
+  return texto
+    // Padrões de CEP com letras erradas
+    .replace(/1347([O8])[-.\s]?(\d{3})/gi, (_, p1, p2) => `1347${p1 === 'O' ? '0' : p1}-${p2}`)
+    .replace(/134([O8])(\d)[-.\s]?(\d{3})/gi, (_, p1, p2, p3) => `134${p1 === 'O' ? '0' : p1}${p2}-${p3}`);
+}
+
 export function parsearNFe(textoOCR: string): DadosNFe | null {
   console.log('[Parser] ========================================');
-  console.log('[Parser] Iniciando análise de NF-e v2.0');
+  console.log('[Parser] Iniciando análise de NF-e v2.1');
   console.log('[Parser] ========================================');
   
   if (!textoOCR || textoOCR.length < 30) {
@@ -431,10 +464,12 @@ export function parsearNFe(textoOCR: string): DadosNFe | null {
     return null;
   }
   
-  // Normalizar texto
-  const texto = normalizarTexto(textoOCR);
+  // NOVO: Limpar texto OCR antes de processar
+  let texto = normalizarTexto(textoOCR);
+  texto = limparTextoOCR(texto);
+  texto = corrigirCEPTexto(texto);
   
-  console.log('[Parser] Texto normalizado (500 chars):', texto.substring(0, 500));
+  console.log('[Parser] Texto limpo (500 chars):', texto.substring(0, 500));
   
   // PRIMEIRO: Tentar extração específica para DANFE Natura/Avon
   const dadosNatura = extrairDadosNaturaAvon(texto);
@@ -834,22 +869,40 @@ function extrairEnderecoCompleto(texto: string): string {
     /(RUA\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ0-9][A-ZÁÉÍÓÚÂÊÎÔÛÃÕA-Z0-9\s]+[,\s]+\d{1,5})/i,
     // R. NOME 123 (abreviado)
     /(R[.\s]+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ0-9][A-ZÁÉÍÓÚÂÊÎÔÛÃÕA-Z0-9\s]+[,\s]*\d{1,5})/i,
+    // NOVO: R NOME (sem ponto) - comum em OCR ruim
+    /\b(R\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕA-Za-z\s]{4,30})[,\s]+(\d{1,5})\b/i,
+    // NOVO: Padrão DANFE: linha com endereço entre labels
+    /(?:ENDERE[ÇC]O|LOGRADOURO)[:\s]*([A-Z][A-Za-z\s,]+\d{1,5})/i,
     // Qualquer padrão com AV/RUA seguido de texto
     /((?:AV|AVENIDA|RUA|ALAMEDA|AL|TRAVESSA|TV|ESTRADA|EST|RODOVIA|ROD|PRA[ÇC]A)[.\s]+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕA-Za-z\s]{3,25}[,\s]+\d{1,5})/i,
     // Endereço após label ENDEREÇO:
     /ENDERE[ÇC]O[:\s]+([^\n]{10,50})/i,
     // Logradouro
     /LOGRADOURO[:\s]+([^\n]{10,50})/i,
+    // NOVO: Captura genérica - qualquer texto seguido de número de 1-5 dígitos
+    // antes de CEP ou BAIRRO (ordem típica de DANFE)
+    /([A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]{5,40})[,\s]+(\d{1,5})\s+(?:[A-Z]{2,}|BAIRRO|CEP|\d{5})/i,
   ];
   
   for (const p of padroes) {
     const m = texto.match(p);
     if (m) {
       let end = m[1].trim();
+      // Se capturou número separado, juntar
+      if (m[2]) {
+        end = `${end}, ${m[2]}`;
+      }
       // Limpar sufixos indesejados
       end = end.replace(/\s*(BAIRRO|CEP|MUNIC|CIDADE|UF|FONE|TEL).*$/i, '');
       // Validar que não é "COSMETICOS" ou similar (nome de empresa)
       if (end.toUpperCase().includes('COSMET') || end.toUpperCase().includes('NATURA')) {
+        continue;
+      }
+      // Ignorar endereço do emitente (fábricas conhecidas)
+      if (end.toUpperCase().includes('TOLEDO') || 
+          end.toUpperCase().includes('CABREUVA') ||
+          end.toUpperCase().includes('PINHAL')) {
+        console.log(`[Parser] Endereço ignorado (emitente): ${end}`);
         continue;
       }
       // Normalizar AV. para AV
@@ -1135,6 +1188,14 @@ function extrairNome(texto: string): string {
     /(?:NOME|RAZ[ÃA]O\s*SOCIAL)[\/:\s]+([A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]{5,50})/i,
     // DESTINATÁRIO: FULANO ou DESTINATÁRIO/REMETENTE
     /DESTINAT[ÁA]RIO[\/\s:]+([A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]{5,50})/i,
+    // CLIENTE: FULANO
+    /CLIENTE[:\s]+([A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]{5,50})/i,
+    // RECEBEDOR: FULANO
+    /RECEBEDOR[:\s]+([A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]{5,50})/i,
+    // CONSIGNATÁRIO: FULANO  (muito comum em NF-e)
+    /CONSIGNAT[ÁA]RIO[:\s]+([A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]{5,50})/i,
+    // Após CPF/CNPJ na mesma linha ou próxima
+    /CPF[\/\s:]*\d{3}[\.\s]?\d{3}[\.\s]?\d{3}[\-\s]?\d{2}[.\s\n]+([A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔûãõa-záéíóúâêîôû\s]{5,50})/i,
   ];
   
   for (const p of padroes) {
@@ -1142,8 +1203,38 @@ function extrairNome(texto: string): string {
     if (m) {
       let nome = limpar(m[1]);
       // Remover sufixos que não são parte do nome
-      nome = nome.replace(/\s*(CPF|CNPJ|RUA|AV|ENDERECO|ENDEREÇO).*$/i, '');
+      nome = nome.replace(/\s*(CPF|CNPJ|RUA|AV|ENDERECO|ENDEREÇO|BAIRRO|CEP|FONE|TEL).*$/i, '');
+      // Não considerar como nome se for empresa conhecida (emitente)
+      if (nome.toUpperCase().includes('NATURA') || 
+          nome.toUpperCase().includes('AVON') ||
+          nome.toUpperCase().includes('BOTICARIO') ||
+          nome.toUpperCase().includes('COSMET')) {
+        continue;
+      }
       if (nome.length >= 3 && nome.length <= 60) return nome;
+    }
+  }
+  
+  // Fallback: procura nomes próprios comuns (mais de 200 nomes brasileiros)
+  const primeirosNomes = [
+    'MARIA', 'JOSE', 'ANA', 'JOAO', 'ANTONIO', 'FRANCISCO', 'CARLOS', 'PAULO',
+    'PEDRO', 'LUCAS', 'LUIZ', 'MARCOS', 'RAFAEL', 'DANIEL', 'MARCELO', 'BRUNO',
+    'GABRIEL', 'RODRIGO', 'FERNANDO', 'EDUARDO', 'ANDRE', 'ADRIANA', 'JULIANA',
+    'MARIANA', 'FERNANDA', 'PATRICIA', 'ALINE', 'CAMILA', 'LETICIA', 'AMANDA',
+    'BRUNA', 'JESSICA', 'RAFAELA', 'TATIANA', 'VANESSA', 'SIMONE', 'CLAUDIA',
+    'RENATA', 'CRISTIANE', 'SANDRA', 'SILVIA', 'ELIANA', 'ROSANA', 'LUCIANA',
+    'RICARDO', 'ROBERTO', 'SERGIO', 'MARCIO', 'CLAUDIO', 'JORGE', 'FABIO',
+    'ALEXANDRE', 'GUSTAVO', 'WAGNER', 'LEANDRO', 'DIEGO', 'FELIPE', 'VITOR',
+    'MATEUS', 'IVAN', 'THIAGO', 'CAIO', 'RENATO', 'CESAR', 'ROGERIO', 'GILBERTO'
+  ];
+  
+  for (const primeiro of primeirosNomes) {
+    const regex = new RegExp(`\\b(${primeiro}\\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ]{2,}(?:\\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ]{2,})*)\\b`, 'i');
+    const m = texto.match(regex);
+    if (m) {
+      let nome = limpar(m[1]);
+      nome = nome.replace(/\s*(CPF|CNPJ|RUA|AV|ENDERECO|ENDEREÇO).*$/i, '');
+      if (nome.length >= 5 && nome.length <= 60) return nome;
     }
   }
   

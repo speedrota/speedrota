@@ -3,17 +3,29 @@
  * 
  * Permite:
  * - Escanear NF-e via OCR (detecta fornecedor automaticamente)
+ * - Processar múltiplas fotos em lote (fila)
+ * - Confirmar/editar dados antes de adicionar
  * - Adicionar destino manualmente
  * - Visualizar lista de destinos com badges de fornecedor
  */
 
 import { useState, useRef } from 'react';
 import { useRouteStore, usePodeCalcular, useTotalDestinos } from '../store/routeStore';
-import { processarImagemNFe, validarDadosExtraidos } from '../services/ocr';
+import { processarImagemNFe, extrairTexto } from '../services/ocr';
 import { geocodificarEndereco } from '../services/geolocalizacao';
 import { isPDF, pdfPrimeiraPaginaParaImagem } from '../services/pdf';
-import type { Destino, Fornecedor } from '../types';
+import type { Destino, Fornecedor, DadosNFe } from '../types';
 import { FORNECEDORES_CONFIG } from '../types';
+import { ModalConfirmarOCR } from './ModalConfirmarOCR';
+
+// Interface para item na fila de processamento
+interface FilaItem {
+  arquivo: File;
+  status: 'pendente' | 'processando' | 'aguardando' | 'concluido' | 'erro';
+  dados?: DadosNFe | null;
+  textoOCR?: string;
+  erro?: string;
+}
 
 export function TelaDestinos() {
   const { 
@@ -35,6 +47,11 @@ export function TelaDestinos() {
   const [modoManual, setModoManual] = useState(false);
   const [progressoOCR, setProgressoOCR] = useState<string>('');
   
+  // NOVO: Fila de processamento de fotos
+  const [filaFotos, setFilaFotos] = useState<FilaItem[]>([]);
+  const [itemAtual, setItemAtual] = useState<FilaItem | null>(null);
+  const [mostrarModal, setMostrarModal] = useState(false);
+  
   // Form manual
   const [nome, setNome] = useState('');
   const [endereco, setEndereco] = useState('');
@@ -49,22 +66,64 @@ export function TelaDestinos() {
   const [prioridade, setPrioridade] = useState<'ALTA' | 'MEDIA' | 'BAIXA'>('MEDIA');
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileInputMultiRef = useRef<HTMLInputElement>(null);
   
   // ==========================================
-  // OCR: Processar imagem de NF-e
+  // OCR: Processar imagem de NF-e (MODO LOTE)
   // ==========================================
   
   const handleSelecionarImagem = () => {
     fileInputRef.current?.click();
   };
   
+  const handleSelecionarMultiplas = () => {
+    fileInputMultiRef.current?.click();
+  };
+  
+  // Processar uma única imagem e mostrar modal de confirmação
   const handleImagemSelecionada = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
     
+    await processarArquivoComModal(file);
+    
+    // Limpar input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+  
+  // Processar múltiplas imagens em lote
+  const handleMultiplasSelecionadas = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+    
+    // Adicionar todos à fila
+    const novosItens: FilaItem[] = Array.from(files).map(arquivo => ({
+      arquivo,
+      status: 'pendente' as const,
+    }));
+    
+    setFilaFotos(novosItens);
+    
+    // Processar o primeiro
+    await processarProximoDaFila(novosItens);
+    
+    // Limpar input
+    if (fileInputMultiRef.current) {
+      fileInputMultiRef.current.value = '';
+    }
+  };
+  
+  // Processar arquivo e mostrar modal
+  const processarArquivoComModal = async (file: File) => {
     setCarregando(true);
     setErro(null);
     setProgressoOCR('Inicializando...');
+    
+    const item: FilaItem = { arquivo: file, status: 'processando' };
+    setItemAtual(item);
+    setMostrarModal(true);
     
     try {
       let imagemParaOCR: string | File = file;
@@ -78,34 +137,152 @@ export function TelaDestinos() {
       }
       
       setProgressoOCR('Processando OCR...');
+      
+      // Extrair texto bruto para exibir
+      let textoOCR = '';
+      try {
+        textoOCR = await extrairTexto(imagemParaOCR, (progress) => {
+          setProgressoOCR(`${progress.status}: ${Math.round(progress.progress * 100)}%`);
+        });
+      } catch (e) {
+        console.warn('[TelaDestinos] Erro ao extrair texto bruto:', e);
+      }
+      
+      setProgressoOCR('Analisando dados...');
       const dados = await processarImagemNFe(imagemParaOCR, (progress) => {
         setProgressoOCR(`${progress.status}: ${Math.round(progress.progress * 100)}%`);
       });
       
-      if (!dados) {
-        throw new Error('Não foi possível extrair dados da NF-e. Verifique a qualidade da imagem.');
-      }
+      // SEMPRE mostrar modal, mesmo com dados nulos
+      // O usuário pode editar manualmente
+      const dadosComFallback: DadosNFe = dados || {
+        numero: '',
+        fornecedor: 'outro',
+        destinatario: {
+          nome: '',
+          endereco: '',
+          numero: '',
+          bairro: '',
+          cidade: '',
+          uf: 'SP',
+          cep: '',
+        },
+        confiancaOCR: 0.1,
+      };
       
-      // Validar dados extraídos
-      const validacao = validarDadosExtraidos(dados);
-      if (!validacao.valido) {
-        throw new Error(`Campos faltando: ${validacao.camposFaltando.join(', ')}`);
-      }
-      
-      setProgressoOCR('Geocodificando endereço...');
-      await adicionarDestinoDeNFe(dados);
-      
+      item.dados = dadosComFallback;
+      item.textoOCR = textoOCR;
+      item.status = 'aguardando';
+      setItemAtual({ ...item });
       setProgressoOCR('');
       
     } catch (error) {
-      setErro(error instanceof Error ? error.message : 'Erro ao processar arquivo');
+      console.error('[TelaDestinos] Erro:', error);
+      // Mesmo com erro, mostrar modal para entrada manual
+      item.status = 'erro';
+      item.erro = error instanceof Error ? error.message : 'Erro ao processar';
+      item.dados = {
+        numero: '',
+        fornecedor: 'outro',
+        destinatario: {
+          nome: '',
+          endereco: '',
+          numero: '',
+          bairro: '',
+          cidade: '',
+          uf: 'SP',
+          cep: '',
+        },
+        confiancaOCR: 0,
+      };
+      setItemAtual({ ...item });
+      setProgressoOCR('');
+    } finally {
+      setCarregando(false);
+    }
+  };
+  
+  // Processar próximo item da fila
+  const processarProximoDaFila = async (fila: FilaItem[]) => {
+    const pendente = fila.find(i => i.status === 'pendente');
+    if (!pendente) {
+      setFilaFotos([]);
+      return;
+    }
+    
+    pendente.status = 'processando';
+    setFilaFotos([...fila]);
+    
+    await processarArquivoComModal(pendente.arquivo);
+  };
+  
+  // Quando confirmar dados no modal
+  const handleConfirmarOCR = async (dados: DadosNFe) => {
+    setCarregando(true);
+    setProgressoOCR('Geocodificando endereço...');
+    
+    try {
+      await adicionarDestinoDeNFe(dados);
+      
+      // Marcar item atual como concluído
+      if (itemAtual) {
+        itemAtual.status = 'concluido';
+      }
+      
+      // Verificar se tem mais na fila
+      if (filaFotos.length > 0) {
+        const filaAtualizada = filaFotos.map(i => 
+          i.arquivo === itemAtual?.arquivo ? { ...i, status: 'concluido' as const } : i
+        );
+        setFilaFotos(filaAtualizada);
+        
+        // Processar próximo
+        const pendentes = filaAtualizada.filter(i => i.status === 'pendente');
+        if (pendentes.length > 0) {
+          await processarProximoDaFila(filaAtualizada);
+          return;
+        }
+      }
+      
+      // Fechar modal
+      setMostrarModal(false);
+      setItemAtual(null);
+      setFilaFotos([]);
+      
+    } catch (error) {
+      setErro(error instanceof Error ? error.message : 'Erro ao adicionar destino');
     } finally {
       setCarregando(false);
       setProgressoOCR('');
-      // Limpar input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+    }
+  };
+  
+  // Cancelar modal
+  const handleCancelarModal = () => {
+    setMostrarModal(false);
+    setItemAtual(null);
+    setFilaFotos([]);
+    setCarregando(false);
+    setProgressoOCR('');
+  };
+  
+  // Pular foto atual e ir para próxima
+  const handlePularFoto = async () => {
+    if (filaFotos.length === 0) {
+      handleCancelarModal();
+      return;
+    }
+    
+    const filaAtualizada = filaFotos.map(i => 
+      i.arquivo === itemAtual?.arquivo ? { ...i, status: 'concluido' as const } : i
+    );
+    setFilaFotos(filaAtualizada);
+    
+    const pendentes = filaAtualizada.filter(i => i.status === 'pendente');
+    if (pendentes.length > 0) {
+      await processarProximoDaFila(filaAtualizada);
+    } else {
+      handleCancelarModal();
     }
   };
   
@@ -188,7 +365,7 @@ export function TelaDestinos() {
         </div>
       )}
       
-      {/* Input de arquivo oculto */}
+      {/* Input de arquivo oculto (único) */}
       <input
         type="file"
         ref={fileInputRef}
@@ -198,6 +375,29 @@ export function TelaDestinos() {
         onChange={handleImagemSelecionada}
       />
       
+      {/* Input de arquivos múltiplos (lote) */}
+      <input
+        type="file"
+        ref={fileInputMultiRef}
+        style={{ display: 'none' }}
+        accept="image/png,image/jpeg,image/jpg,image/webp,application/pdf"
+        multiple
+        onChange={handleMultiplasSelecionadas}
+      />
+      
+      {/* Modal de confirmação OCR */}
+      {mostrarModal && (
+        <ModalConfirmarOCR
+          dados={itemAtual?.dados || null}
+          textoOCR={itemAtual?.textoOCR}
+          processando={itemAtual?.status === 'processando'}
+          onConfirmar={handleConfirmarOCR}
+          onCancelar={handleCancelarModal}
+          onPular={handlePularFoto}
+          fotosRestantes={filaFotos.filter(f => f.status === 'pendente').length}
+        />
+      )}
+      
       {/* Botões de adicionar */}
       {!modoManual && (
         <>
@@ -206,11 +406,20 @@ export function TelaDestinos() {
             onClick={handleSelecionarImagem}
             disabled={carregando}
           >
-            📷 Escanear NF-e (Imagem/PDF)
+            📷 Tirar Foto da Nota
           </button>
           
-          <p className="text-small text-muted" style={{ fontSize: '0.75rem', marginTop: '-0.5rem', marginBottom: '0.5rem' }}>
-            Formatos aceitos: PNG, JPG, JPEG, PDF
+          <button 
+            className="btn btn-primary mb-2"
+            onClick={handleSelecionarMultiplas}
+            disabled={carregando}
+            style={{ marginLeft: '0.5rem', background: '#059669' }}
+          >
+            📁 Várias Notas (Lote)
+          </button>
+          
+          <p className="text-small text-muted" style={{ fontSize: '0.75rem', marginTop: '0.25rem', marginBottom: '0.5rem' }}>
+            💡 Tire foto OU selecione várias notas de uma vez
           </p>
           
           <button 
