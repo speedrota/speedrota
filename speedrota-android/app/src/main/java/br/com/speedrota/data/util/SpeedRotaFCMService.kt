@@ -31,8 +31,8 @@ class SpeedRotaFCMService : FirebaseMessagingService() {
     companion object {
         private const val TAG = "SpeedRotaFCM"
         
-        // TODO: Mover para BuildConfig ou env
-        private const val API_URL = "https://speedrota-api.up.railway.app"
+        // API hospedada no Render
+        private const val API_URL = "https://speedrota.onrender.com"
         
         // Último token registrado (para evitar duplicatas)
         private var lastToken: String? = null
