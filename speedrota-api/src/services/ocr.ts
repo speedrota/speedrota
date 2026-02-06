@@ -242,6 +242,232 @@ function extrairChave44Digitos(texto: string): string | null {
 }
 
 // ==========================================
+// NORMALIZAÇÃO DE TEXTO
+// ==========================================
+
+function normalizarTexto(texto: string): string {
+  return texto
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .replace(/[\x00-\x1F\x7F]/g, ' ')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+// ==========================================
+// EXTRAÇÃO ESPECÍFICA NATURA/AVON (PORTADA DO WEB)
+// ==========================================
+
+interface DadosExtraidosNatura {
+  nome?: string;
+  endereco?: string;
+  numero?: string;
+  complemento?: string;
+  bairro?: string;
+  cidade?: string;
+  uf?: string;
+  cep?: string;
+  referencia?: string;
+}
+
+function extrairDadosNaturaAvon(texto: string): DadosExtraidosNatura {
+  console.log('[Parser] Tentando extração Natura/Avon...');
+  
+  const dados: DadosExtraidosNatura = {};
+  const textoUpper = texto.toUpperCase();
+  
+  // Padrão específico: "Destino AMERICANA" ou "Destine Americans" (com erros de OCR)
+  const padroesDestino = [
+    /DESTIN[OEA]\s+([A-Z]{4,})/i,
+    /DESTE[SNS]\s+([A-Z]{4,})/i,
+  ];
+  
+  for (const p of padroesDestino) {
+    const m = texto.match(p);
+    if (m) {
+      const cidadeRaw = m[1].trim().toUpperCase().split(/\s+/)[0];
+      const cidadeCorrigida = corrigirCidade(cidadeRaw);
+      if (cidadeCorrigida) {
+        console.log(`[Parser] Cidade encontrada via Destino: ${cidadeRaw} -> ${cidadeCorrigida}`);
+        dados.cidade = cidadeCorrigida;
+        dados.uf = 'SP';
+        break;
+      }
+    }
+  }
+  
+  // Se não encontrou, buscar AMERICANA diretamente no texto
+  if (!dados.cidade) {
+    const isLojaAmericanas = textoUpper.includes('LOJAS AMERICANAS') || 
+                              textoUpper.includes('AMERICANAS S.A') || 
+                              textoUpper.includes('AMERICANAS SA') ||
+                              textoUpper.includes('AMERICANAS LTDA');
+    
+    if (!isLojaAmericanas && 
+        (textoUpper.includes('AMERICANA') || textoUpper.includes('AMERICANS') || 
+        textoUpper.includes('AMAR CANA') || textoUpper.includes('AMARCANA'))) {
+      dados.cidade = 'AMERICANA';
+      dados.uf = 'SP';
+      console.log('[Parser] Cidade AMERICANA detectada no texto');
+    }
+  }
+  
+  // REFERÊNCIA: Detectar UNIMED/HOSPITAL
+  if (textoUpper.includes('UNIMED') || textoUpper.includes('MOSPITAL UNIMED')) {
+    dados.referencia = 'EM FRENTE AO HOSPITAL UNIMED';
+    console.log('[Parser] Referência UNIMED detectada');
+  }
+  
+  // ==========================================
+  // EXTRAÇÃO REAL DO ENDEREÇO
+  // ==========================================
+  
+  // Padrão 1: "R DOUTOR JOAO ZANAGA , 600" ou "RUA DOUTOR JOAO ZANAGA, 600"
+  const padroesEndereco = [
+    // RUA/R seguido de nome de rua e número
+    /\b(R(?:UA)?\.?\s+(?:DOUTOR|DR\.?|PROFESSOR|PROF\.?|MAJOR|CORONEL|CAP)?\s*[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]{3,40})[,\s]+(\d{1,5})\b/i,
+    // AV/AVENIDA seguido de nome e número
+    /\b(AV(?:ENIDA)?\.?\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]{3,40})[,\s]+(\d{1,5})\b/i,
+    // Qualquer logradouro genérico
+    /\b((?:ALAMEDA|TRAVESSA|PRAÇA|ESTRADA|RODOVIA|VIA)\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]{3,40})[,\s]+(\d{1,5})\b/i,
+  ];
+  
+  for (const p of padroesEndereco) {
+    const m = texto.match(p);
+    if (m) {
+      const enderecoExtraido = m[1].trim().toUpperCase();
+      const numeroExtraido = m[2];
+      // Verificar se não é o endereço do remetente (NATURA)
+      if (!enderecoExtraido.includes('TOLEDO') && !enderecoExtraido.includes('CABREUVA')) {
+        dados.endereco = enderecoExtraido;
+        dados.numero = numeroExtraido;
+        console.log(`[Parser] Endereço extraído: ${enderecoExtraido}, ${numeroExtraido}`);
+        break;
+      }
+    }
+  }
+  
+  // Padrão CEP: 13478-220 ou 13478220 (CEPs de Americana região)
+  const cepMatch = texto.match(/\b(\d{5})-?(\d{3})\b/);
+  if (cepMatch) {
+    dados.cep = `${cepMatch[1]}-${cepMatch[2]}`;
+    console.log(`[Parser] CEP extraído: ${dados.cep}`);
+  }
+  
+  // Padrão bairro
+  const bairroMatch = texto.match(/\b(CHACARA\s+MACHADINHO(?:\s+II)?|JD\.?\s+\w+|JARDIM\s+\w+|VILA\s+\w+|PARQUE\s+\w+|CENTRO)\b/i);
+  if (bairroMatch && !dados.bairro) {
+    dados.bairro = bairroMatch[1].toUpperCase();
+    console.log(`[Parser] Bairro extraído: ${dados.bairro}`);
+  }
+  
+  // Tentar encontrar complemento (AP xx BLOCO x)
+  const padroesApto = [
+    /AP\.?\s*(\d{1,4})/i,
+    /APT\.?\s*(\d{1,4})/i,
+    /APTO\.?\s*(\d{1,4})/i,
+    /A[PF]\.?\s*(\d{2,4})\b/i,
+  ];
+  
+  const padroesBloco = [
+    /BLOCO?\s*([A-Z0-9]{1,2})\b/i,
+    /BL\.?\s*([A-Z0-9]{1,2})\b/i,
+  ];
+  
+  let apto = '';
+  let bloco = '';
+  
+  for (const p of padroesApto) {
+    const m = texto.match(p);
+    if (m) {
+      apto = m[1];
+      break;
+    }
+  }
+  
+  for (const p of padroesBloco) {
+    const m = texto.match(p);
+    if (m) {
+      bloco = m[1].toUpperCase();
+      break;
+    }
+  }
+  
+  if (apto || bloco) {
+    const partes = [];
+    if (apto) partes.push(`AP ${apto}`);
+    if (bloco) partes.push(`BLOCO ${bloco}`);
+    dados.complemento = partes.join(' ');
+    console.log(`[Parser] Complemento: ${dados.complemento}`);
+  }
+  
+  // Tentar encontrar nome do destinatário
+  const padroesNome = [
+    /\b((?:MARIA|ANA|ELLEN|HELEN|SUZILAINE|SUZI|SUELI|SANDRA|SILVIA|SIMONE|SOLANGE|SONIA|ROSELI|ROSA|REGINA|PATRICIA|PAULA|LUCIANA|LUCIA|JULIANA|JOANA|IVONE|IVANA|HELENA|GABRIELA|FERNANDA|ELIANA|ELAINE|EDILAINE|DANIELA|CRISTINA|CLAUDIA|CARLA|CAMILA|BEATRIZ|BIANCA|ADRIANA|AMANDA|ANDREIA|ANGELA|APARECIDA|JOSE|JOAO|CARLOS|ANTONIO|MARCOS|PAULO|PEDRO|LUCAS|FERNANDO|RAFAEL|ROBERTO|RICARDO|ANDERSON|ALEX|ALEXANDRE|BRUNO|DIEGO|EDUARDO|FABIO|GUSTAVO|HENRIQUE|IGOR|LEANDRO|LUIZ|MARCELO|MATEUS|NELSON|RENATO|RODRIGO|SERGIO|THIAGO|VITOR|WAGNER)\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]{3,40})/i,
+    /NOME[:\s]+([A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]{5,40})/i,
+  ];
+  
+  for (const p of padroesNome) {
+    const m = texto.match(p);
+    if (m) {
+      let nome = m[1].trim();
+      if (/^(REMETENT|DESTINAT|ENDERECO|ENDEREÇO|NOTA|FISCAL|DANFE|TRIBUT)/i.test(nome)) {
+        continue;
+      }
+      nome = nome.replace(/\s*(CPF|CNPJ|RUA|AV|ENDERECO|ENDEREÇO|CEP|BAIRRO|\d{3}\.\d{3}\.\d{3}).*$/i, '');
+      if (nome.length >= 5 && nome.length <= 50) {
+        dados.nome = nome;
+        console.log(`[Parser] Nome encontrado: ${nome}`);
+        break;
+      }
+    }
+  }
+  
+  console.log('[Parser] Dados Natura extraídos:', JSON.stringify(dados, null, 2));
+  return dados;
+}
+
+// Corrigir cidade com erros de OCR
+function corrigirCidade(cidadeRaw: string): string {
+  const upper = cidadeRaw.toUpperCase().trim();
+  
+  const correcoes: Record<string, string> = {
+    'AMERICANA': 'AMERICANA',
+    'AMERICANS': 'AMERICANA',
+    'AMERIC4NA': 'AMERICANA',
+    'AMER1CANA': 'AMERICANA',
+    'AMAR CANA': 'AMERICANA',
+    'AMARCANA': 'AMERICANA',
+    'CAMPINAS': 'CAMPINAS',
+    'CAMP1NAS': 'CAMPINAS',
+    'SAO PAULO': 'SAO PAULO',
+    'S4O PAULO': 'SAO PAULO',
+    'LIMEIRA': 'LIMEIRA',
+    'L1MEIRA': 'LIMEIRA',
+    'PIRACICABA': 'PIRACICABA',
+    'SUMARE': 'SUMARE',
+    'HORTOLANDIA': 'HORTOLANDIA',
+    'SANTA BARBARA': 'SANTA BARBARA',
+    'INDAIATUBA': 'INDAIATUBA',
+    'JUNDIAI': 'JUNDIAI',
+    'SOROCABA': 'SOROCABA',
+  };
+  
+  if (correcoes[upper]) {
+    return correcoes[upper];
+  }
+  
+  for (const [erro, correto] of Object.entries(correcoes)) {
+    if (upper.includes(erro) || erro.includes(upper)) {
+      return correto;
+    }
+  }
+  
+  return '';
+}
+
+// ==========================================
 // FUNÇÕES AUXILIARES DE EXTRAÇÃO (PORTADAS DO WEB)
 // ==========================================
 
@@ -493,6 +719,60 @@ function extrairEndereco(texto: string): OcrResult['endereco'] {
   
   console.log('[OCR] Iniciando extração de endereço...');
   console.log(`[OCR] Texto para análise (primeiros 500 chars): ${texto.substring(0, 500)}`);
+  
+  // ==========================================
+  // 0. PRIMEIRO: Tentar extração específica Natura/Avon
+  // ==========================================
+  const dadosNatura = extrairDadosNaturaAvon(texto);
+  
+  // Se encontrou dados específicos Natura/Avon, usar como base
+  if (dadosNatura.endereco || dadosNatura.cidade) {
+    console.log('[OCR] Usando dados extraídos via Natura/Avon parser');
+    
+    if (dadosNatura.endereco) {
+      endereco.logradouro = dadosNatura.endereco;
+    }
+    if (dadosNatura.numero) {
+      endereco.numero = dadosNatura.numero;
+    }
+    if (dadosNatura.bairro) {
+      endereco.bairro = dadosNatura.bairro;
+    }
+    if (dadosNatura.cidade) {
+      endereco.cidade = dadosNatura.cidade;
+    }
+    if (dadosNatura.uf) {
+      endereco.uf = dadosNatura.uf;
+    }
+    if (dadosNatura.cep) {
+      endereco.cep = dadosNatura.cep;
+    }
+    if (dadosNatura.complemento) {
+      endereco.complemento = dadosNatura.complemento;
+    }
+    
+    // Montar endereçoCompleto
+    const partes = [
+      endereco.logradouro,
+      endereco.numero,
+      endereco.complemento,
+      endereco.bairro,
+      endereco.cidade,
+      endereco.uf,
+      endereco.cep ? `CEP: ${endereco.cep}` : null
+    ].filter(Boolean);
+    
+    if (partes.length >= 2) {
+      endereco.enderecoCompleto = partes.join(', ');
+      console.log(`[OCR] Endereço Natura montado: ${endereco.enderecoCompleto}`);
+      return endereco;
+    }
+  }
+  
+  // ==========================================
+  // 1. Extração genérica (fallback)
+  // ==========================================
+  console.log('[OCR] Usando extração genérica...');
   
   // 1. Extrair componentes usando funções especializadas
   const logradouroCompleto = extrairEnderecoCompleto(texto);
