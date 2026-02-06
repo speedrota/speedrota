@@ -331,20 +331,53 @@ private fun ScannerArea(
     onLimparFoto: () -> Unit
 ) {
     val context = LocalContext.current
+    
+    // Estado para controlar feedback de captura
+    var capturando by remember { mutableStateOf(false) }
 
-    // Launcher para capturar foto
+    // Launcher para capturar foto - usa TakePicturePreview com tratamento melhorado
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicturePreview()
     ) { bitmap ->
+        capturando = false
+        Log.d("ScannerArea", "Callback da câmera - bitmap: ${bitmap != null}")
+        
         if (bitmap != null) {
-            // Converter bitmap para base64
-            val outputStream = java.io.ByteArrayOutputStream()
-            bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 85, outputStream)
-            val base64 = android.util.Base64.encodeToString(
-                outputStream.toByteArray(),
-                android.util.Base64.NO_WRAP
-            )
-            onFotoCapturada(base64)
+            try {
+                Log.d("ScannerArea", "Bitmap recebido: ${bitmap.width}x${bitmap.height}")
+                
+                // Converter bitmap para base64
+                val outputStream = java.io.ByteArrayOutputStream()
+                bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 85, outputStream)
+                val bytes = outputStream.toByteArray()
+                val base64 = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
+                
+                Log.d("ScannerArea", "Base64 gerado: ${base64.length} chars")
+                
+                // Atualiza estado com a foto
+                onFotoCapturada(base64)
+                
+                // Processa automaticamente após captura
+                // Pequeno delay para UI atualizar
+                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                    onProcessarFoto()
+                }, 300)
+                
+            } catch (e: Exception) {
+                Log.e("ScannerArea", "Erro ao processar bitmap", e)
+                android.widget.Toast.makeText(
+                    context,
+                    "Erro ao processar imagem: ${e.message}",
+                    android.widget.Toast.LENGTH_SHORT
+                ).show()
+            }
+        } else {
+            Log.w("ScannerArea", "Bitmap nulo - câmera cancelada ou falhou")
+            android.widget.Toast.makeText(
+                context,
+                "Foto não capturada. Tente novamente.",
+                android.widget.Toast.LENGTH_SHORT
+            ).show()
         }
     }
 
@@ -569,44 +602,74 @@ private fun ScannerArea(
                                 }
                             }
                         } else {
-                            // Botão para tirar foto
+                            // Botão para tirar foto ou estado de loading
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.Center
                             ) {
-                                Button(
-                                    onClick = {
-                                        if (hasCameraPermission) {
-                                            cameraLauncher.launch(null)
-                                        } else {
-                                            onRequestPermission()
-                                        }
-                                    },
-                                    modifier = Modifier.size(100.dp),
-                                    shape = CircleShape,
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = Color(0xFF2563EB)
+                                if (capturando || uiState.processandoFoto) {
+                                    // Mostra loading enquanto processa
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(60.dp),
+                                        strokeWidth = 4.dp,
+                                        color = Color(0xFF2563EB)
                                     )
-                                ) {
-                                    Text("📸", fontSize = 40.sp)
+                                    
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    
+                                    Text(
+                                        text = if (capturando) "Capturando foto..." else "🔍 Analisando imagem...",
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 16.sp,
+                                        color = Color(0xFF2563EB)
+                                    )
+                                    
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    
+                                    Text(
+                                        text = if (capturando) "Aguarde..." else "Buscando endereço na nota fiscal",
+                                        textAlign = TextAlign.Center,
+                                        color = Color.Gray,
+                                        fontSize = 13.sp
+                                    )
+                                } else {
+                                    // Botão normal para tirar foto
+                                    Button(
+                                        onClick = {
+                                            if (hasCameraPermission) {
+                                                capturando = true
+                                                Log.d("ScannerArea", "Iniciando captura de foto...")
+                                                cameraLauncher.launch(null)
+                                            } else {
+                                                onRequestPermission()
+                                            }
+                                        },
+                                        modifier = Modifier.size(100.dp),
+                                        shape = CircleShape,
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = Color(0xFF2563EB)
+                                        )
+                                    ) {
+                                        Text("📸", fontSize = 40.sp)
+                                    }
+
+                                    Spacer(modifier = Modifier.height(16.dp))
+
+                                    Text(
+                                        text = "Tirar Foto da Nota Fiscal",
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 16.sp
+                                    )
+
+                                    Spacer(modifier = Modifier.height(8.dp))
+
+                                    Text(
+                                        text = "Fotografe a área onde está a\nchave de acesso (44 dígitos)",
+                                        textAlign = TextAlign.Center,
+                                        color = Color.Gray,
+                                        fontSize = 13.sp
+                                    )
                                 }
-
-                                Spacer(modifier = Modifier.height(16.dp))
-
-                                Text(
-                                    text = "Tirar Foto da Nota Fiscal",
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = 16.sp
-                                )
-
-                                Spacer(modifier = Modifier.height(8.dp))
-
-                                Text(
-                                    text = "Fotografe a área onde está a\nchave de acesso (44 dígitos)",
-                                    textAlign = TextAlign.Center,
-                                    color = Color.Gray,
-                                    fontSize = 13.sp
-                                )
                             }
                         }
                     }
