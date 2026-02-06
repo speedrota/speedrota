@@ -375,12 +375,16 @@ export async function sefazRoutes(fastify: FastifyInstance) {
         });
       }
 
+      // Extrair chave e tipo dos dados retornados
+      const chaveAcesso = resultado.dados?.chaveAcesso || '';
+      const tipoQrCode = resultado.dados?.tipoNfe || 'NF-e';
+
       return {
         success: true,
         data: {
           nfe: resultado.dados,
-          chaveAcesso: resultado.chaveAcesso,
-          tipoQrCode: resultado.tipoQrCode,
+          chaveAcesso: chaveAcesso,
+          tipoQrCode: tipoQrCode,
           enderecoFormatado: resultado.dados?.destinatario
             ? formatarEnderecoParaGeocoding(resultado.dados.destinatario)
             : null,
