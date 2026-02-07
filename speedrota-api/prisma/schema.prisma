@@ -14,6 +14,7 @@ model User {
   nome                String
   telefone            String?
   plano               Plano                @default(FREE)
+  tipoUsuario         TipoUsuario          @default(ENTREGADOR) @map("tipo_usuario")
   mpCustomerId        String?              @map("mp_customer_id")
   planoExpiraEm       DateTime?            @map("plano_expira_em")
   rotasNoMes          Int                  @default(0) @map("rotas_no_mes")
@@ -1150,6 +1151,11 @@ enum Plano {
   FROTA_START
   FROTA_PRO
   FROTA_ENTERPRISE
+}
+
+enum TipoUsuario {
+  ENTREGADOR
+  GESTOR_FROTA
 }
 
 enum TipoDesconto {

@@ -84,6 +84,7 @@ export async function authRoutes(app: FastifyInstance) {
         email: true,
         nome: true,
         plano: true,
+        tipoUsuario: true,
         createdAt: true,
       },
     });
@@ -93,6 +94,7 @@ export async function authRoutes(app: FastifyInstance) {
       userId: user.id,
       email: user.email,
       plano: user.plano,
+      tipoUsuario: user.tipoUsuario,
     });
     
     return reply.status(201).send({
@@ -148,6 +150,7 @@ export async function authRoutes(app: FastifyInstance) {
       userId: user.id,
       email: user.email,
       plano: user.plano,
+      tipoUsuario: user.tipoUsuario,
     });
     
     // Atualizar mês se necessário (para resetar contador de rotas)
@@ -167,6 +170,7 @@ export async function authRoutes(app: FastifyInstance) {
           email: user.email,
           nome: user.nome,
           plano: user.plano,
+          tipoUsuario: user.tipoUsuario,
           rotasNoMes: mesAtual !== user.mesAtual ? 0 : user.rotasNoMes,
         },
         token,
@@ -224,6 +228,7 @@ export async function authRoutes(app: FastifyInstance) {
         nome: true,
         telefone: true,
         plano: true,
+        tipoUsuario: true,
         rotasNoMes: true,
         planoExpiraEm: true,
         createdAt: true,
