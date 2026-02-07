@@ -27,7 +27,7 @@ import distribuicaoService, { EntregaParaDistribuir, ConfiguracaoDistribuicao } 
 // ==========================================
 
 interface AuthRequest extends FastifyRequest {
-  user?: { id: string; email: string };
+  user?: { userId: string; email: string; plano: string };
 }
 
 interface IdParam {
@@ -43,7 +43,7 @@ interface EmpresaIdParam {
 // ==========================================
 
 async function verificarGestor(request: AuthRequest, reply: FastifyReply) {
-  const userId = request.user?.id;
+  const userId = request.user?.userId;
   if (!userId) {
     reply.code(401).send({ error: 'Não autenticado' });
     return;
@@ -84,7 +84,7 @@ export default async function frotaRoutes(fastify: FastifyInstance) {
       modoDistribuicao?: 'AUTOMATICO' | 'MANUAL' | 'HIBRIDO';
     };
   }>('/empresa', async (request: AuthRequest, reply) => {
-    const userId = request.user?.id;
+    const userId = request.user?.userId;
     if (!userId) {
       return reply.code(401).send({ error: 'Não autenticado' });
     }
@@ -114,7 +114,7 @@ export default async function frotaRoutes(fastify: FastifyInstance) {
 
   // Listar empresas do gestor
   fastify.get('/empresas', async (request: AuthRequest, reply) => {
-    const userId = request.user?.id;
+    const userId = request.user?.userId;
     if (!userId) {
       return reply.code(401).send({ error: 'Não autenticado' });
     }
@@ -138,7 +138,7 @@ export default async function frotaRoutes(fastify: FastifyInstance) {
 
   // Buscar empresa por ID
   fastify.get<{ Params: IdParam }>('/empresa/:id', async (request: AuthRequest, reply) => {
-    const userId = request.user?.id;
+    const userId = request.user?.userId;
     const { id } = request.params;
 
     const empresa = await prisma.empresa.findFirst({
@@ -175,7 +175,7 @@ export default async function frotaRoutes(fastify: FastifyInstance) {
       configDistribuicao?: object;
     };
   }>('/empresa/:id', async (request: AuthRequest, reply) => {
-    const userId = request.user?.id;
+    const userId = request.user?.userId;
     const { id } = request.params;
 
     const empresa = await prisma.empresa.findFirst({
@@ -221,7 +221,7 @@ export default async function frotaRoutes(fastify: FastifyInstance) {
       zonasIds?: string[];
     };
   }>('/empresa/:empresaId/motorista', async (request: AuthRequest, reply) => {
-    const userId = request.user?.id;
+    const userId = request.user?.userId;
     const { empresaId } = request.params;
 
     // Verificar permissão
@@ -279,7 +279,7 @@ export default async function frotaRoutes(fastify: FastifyInstance) {
     Params: EmpresaIdParam;
     Querystring: { status?: string; equipeId?: string };
   }>('/empresa/:empresaId/motoristas', async (request: AuthRequest, reply) => {
-    const userId = request.user?.id;
+    const userId = request.user?.userId;
     const { empresaId } = request.params;
     const { status, equipeId } = request.query;
 
@@ -313,7 +313,7 @@ export default async function frotaRoutes(fastify: FastifyInstance) {
 
   // Buscar motorista por ID
   fastify.get<{ Params: IdParam }>('/motorista/:id', async (request: AuthRequest, reply) => {
-    const userId = request.user?.id;
+    const userId = request.user?.userId;
     const { id } = request.params;
 
     const motorista = await prisma.motorista.findFirst({
@@ -426,7 +426,7 @@ export default async function frotaRoutes(fastify: FastifyInstance) {
       consumoKmL?: number;
     };
   }>('/empresa/:empresaId/veiculo', async (request: AuthRequest, reply) => {
-    const userId = request.user?.id;
+    const userId = request.user?.userId;
     const { empresaId } = request.params;
 
     const empresa = await prisma.empresa.findFirst({
@@ -472,7 +472,7 @@ export default async function frotaRoutes(fastify: FastifyInstance) {
 
   // Listar veículos
   fastify.get<{ Params: EmpresaIdParam }>('/empresa/:empresaId/veiculos', async (request: AuthRequest, reply) => {
-    const userId = request.user?.id;
+    const userId = request.user?.userId;
     const { empresaId } = request.params;
 
     const empresa = await prisma.empresa.findFirst({
@@ -513,7 +513,7 @@ export default async function frotaRoutes(fastify: FastifyInstance) {
       poligono?: string; // GeoJSON
     };
   }>('/empresa/:empresaId/zona', async (request: AuthRequest, reply) => {
-    const userId = request.user?.id;
+    const userId = request.user?.userId;
     const { empresaId } = request.params;
 
     const empresa = await prisma.empresa.findFirst({
@@ -541,7 +541,7 @@ export default async function frotaRoutes(fastify: FastifyInstance) {
 
   // Listar zonas
   fastify.get<{ Params: EmpresaIdParam }>('/empresa/:empresaId/zonas', async (request: AuthRequest, reply) => {
-    const userId = request.user?.id;
+    const userId = request.user?.userId;
     const { empresaId } = request.params;
 
     const empresa = await prisma.empresa.findFirst({
@@ -581,7 +581,7 @@ export default async function frotaRoutes(fastify: FastifyInstance) {
       zonaDefaultId?: string;
     };
   }>('/empresa/:empresaId/equipe', async (request: AuthRequest, reply) => {
-    const userId = request.user?.id;
+    const userId = request.user?.userId;
     const { empresaId } = request.params;
 
     const empresa = await prisma.empresa.findFirst({
@@ -604,7 +604,7 @@ export default async function frotaRoutes(fastify: FastifyInstance) {
 
   // Listar equipes
   fastify.get<{ Params: EmpresaIdParam }>('/empresa/:empresaId/equipes', async (request: AuthRequest, reply) => {
-    const userId = request.user?.id;
+    const userId = request.user?.userId;
     const { empresaId } = request.params;
 
     const empresa = await prisma.empresa.findFirst({
@@ -639,7 +639,7 @@ export default async function frotaRoutes(fastify: FastifyInstance) {
       config?: Partial<ConfiguracaoDistribuicao>;
     };
   }>('/empresa/:empresaId/distribuir', async (request: AuthRequest, reply) => {
-    const userId = request.user?.id;
+    const userId = request.user?.userId;
     const { empresaId } = request.params;
     const { entregas, config } = request.body;
 
@@ -665,7 +665,7 @@ export default async function frotaRoutes(fastify: FastifyInstance) {
     Params: EmpresaIdParam;
     Body: { entregas: EntregaParaDistribuir[] };
   }>('/empresa/:empresaId/sugerir', async (request: AuthRequest, reply) => {
-    const userId = request.user?.id;
+    const userId = request.user?.userId;
     const { empresaId } = request.params;
     const { entregas } = request.body;
 
@@ -693,7 +693,7 @@ export default async function frotaRoutes(fastify: FastifyInstance) {
       entregaIds: string[];
     };
   }>('/empresa/:empresaId/atribuir', async (request: AuthRequest, reply) => {
-    const userId = request.user?.id;
+    const userId = request.user?.userId;
     const { empresaId } = request.params;
     const { motoristaId, entregaIds } = request.body;
 
@@ -743,7 +743,7 @@ export default async function frotaRoutes(fastify: FastifyInstance) {
 
   // Dashboard geral da empresa
   fastify.get<{ Params: EmpresaIdParam }>('/empresa/:empresaId/dashboard', async (request: AuthRequest, reply) => {
-    const userId = request.user?.id;
+    const userId = request.user?.userId;
     const { empresaId } = request.params;
 
     const empresa = await prisma.empresa.findFirst({
@@ -847,7 +847,7 @@ export default async function frotaRoutes(fastify: FastifyInstance) {
 
   // Mapa com posições em tempo real
   fastify.get<{ Params: EmpresaIdParam }>('/empresa/:empresaId/mapa', async (request: AuthRequest, reply) => {
-    const userId = request.user?.id;
+    const userId = request.user?.userId;
     const { empresaId } = request.params;
 
     const empresa = await prisma.empresa.findFirst({
