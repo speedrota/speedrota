@@ -28,6 +28,7 @@ fun HomeScreen(
     onHistorico: () -> Unit,
     onDashboard: () -> Unit,
     onFrota: () -> Unit = {},
+    onFrotaGestor: () -> Unit = {},
     onPrevisao: () -> Unit = {},
     onGamificacao: () -> Unit = {},
     onEcommerce: () -> Unit = {},
@@ -264,7 +265,7 @@ fun HomeScreen(
                 
                 // Botão Principal - Gestão de Frota
                 Button(
-                    onClick = onFrota,
+                    onClick = onFrotaGestor,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(120.dp),
