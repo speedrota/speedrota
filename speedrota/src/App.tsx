@@ -15,6 +15,7 @@ import { TelaPagamentoRetorno } from './components/TelaPagamentoRetorno';
 import TelaHistorico from './components/TelaHistorico';
 import { TelaDashboard } from './components/Dashboard';
 import TelaFrota from './components/TelaFrota';
+import TelaMenuFrota from './components/TelaMenuFrota';
 import { TelaPrevisaoDemanda } from './components/PrevisaoDemanda';
 import { TelaGamificacao } from './components/Gamificacao';
 import TelaEcommerce from './components/Ecommerce';
@@ -33,6 +34,7 @@ const TITULOS: Record<string, string> = {
   navegacao: 'Navegação',
   dashboard: 'Dashboard Analytics',
   frota: 'Gestão de Frota',
+  'menu-frota': 'Menu Frota',
   previsao: 'Previsão de Demanda',
   gamificacao: 'Conquistas',
   ecommerce: 'Integrações E-commerce',
@@ -175,6 +177,7 @@ export default function App() {
         {etapaAtual === 'destinos' && <TelaDestinos />}
         {etapaAtual === 'rota' && <TelaRota />}
         {etapaAtual === 'dashboard' && <TelaDashboard onAbrirPlanos={() => setMostrarPlanos(true)} />}
+        {etapaAtual === 'menu-frota' && <TelaMenuFrota />}
         {etapaAtual === 'frota' && <TelaFrota />}
         {etapaAtual === 'previsao' && <TelaPrevisaoDemanda />}
         {etapaAtual === 'gamificacao' && <TelaGamificacao />}

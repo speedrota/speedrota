@@ -45,7 +45,7 @@ export function TelaHome({ onAbrirHistorico }: TelaHomeProps) {
   };
 
   const handleFrota = () => {
-    irPara('frota');
+    irPara('menu-frota');
   };
 
   const handlePrevisao = () => {

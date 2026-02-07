@@ -158,7 +158,7 @@ export default async function frotaRoutes(fastify: FastifyInstance) {
         veiculos: { orderBy: { placa: 'asc' } },
         equipes: { include: { _count: { select: { membros: true } } } },
         zonasAtuacao: true,
-        _count: { select: { rotas: true } },
+        _count: { select: { rotasEmpresa: true } },
       },
     });
 
@@ -321,6 +321,7 @@ export default async function frotaRoutes(fastify: FastifyInstance) {
           capacidadeVolumes: capacidadeVolumes || 30,
           raioMaximoKm: raioMaximoKm || 50,
           empresaId: null, // Motorista autônomo
+          userId, // Vincular ao usuário que criou
         },
       });
 
@@ -360,7 +361,44 @@ export default async function frotaRoutes(fastify: FastifyInstance) {
         veiculoAtual: true,
         equipe: true,
         zonasPreferidas: { include: { zona: true } },
-        _count: { select: { rotas: true } },
+        _count: { select: { rotasAtribuidas: true } },
+      },
+      orderBy: { nome: 'asc' },
+    });
+
+    return motoristas;
+  });
+
+  // Listar TODOS os motoristas do gestor (autônomos + vinculados)
+  fastify.get('/motoristas/todos', async (request: AuthRequest, reply) => {
+    const userId = request.user?.userId;
+    if (!userId) {
+      return reply.code(401).send({ error: 'Não autenticado' });
+    }
+
+    // Buscar empresas do gestor
+    const empresas = await prisma.empresa.findMany({
+      where: { gestorId: userId },
+      select: { id: true },
+    });
+    const empresaIds = empresas.map((e) => e.id);
+
+    // Buscar motoristas: autônomos criados pelo gestor OU vinculados às empresas
+    const motoristas = await prisma.motorista.findMany({
+      where: {
+        ativo: true,
+        OR: [
+          // Motoristas autônomos criados pelo gestor
+          { 
+            tipoMotorista: { in: ['AUTONOMO', 'AUTONOMO_PARCEIRO'] },
+            userId: userId
+          },
+          // Motoristas vinculados às empresas do gestor
+          { empresaId: { in: empresaIds } },
+        ],
+      },
+      include: {
+        empresa: { select: { id: true, nome: true } },
       },
       orderBy: { nome: 'asc' },
     });
@@ -380,11 +418,11 @@ export default async function frotaRoutes(fastify: FastifyInstance) {
         veiculoAtual: true,
         equipe: true,
         zonasPreferidas: { include: { zona: true } },
-        performance: {
+        performanceHistorico: {
           orderBy: { data: 'desc' },
           take: 30,
         },
-        rotas: {
+        rotasAtribuidas: {
           where: { status: { in: ['EM_ANDAMENTO', 'CONCLUIDA'] } },
           orderBy: { createdAt: 'desc' },
           take: 10,
@@ -396,8 +434,11 @@ export default async function frotaRoutes(fastify: FastifyInstance) {
       return reply.code(404).send({ error: 'Motorista não encontrado' });
     }
 
-    // Verificar permissão
-    if (motorista.empresa.gestorId !== userId) {
+    // Verificar permissão (gestor da empresa ou autônomo vinculado ao user)
+    const isGestorEmpresa = motorista.empresa?.gestorId === userId;
+    const isProprioAutonomo = motorista.userId === userId;
+    
+    if (!isGestorEmpresa && !isProprioAutonomo) {
       return reply.code(403).send({ error: 'Sem permissão' });
     }
 
