@@ -614,6 +614,21 @@ export function TelaDestinos() {
           🧭 Calcular Rota Otimizada
         </button>
         
+        {/* Botão Matching */}
+        {totalDestinos > 0 && (
+          <button
+            className="btn btn-secondary btn-lg mt-2"
+            onClick={() => irPara('matching')}
+            style={{ 
+              background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+              color: '#fff',
+              border: 'none'
+            }}
+          >
+            🔗 Match Caixa ↔ NF-e
+          </button>
+        )}
+        
         {!podeCalcular && totalDestinos === 0 && (
           <p className="text-sm text-muted text-center mt-1">
             Adicione pelo menos 1 destino para calcular

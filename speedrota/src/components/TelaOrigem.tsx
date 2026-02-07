@@ -117,7 +117,8 @@ export function TelaOrigem() {
       return;
     }
     
-    irPara('destinos');
+    // Navegar para tela de escolha: rota pronta ou fazer separação
+    irPara('escolha-carga');
   };
   
   // ==========================================

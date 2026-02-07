@@ -451,7 +451,7 @@ export interface GeocodingResult {
 /**
  * Etapas do fluxo
  */
-export type EtapaFluxo = 'home' | 'origem' | 'destinos' | 'rota' | 'navegacao' | 'dashboard' | 'frota' | 'previsao' | 'gamificacao' | 'ecommerce' | 'qrcode';
+export type EtapaFluxo = 'home' | 'origem' | 'escolha-carga' | 'destinos' | 'rota' | 'navegacao' | 'dashboard' | 'frota' | 'previsao' | 'gamificacao' | 'ecommerce' | 'qrcode' | 'matching';
 
 /**
  * Estado global da aplicação

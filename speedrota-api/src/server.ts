@@ -37,6 +37,7 @@ import { sefazRoutes } from './routes/sefaz.routes.js';
 import mlRoutes from './routes/ml.routes.js';
 import gamificacaoRoutes from './routes/gamificacao.routes.js';
 import ecommerceRoutes from './routes/ecommerce.routes.js';
+import matchingRoutes from './routes/matching.routes.js';
 
 // ==========================================
 // CRIAR SERVIDOR FASTIFY
@@ -211,6 +212,9 @@ app.register(gamificacaoRoutes, { prefix: '/api/v1/gamificacao' });
 
 // Sprint 13-14: E-commerce (VTEX + Shopify)
 app.register(ecommerceRoutes, { prefix: '/api/v1/ecommerce' });
+
+// Matching Caixa ↔ NF-e
+app.register(matchingRoutes);
 
 // API Pública (usa API Key ao invés de JWT)
 app.register(publicApiRoutes, { prefix: '/api/v1/public' });

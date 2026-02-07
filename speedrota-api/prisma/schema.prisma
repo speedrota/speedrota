@@ -1,66 +1,39 @@
-// ==========================================
-// SPEEDROTA - PRISMA SCHEMA
-// ==========================================
-// Design por Contrato:
-// - Todas as tabelas têm createdAt/updatedAt
-// - IDs são UUIDs
-// - Soft delete via deletedAt onde aplicável
-
 generator client {
   provider = "prisma-client-js"
 }
 
-// Para desenvolvimento local: SQLite
-// Para produção: PostgreSQL
-// Configure DATABASE_URL no .env
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-// ==========================================
-// USUÁRIOS E AUTENTICAÇÃO
-// ==========================================
-
 model User {
-  id           String  @id @default(uuid())
-  email        String  @unique
-  passwordHash String  @map("password_hash")
-  nome         String
-  telefone     String?
-
-  // Plano de assinatura
-  plano         Plano     @default(FREE)
-  mpCustomerId  String?   @map("mp_customer_id")
-  planoExpiraEm DateTime? @map("plano_expira_em")
-  
-  // Promoção ativa (se houver)
-  promocaoAtiva     String?   @map("promocao_ativa") // código da promoção
-  promocaoExpiraEm  DateTime? @map("promocao_expira_em")
-  descontoAtivo     Float?    @map("desconto_ativo") // % de desconto atual
-  
-  // Trial/Onboarding
-  trialUsado        Boolean   @default(false) @map("trial_usado")
-  trialExpiraEm     DateTime? @map("trial_expira_em")
-
-  // Limites do plano atual
-  rotasNoMes Int @default(0) @map("rotas_no_mes")
-  mesAtual   Int @default(1) @map("mes_atual") // 1-12
-
-  // Timestamps
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-  deletedAt DateTime? @map("deleted_at")
-
-  // Relacionamentos
-  rotas               Rota[]
-  refreshTokens       RefreshToken[]
-  pagamentos          Pagamento[]
-  passwordResetTokens PasswordResetToken[]
-  notificacoes        Notificacao[]
-  tokensPush          TokenPush[]
+  id                  String               @id @default(uuid())
+  email               String               @unique
+  passwordHash        String               @map("password_hash")
+  nome                String
+  telefone            String?
+  plano               Plano                @default(FREE)
+  mpCustomerId        String?              @map("mp_customer_id")
+  planoExpiraEm       DateTime?            @map("plano_expira_em")
+  rotasNoMes          Int                  @default(0) @map("rotas_no_mes")
+  mesAtual            Int                  @default(1) @map("mes_atual")
+  createdAt           DateTime             @default(now()) @map("created_at")
+  updatedAt           DateTime             @updatedAt @map("updated_at")
+  deletedAt           DateTime?            @map("deleted_at")
+  descontoAtivo       Float?               @map("desconto_ativo")
+  promocaoAtiva       String?              @map("promocao_ativa")
+  promocaoExpiraEm    DateTime?            @map("promocao_expira_em")
+  trialExpiraEm       DateTime?            @map("trial_expira_em")
+  trialUsado          Boolean              @default(false) @map("trial_usado")
   empresasGerenciadas Empresa[]            @relation("GestorEmpresa")
   motoristaVinculado  Motorista?
+  notificacoes        Notificacao[]
+  pagamentos          Pagamento[]
+  passwordResetTokens PasswordResetToken[]
+  refreshTokens       RefreshToken[]
+  rotas               Rota[]
+  tokensPush          TokenPush[]
 
   @@map("users")
 }
@@ -71,8 +44,7 @@ model RefreshToken {
   userId    String   @map("user_id")
   expiresAt DateTime @map("expires_at")
   createdAt DateTime @default(now()) @map("created_at")
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("refresh_tokens")
 }
@@ -85,286 +57,1113 @@ model PasswordResetToken {
   expiresAt DateTime  @map("expires_at")
   usedAt    DateTime? @map("used_at")
   createdAt DateTime  @default(now()) @map("created_at")
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("password_reset_tokens")
 }
 
-// ==========================================
-// PLANOS E ASSINATURAS
-// ==========================================
-
-enum Plano {
-  // Planos Individuais
-  FREE              // R$0 - 3 rotas/dia, 10 stops
-  STARTER           // R$29,90 - 10 rotas/dia, 30 stops, OCR + WhatsApp
-  PRO               // R$59,90 - Ilimitado + Analytics + SEFAZ
-  FULL              // R$99,90 - Ilimitado + POD + API + ML
-  
-  // Planos Frota (B2B)
-  FROTA_START       // R$299/mês - Até 5 motoristas
-  FROTA_PRO         // R$599/mês - Até 15 motoristas + API + POD + Geofencing
-  FROTA_ENTERPRISE  // R$999/mês - Ilimitado + ML + VTEX + Shopify
-  
-  // Enterprise (legacy - mantido por compatibilidade)
-  ENTERPRISE
-}
-
-// Limites por plano
 model LimitesPlano {
-  id    String @id @default(uuid())
-  plano Plano  @unique
-  
-  // Limites diários/mensais
-  rotasDia          Int     @default(3) @map("rotas_dia")
-  stopsPorRota      Int     @default(10) @map("stops_por_rota")
-  rotasMes          Int     @default(90) @map("rotas_mes")
-  
-  // Features habilitadas
-  ocrHabilitado     Boolean @default(false) @map("ocr_habilitado")
-  whatsappShare     Boolean @default(false) @map("whatsapp_share")
-  analytics         Boolean @default(false)
-  sefazIntegration  Boolean @default(false) @map("sefaz_integration")
-  podHabilitado     Boolean @default(false) @map("pod_habilitado")
-  apiAccess         Boolean @default(false) @map("api_access")
-  mlFeatures        Boolean @default(false) @map("ml_features")
-  
-  // Limites Frota
-  maxMotoristas     Int?    @map("max_motoristas")
-  geofencing        Boolean @default(false)
-  vtexIntegration   Boolean @default(false) @map("vtex_integration")
+  id                 String  @id @default(uuid())
+  plano              Plano   @unique
+  rotasDia           Int     @default(3) @map("rotas_dia")
+  stopsPorRota       Int     @default(10) @map("stops_por_rota")
+  rotasMes           Int     @default(90) @map("rotas_mes")
+  ocrHabilitado      Boolean @default(false) @map("ocr_habilitado")
+  whatsappShare      Boolean @default(false) @map("whatsapp_share")
+  analytics          Boolean @default(false)
+  sefazIntegration   Boolean @default(false) @map("sefaz_integration")
+  podHabilitado      Boolean @default(false) @map("pod_habilitado")
+  apiAccess          Boolean @default(false) @map("api_access")
+  mlFeatures         Boolean @default(false) @map("ml_features")
+  maxMotoristas      Int?    @map("max_motoristas")
+  geofencing         Boolean @default(false)
+  vtexIntegration    Boolean @default(false) @map("vtex_integration")
   shopifyIntegration Boolean @default(false) @map("shopify_integration")
-  
-  // Preço
-  precoMensal       Float   @map("preco_mensal")
-  precoAnual        Float?  @map("preco_anual") // com 25% desconto
-  
+  precoMensal        Float   @map("preco_mensal")
+  precoAnual         Float?  @map("preco_anual")
+
   @@map("limites_plano")
 }
 
-// Promoções ativas
 model Promocao {
-  id          String   @id @default(uuid())
-  codigo      String   @unique // FROTA60, MIGRACAOVUUPT, etc.
-  nome        String
-  descricao   String?
-  
-  // Tipo de desconto
-  tipoDesconto    TipoDesconto @map("tipo_desconto")
-  valorDesconto   Float        @map("valor_desconto") // % ou valor fixo
-  
-  // Aplicabilidade
-  planosAplicaveis String[] @map("planos_aplicaveis") // ["FROTA_START", "FROTA_PRO"]
-  
-  // Duração
-  mesesGratis      Int?     @map("meses_gratis")
-  mesesDesconto    Int?     @map("meses_desconto")
-  
-  // Validade
-  inicioValidade   DateTime @map("inicio_validade")
-  fimValidade      DateTime @map("fim_validade")
-  
-  // Limites
-  usoMaximo        Int?     @map("uso_maximo")
-  usosAtuais       Int      @default(0) @map("usos_atuais")
-  
-  // Status
-  ativo            Boolean  @default(true)
-  createdAt        DateTime @default(now()) @map("created_at")
-  
-  // Relacionamentos
+  id               String       @id @default(uuid())
+  codigo           String       @unique
+  nome             String
+  descricao        String?
+  tipoDesconto     TipoDesconto @map("tipo_desconto")
+  valorDesconto    Float        @map("valor_desconto")
+  planosAplicaveis String[]     @map("planos_aplicaveis")
+  mesesGratis      Int?         @map("meses_gratis")
+  mesesDesconto    Int?         @map("meses_desconto")
+  inicioValidade   DateTime     @map("inicio_validade")
+  fimValidade      DateTime     @map("fim_validade")
+  usoMaximo        Int?         @map("uso_maximo")
+  usosAtuais       Int          @default(0) @map("usos_atuais")
+  ativo            Boolean      @default(true)
+  createdAt        DateTime     @default(now()) @map("created_at")
   cuponsUsados     CupomUso[]
-  
+
   @@map("promocoes")
 }
 
-enum TipoDesconto {
-  PERCENTUAL    // 60% off
-  VALOR_FIXO    // R$50 off
-  MESES_GRATIS  // 3 meses grátis
-}
-
-// Registro de uso de cupom/promoção
 model CupomUso {
-  id          String   @id @default(uuid())
-  promocaoId  String   @map("promocao_id")
-  userId      String   @map("user_id")
-  
-  // Detalhes do uso
-  planoAplicado     Plano     @map("plano_aplicado")
-  descontoAplicado  Float     @map("desconto_aplicado")
-  dataUso           DateTime  @default(now()) @map("data_uso")
-  
-  // Validade do benefício
-  beneficioInicio   DateTime  @map("beneficio_inicio")
-  beneficioFim      DateTime  @map("beneficio_fim")
-  
-  promocao Promocao @relation(fields: [promocaoId], references: [id])
-  
+  id               String   @id @default(uuid())
+  promocaoId       String   @map("promocao_id")
+  userId           String   @map("user_id")
+  planoAplicado    Plano    @map("plano_aplicado")
+  descontoAplicado Float    @map("desconto_aplicado")
+  dataUso          DateTime @default(now()) @map("data_uso")
+  beneficioInicio  DateTime @map("beneficio_inicio")
+  beneficioFim     DateTime @map("beneficio_fim")
+  promocao         Promocao @relation(fields: [promocaoId], references: [id])
+
   @@unique([promocaoId, userId])
   @@map("cupom_uso")
 }
 
-// ==========================================
-// ROTAS E PARADAS
-// ==========================================
-
 model Rota {
-  id     String @id @default(uuid())
-  userId String @map("user_id")
+  id                 String             @id @default(uuid())
+  userId             String             @map("user_id")
+  origemLat          Float              @map("origem_lat")
+  origemLng          Float              @map("origem_lng")
+  origemEndereco     String             @map("origem_endereco")
+  origemFonte        String             @map("origem_fonte")
+  distanciaTotalKm   Float?             @map("distancia_total_km")
+  tempoViagemMin     Float?             @map("tempo_viagem_min")
+  tempoEntregasMin   Float?             @map("tempo_entregas_min")
+  combustivelL       Float?             @map("combustivel_l")
+  custoR             Float?             @map("custo_r")
+  status             StatusRota         @default(RASCUNHO)
+  incluirRetorno     Boolean            @default(true) @map("incluir_retorno")
+  calculadaEm        DateTime?          @map("calculada_em")
+  iniciadaEm         DateTime?          @map("iniciada_em")
+  finalizadaEm       DateTime?          @map("finalizada_em")
+  createdAt          DateTime           @default(now()) @map("created_at")
+  updatedAt          DateTime           @updatedAt @map("updated_at")
+  distanciaTotal     Float?             @map("distancia_total")
+  entregasFalhas     Int?               @map("entregas_falhas")
+  entregasRealizadas Int?               @map("entregas_realizadas")
+  ultimaLat          Float?             @map("ultima_lat")
+  ultimaLng          Float?             @map("ultima_lng")
+  ultimaPosicaoEm    DateTime?          @map("ultima_posicao_em")
+  paradas            Parada[]
+  posicaoHistorico   PosicaoHistorico[]
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  statusHistorico    StatusHistorico[]
+  caixas             CaixaEscaneada[]   // Caixas escaneadas para matching
 
-  // Origem
-  origemLat      Float  @map("origem_lat")
-  origemLng      Float  @map("origem_lng")
-  origemEndereco String @map("origem_endereco")
-  origemFonte    String @map("origem_fonte") // 'gps' | 'manual'
-
-  // Métricas calculadas
-  distanciaTotalKm Float? @map("distancia_total_km")
-  distanciaTotal   Float? @map("distancia_total") // Alias para km
-  tempoViagemMin   Float? @map("tempo_viagem_min")
-  tempoEntregasMin Float? @map("tempo_entregas_min")
-  combustivelL     Float? @map("combustivel_l")
-  custoR           Float? @map("custo_r")
-
-  // Tracking em tempo real
-  ultimaLat          Float?    @map("ultima_lat")
-  ultimaLng          Float?    @map("ultima_lng")
-  ultimaPosicaoEm    DateTime? @map("ultima_posicao_em")
-  entregasRealizadas Int?      @map("entregas_realizadas")
-  entregasFalhas     Int?      @map("entregas_falhas")
-
-  // Status
-  status         StatusRota @default(RASCUNHO)
-  incluirRetorno Boolean    @default(true) @map("incluir_retorno")
-
-  // Timestamps
-  calculadaEm  DateTime? @map("calculada_em")
-  iniciadaEm   DateTime? @map("iniciada_em")
-  finalizadaEm DateTime? @map("finalizada_em")
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
-
-  // Relacionamentos
-  user             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  paradas          Parada[]
-  posicaoHistorico PosicaoHistorico[] // Tracking de posição
-  statusHistorico  StatusHistorico[] // Histórico de status
+  // Preparação pelo armazenista (upload/download)
+  statusPreparacao   String?   @default("NAO_PREPARADA") @map("status_preparacao") // NAO_PREPARADA, PREPARANDO, PRONTA
+  preparadaPorId     String?   @map("preparada_por_id") // ID do armazenista
+  preparadaEm        DateTime? @map("preparada_em")
+  baixadaPorId       String?   @map("baixada_por_id") // ID do motorista que baixou
+  baixadaEm          DateTime? @map("baixada_em")
 
   @@map("rotas")
 }
 
 model Parada {
-  id     String @id @default(uuid())
-  rotaId String @map("rota_id")
-
-  // Localização
-  lat      Float
-  lng      Float
-  endereco String
-  cidade   String
-  uf       String
-  cep      String?
-
-  // Destinatário
-  nome     String
-  telefone String?
-
-  // Fornecedor
-  fornecedor String // 'natura', 'mercadolivre', etc
-
-  // OCR/Fonte
-  fonte     String // 'ocr' | 'manual' | 'pdf'
-  confianca Float  @default(1.0) // 0-1
-
-  // Janela de tempo e prioridade (NOVO - Quick Win)
-  janelaInicio String?    @map("janela_inicio") // "08:00"
-  janelaFim    String?    @map("janela_fim") // "12:00"
-  prioridade   Prioridade @default(MEDIA)
-
-  // Ordem na rota (após otimização)
+  id                String            @id @default(uuid())
+  rotaId            String            @map("rota_id")
+  lat               Float
+  lng               Float
+  endereco          String
+  cidade            String
+  uf                String
+  cep               String?
+  nome              String
+  telefone          String?
+  fornecedor        String
+  fonte             String
+  confianca         Float             @default(1.0)
   ordem             Int?
-  distanciaAnterior Float? @map("distancia_anterior")
-  tempoAnterior     Float? @map("tempo_anterior")
+  distanciaAnterior Float?            @map("distancia_anterior")
+  tempoAnterior     Float?            @map("tempo_anterior")
+  statusEntrega     StatusEntrega     @default(PENDENTE) @map("status_entrega")
+  entregueEm        DateTime?         @map("entregue_em")
+  observacao        String?
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+  janelaFim         String?           @map("janela_fim")
+  janelaInicio      String?           @map("janela_inicio")
+  prioridade        Prioridade        @default(MEDIA)
+  motivoFalha       String?           @map("motivo_falha")
+  observacaoFalha   String?           @map("observacao_falha")
+  status            String?           @default("PENDENTE")
+  rota              Rota              @relation(fields: [rotaId], references: [id], onDelete: Cascade)
+  pod               ProofOfDelivery?
+  statusHistorico   StatusHistorico[]
 
-  // Status da entrega
-  statusEntrega StatusEntrega @default(PENDENTE) @map("status_entrega")
-  entregueEm    DateTime?     @map("entregue_em")
-  observacao    String?
-
-  // Timestamps
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  // Relacionamentos
-  rota            Rota              @relation(fields: [rotaId], references: [id], onDelete: Cascade)
-  pod             ProofOfDelivery? // Comprovante de entrega (opcional)
-  statusHistorico StatusHistorico[] // Histórico de mudanças de status
-
-  // Campos para controle de status estendido
-  status          String? @default("PENDENTE") // PENDENTE, EM_TRANSITO, CHEGOU, ENTREGUE, FALHA, CANCELADO, PULADO
-  motivoFalha     String? @map("motivo_falha") // CLIENTE_AUSENTE, ENDERECO_NAO_ENCONTRADO, RECUSADO, AVARIADO, OUTRO
-  observacaoFalha String? @map("observacao_falha")
+  // ==========================================
+  // MATCHING CAIXA ↔ NF-e
+  // ==========================================
+  // Tag visual para identificação rápida no veículo
+  // Formato: {NOME3}-{CEP3}-{ITENS} = Ex: PAU-474-09
+  tagVisual     String? @map("tag_visual")
+  tagCor        Int?    @map("tag_cor") // 1-8 para cores diferentes
+  
+  // Dados de matching
+  matchScore    Float?  @map("match_score") // Pontuação do matching (0-100)
+  caixaId       String? @map("caixa_id") // ID da caixa pareada
+  
+  // Dados extraídos da etiqueta da caixa
+  pedido        String? // Número do pedido
+  remessa       String? // Número da remessa/REM
+  subrota       String? // Código da SubRota
+  itens         Int?    // Quantidade de itens
+  pesoKg        Float?  @map("peso_kg") // Peso em kg
+  valorNf       Float?  @map("valor_nf") // Valor da NF-e
+  
+  // Relacionamento com caixa (opcional)
+  caixa         CaixaEscaneada? @relation(fields: [caixaId], references: [id])
 
   @@map("paradas")
 }
 
-// ==========================================
-// PROOF OF DELIVERY (POD) - Comprovante de Entrega
-// ==========================================
-// @description Comprovante de entrega com foto, assinatura ou código
-// @pre Parada deve existir e não estar já entregue
-// @post Após criar POD, Parada.statusEntrega = ENTREGUE
-// @invariant 1 Parada = máximo 1 POD ativo
-
 model ProofOfDelivery {
-  id       String @id @default(uuid())
-  paradaId String @unique @map("parada_id")
-
-  // Tipo de comprovação
-  tipo TipoPOD
-
-  // Dados conforme tipo (apenas um preenchido)
-  fotoUrl       String? @map("foto_url") // URL S3/Cloudinary ou base64
-  assinaturaUrl String? @map("assinatura_url") // SVG/PNG base64 ou URL
-  codigo        String? // Código informado pelo cliente
-
-  // Geolocalização da confirmação
-  latitude    Float
-  longitude   Float
-  precisaoGps Float? @map("precisao_gps") // Precisão em metros
-
-  // Distância do local de entrega (calculado)
-  distanciaMetros Int?    @map("distancia_metros")
-  alertaDistancia Boolean @default(false) @map("alerta_distancia")
-
-  // Metadados
-  timestamp  DateTime @default(now())
-  observacao String?
-
-  // Integração com fornecedores (futuro)
-  sincronizadoFornecedor Boolean @default(false) @map("sincronizado_fornecedor")
-  protocoloFornecedor    String? @map("protocolo_fornecedor")
-
-  // Auditoria
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  // Relacionamentos
-  parada Parada @relation(fields: [paradaId], references: [id], onDelete: Cascade)
+  id                     String   @id @default(uuid())
+  paradaId               String   @unique @map("parada_id")
+  tipo                   TipoPOD
+  fotoUrl                String?  @map("foto_url")
+  assinaturaUrl          String?  @map("assinatura_url")
+  codigo                 String?
+  latitude               Float
+  longitude              Float
+  precisaoGps            Float?   @map("precisao_gps")
+  distanciaMetros        Int?     @map("distancia_metros")
+  alertaDistancia        Boolean  @default(false) @map("alerta_distancia")
+  timestamp              DateTime @default(now())
+  observacao             String?
+  sincronizadoFornecedor Boolean  @default(false) @map("sincronizado_fornecedor")
+  protocoloFornecedor    String?  @map("protocolo_fornecedor")
+  createdAt              DateTime @default(now()) @map("created_at")
+  updatedAt              DateTime @updatedAt @map("updated_at")
+  parada                 Parada   @relation(fields: [paradaId], references: [id], onDelete: Cascade)
 
   @@map("proof_of_delivery")
 }
 
-// Tipo de comprovante de entrega
+// ==========================================
+// CAIXA ESCANEADA - Etiquetas fotografadas
+// ==========================================
+// @description Armazena dados extraídos das etiquetas das caixas
+// @pre Foto deve ser processada por OCR
+// @post Dados disponíveis para matching com NF-e
+
+model CaixaEscaneada {
+  id     String @id @default(uuid())
+  rotaId String @map("rota_id")
+  
+  // Imagem original
+  fotoUrl     String?  @map("foto_url") // URL ou base64
+  fotoThumb   String?  @map("foto_thumb") // Thumbnail para preview
+  
+  // Dados extraídos via OCR
+  pedido      String? // PED - pedido
+  remessa     String? // REM - remessa
+  destinatario String? // Nome do destinatário
+  cep         String?
+  bairro      String?
+  cidade      String?
+  uf          String?
+  
+  // Detalhes do pacote
+  itens       Int?    // Quantidade de itens
+  pesoKg      Float?  @map("peso_kg")
+  barcode     String? // Código de barras
+  
+  // Status do processamento
+  statusOcr   String  @default("PENDENTE") @map("status_ocr") // PENDENTE, PROCESSANDO, SUCESSO, ERRO
+  confianca   Float?  // Confiança do OCR (0-1)
+  textoRaw    String? @map("texto_raw") // Texto bruto do OCR
+  
+  // Status do matching
+  statusMatch String  @default("PENDENTE") @map("status_match") // PENDENTE, PAREADO, SEM_MATCH
+  paradaId    String? @map("parada_id") // ID da parada pareada
+  matchScore  Float?  @map("match_score")
+  
+  // Suporte a múltiplas caixas por NF-e (N:1)
+  numeroCaixa Int?    @map("numero_caixa") // Ex: 1 de 2 -> numeroCaixa=1
+  totalCaixas Int?    @map("total_caixas") // Ex: 1 de 2 -> totalCaixas=2
+  grupoCaixaId String? @map("grupo_caixa_id") // UUID para agrupar caixas do mesmo pedido
+  
+  // Tag visual (mesma para caixas do mesmo pedido)
+  tagVisual   String? @map("tag_visual")
+  tagCor      Int?    @map("tag_cor")
+  
+  // Timestamps
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  
+  // Relacionamentos
+  rota        Rota     @relation(fields: [rotaId], references: [id], onDelete: Cascade)
+  paradas     Parada[]
+  
+  @@map("caixas_escaneadas")
+}
+
+model Pagamento {
+  id             String          @id @default(uuid())
+  mpPreferenceId String?         @map("mp_preference_id")
+  mpPaymentId    String?         @map("mp_payment_id")
+  userId         String          @map("user_id")
+  plano          Plano
+  valorCentavos  Int             @map("valor_centavos")
+  moeda          String          @default("BRL")
+  status         StatusPagamento @default(PENDENTE)
+  pagoEm         DateTime?       @map("pago_em")
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("pagamentos")
+}
+
+model ConfiguracaoSistema {
+  id        String   @id @default(uuid())
+  chave     String   @unique
+  valor     String
+  descricao String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("configuracoes_sistema")
+}
+
+model HistoricoTempo {
+  id               String   @id @default(uuid())
+  userId           String   @map("user_id")
+  origemLat        Float    @map("origem_lat")
+  origemLng        Float    @map("origem_lng")
+  destinoLat       Float    @map("destino_lat")
+  destinoLng       Float    @map("destino_lng")
+  tempoEstimadoMin Float    @map("tempo_estimado_min")
+  tempoRealMin     Float    @map("tempo_real_min")
+  fatorCorrecao    Float    @map("fator_correcao")
+  horaInicio       Int      @map("hora_inicio")
+  diaSemana        Int      @map("dia_semana")
+  distanciaKm      Float    @map("distancia_km")
+  dataViagem       DateTime @map("data_viagem")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([horaInicio])
+  @@index([diaSemana])
+  @@map("historico_tempo")
+}
+
+model TokenPush {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  endpoint     String
+  p256dh       String
+  auth         String
+  platform     String   @default("web")
+  deviceId     String?  @map("device_id")
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, endpoint])
+  @@index([userId])
+  @@map("tokens_push")
+}
+
+model Notificacao {
+  id       String    @id @default(uuid())
+  userId   String    @map("user_id")
+  tipo     String
+  titulo   String
+  mensagem String
+  icone    String?
+  rotaId   String?   @map("rota_id")
+  paradaId String?   @map("parada_id")
+  dados    String?
+  acaoUrl  String?   @map("acao_url")
+  lida     Boolean   @default(false)
+  lidaEm   DateTime? @map("lida_em")
+  criadaEm DateTime  @default(now()) @map("criada_em")
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, lida])
+  @@index([tipo])
+  @@map("notificacoes")
+}
+
+model StatusHistorico {
+  id          String   @id @default(uuid())
+  paradaId    String?  @map("parada_id")
+  rotaId      String   @map("rota_id")
+  status      String
+  motivoFalha String?  @map("motivo_falha")
+  observacao  String?
+  lat         Float?
+  lng         Float?
+  timestamp   DateTime @default(now())
+  parada      Parada?  @relation(fields: [paradaId], references: [id], onDelete: Cascade)
+  rota        Rota     @relation(fields: [rotaId], references: [id], onDelete: Cascade)
+
+  @@index([rotaId])
+  @@index([paradaId])
+  @@index([timestamp])
+  @@map("status_historico")
+}
+
+model PosicaoHistorico {
+  id         String   @id @default(uuid())
+  rotaId     String   @map("rota_id")
+  lat        Float
+  lng        Float
+  heading    Float?
+  velocidade Float?
+  precisao   Float?
+  timestamp  DateTime @default(now())
+  rota       Rota     @relation(fields: [rotaId], references: [id], onDelete: Cascade)
+
+  @@index([rotaId])
+  @@index([timestamp])
+  @@map("posicao_historico")
+}
+
+model Empresa {
+  id                 String                 @id @default(uuid())
+  nome               String
+  cnpj               String?                @unique
+  email              String
+  telefone           String?
+  gestorId           String                 @map("gestor_id")
+  limiteMotoristas   Int                    @default(10) @map("limite_motoristas")
+  limiteVeiculos     Int                    @default(10) @map("limite_veiculos")
+  baseLat            Float?                 @map("base_lat")
+  baseLng            Float?                 @map("base_lng")
+  baseEndereco       String?                @map("base_endereco")
+  modoDistribuicao   ModoDistribuicao       @default(AUTOMATICO) @map("modo_distribuicao")
+  balanceamentoCarga Boolean                @default(true) @map("balanceamento_carga")
+  respeitarZonas     Boolean                @default(true) @map("respeitar_zonas")
+  ativo              Boolean                @default(true)
+  createdAt          DateTime               @default(now()) @map("created_at")
+  updatedAt          DateTime               @updatedAt @map("updated_at")
+  deletedAt          DateTime?              @map("deleted_at")
+  apiKeys            ApiKey[]
+  configuracaoSefaz  ConfiguracaoSefaz?
+  gestor             User                   @relation("GestorEmpresa", fields: [gestorId], references: [id])
+  equipes            Equipe[]
+  integracoes        IntegracaoFornecedor[]
+  motoristas         Motorista[]
+  rotasEmpresa       RotaEmpresa[]
+  veiculos           Veiculo[]
+  zonasAtuacao       ZonaAtuacao[]
+
+  @@index([gestorId])
+  @@map("empresas")
+}
+
+model Motorista {
+  id                   String                 @id @default(uuid())
+  empresaId            String                 @map("empresa_id")
+  nome                 String
+  email                String
+  telefone             String
+  cpf                  String?
+  cnh                  String?
+  cnhValidade          DateTime?              @map("cnh_validade")
+  foto                 String?
+  userId               String?                @unique @map("user_id")
+  pin                  String?
+  status               StatusMotorista        @default(DISPONIVEL)
+  statusAtualizadoEm   DateTime?              @map("status_atualizado_em")
+  motivoIndisponivel   String?                @map("motivo_indisponivel")
+  ultimaLat            Float?                 @map("ultima_lat")
+  ultimaLng            Float?                 @map("ultima_lng")
+  ultimaPosicaoEm      DateTime?              @map("ultima_posicao_em")
+  capacidadeKg         Float                  @default(100) @map("capacidade_kg")
+  capacidadeVolumes    Int                    @default(50) @map("capacidade_volumes")
+  raioMaximoKm         Float                  @default(50) @map("raio_maximo_km")
+  taxaEntrega          Float                  @default(100) @map("taxa_entrega")
+  tempoMedioEntrega    Float                  @default(5) @map("tempo_medio_entrega")
+  avaliacaoMedia       Float                  @default(5) @map("avaliacao_media")
+  totalEntregas        Int                    @default(0) @map("total_entregas")
+  totalKm              Float                  @default(0) @map("total_km")
+  horaInicio           String?                @map("hora_inicio")
+  horaFim              String?                @map("hora_fim")
+  diasTrabalho         String?                @map("dias_trabalho")
+  veiculoAtualId       String?                @map("veiculo_atual_id")
+  equipeId             String?                @map("equipe_id")
+  ativo                Boolean                @default(true)
+  createdAt            DateTime               @default(now()) @map("created_at")
+  updatedAt            DateTime               @updatedAt @map("updated_at")
+  deletedAt            DateTime?              @map("deleted_at")
+  historicoAtribuicoes AtribuicaoHistorico[]
+  eventosGeofence      EventoGeofence[]
+  zonasPreferidas      MotoristaZona[]
+  empresa              Empresa                @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  equipe               Equipe?                @relation(fields: [equipeId], references: [id])
+  user                 User?                  @relation(fields: [userId], references: [id])
+  veiculoAtual         Veiculo?               @relation("MotoristaVeiculoAtual", fields: [veiculoAtualId], references: [id])
+  performanceHistorico PerformanceMotorista[]
+  rotasAtribuidas      RotaEmpresa[]          @relation("MotoristaRotas")
+
+  @@index([empresaId])
+  @@index([status])
+  @@index([equipeId])
+  @@map("motoristas")
+}
+
+model Veiculo {
+  id                String             @id @default(uuid())
+  empresaId         String             @map("empresa_id")
+  placa             String
+  modelo            String
+  marca             String?
+  ano               Int?
+  cor               String?
+  tipo              TipoVeiculo        @default(MOTO)
+  capacidadeKg      Float              @default(50) @map("capacidade_kg")
+  capacidadeVolumes Int                @default(20) @map("capacidade_volumes")
+  capacidadeM3      Float?             @map("capacidade_m3")
+  consumoKmL        Float              @default(15) @map("consumo_km_l")
+  tipoCombustivel   String?            @map("tipo_combustivel")
+  renavam           String?
+  chassi            String?
+  seguroVencimento  DateTime?          @map("seguro_vencimento")
+  ipvaVencimento    DateTime?          @map("ipva_vencimento")
+  status            StatusVeiculo      @default(DISPONIVEL)
+  kmAtual           Float              @default(0) @map("km_atual")
+  ultimaManutencao  DateTime?          @map("ultima_manutencao")
+  proximaManutencao DateTime?          @map("proxima_manutencao")
+  ativo             Boolean            @default(true)
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
+  motoristasUsando  Motorista[]        @relation("MotoristaVeiculoAtual")
+  historicoUso      VeiculoHistorico[]
+  empresa           Empresa            @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  @@unique([empresaId, placa])
+  @@index([empresaId])
+  @@index([status])
+  @@map("veiculos")
+}
+
+model Equipe {
+  id           String       @id @default(uuid())
+  empresaId    String       @map("empresa_id")
+  nome         String
+  descricao    String?
+  cor          String?
+  liderId      String?      @map("lider_id")
+  zonaPadraoId String?      @map("zona_padrao_id")
+  ativo        Boolean      @default(true)
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+  empresa      Empresa      @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  zonaPadrao   ZonaAtuacao? @relation(fields: [zonaPadraoId], references: [id])
+  motoristas   Motorista[]
+
+  @@index([empresaId])
+  @@map("equipes")
+}
+
+model ZonaAtuacao {
+  id                   String                @id @default(uuid())
+  empresaId            String                @map("empresa_id")
+  nome                 String
+  descricao            String?
+  cor                  String?
+  poligono             String?
+  centroLat            Float?                @map("centro_lat")
+  centroLng            Float?                @map("centro_lng")
+  raioKm               Float?                @map("raio_km")
+  cidades              String?
+  bairros              String?
+  ceps                 String?
+  prioridade           Int                   @default(1)
+  ativo                Boolean               @default(true)
+  createdAt            DateTime              @default(now()) @map("created_at")
+  updatedAt            DateTime              @updatedAt @map("updated_at")
+  configuracaoGeofence ConfiguracaoGeofence?
+  equipesZona          Equipe[]
+  eventosGeofence      EventoGeofence[]
+  motoristasZona       MotoristaZona[]
+  empresa              Empresa               @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  @@index([empresaId])
+  @@map("zonas_atuacao")
+}
+
+model MotoristaZona {
+  id          String      @id @default(uuid())
+  motoristaId String      @map("motorista_id")
+  zonaId      String      @map("zona_id")
+  prioridade  Int         @default(1)
+  motorista   Motorista   @relation(fields: [motoristaId], references: [id], onDelete: Cascade)
+  zona        ZonaAtuacao @relation(fields: [zonaId], references: [id], onDelete: Cascade)
+
+  @@unique([motoristaId, zonaId])
+  @@map("motorista_zonas")
+}
+
+model RotaEmpresa {
+  id               String           @id @default(uuid())
+  empresaId        String           @map("empresa_id")
+  motoristaId      String?          @map("motorista_id")
+  rotaOriginalId   String?          @map("rota_original_id")
+  statusAtribuicao StatusAtribuicao @default(PENDENTE) @map("status_atribuicao")
+  atribuidoEm      DateTime?        @map("atribuido_em")
+  aceitoEm         DateTime?        @map("aceito_em")
+  recusadoEm       DateTime?        @map("recusado_em")
+  motivoRecusa     String?          @map("motivo_recusa")
+  origemLat        Float            @map("origem_lat")
+  origemLng        Float            @map("origem_lng")
+  origemEndereco   String           @map("origem_endereco")
+  totalParadas     Int              @default(0) @map("total_paradas")
+  distanciaKm      Float?           @map("distancia_km")
+  tempoEstimadoMin Float?           @map("tempo_estimado_min")
+  pesoTotalKg      Float?           @map("peso_total_kg")
+  volumeTotal      Int?             @map("volume_total")
+  status           StatusRota       @default(RASCUNHO)
+  iniciadaEm       DateTime?        @map("iniciada_em")
+  finalizadaEm     DateTime?        @map("finalizada_em")
+  entreguesCount   Int              @default(0) @map("entregues_count")
+  falhasCount      Int              @default(0) @map("falhas_count")
+  kmReal           Float?           @map("km_real")
+  tempoRealMin     Float?           @map("tempo_real_min")
+  custoReal        Float?           @map("custo_real")
+  notaAvaliacao    Float?           @map("nota_avaliacao")
+  dataRota         DateTime         @default(now()) @map("data_rota")
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
+  cargaVeiculoId   String?
+  paradasEmpresa   ParadaEmpresa[]
+  cargaVeiculo     CargaVeiculo?    @relation(fields: [cargaVeiculoId], references: [id])
+  empresa          Empresa          @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  motorista        Motorista?       @relation("MotoristaRotas", fields: [motoristaId], references: [id])
+
+  @@index([empresaId])
+  @@index([motoristaId])
+  @@index([status])
+  @@index([dataRota])
+  @@map("rotas_empresa")
+}
+
+model ParadaEmpresa {
+  id            String      @id @default(uuid())
+  rotaEmpresaId String      @map("rota_empresa_id")
+  lat           Float
+  lng           Float
+  endereco      String
+  cidade        String
+  uf            String
+  cep           String?
+  bairro        String?
+  nome          String
+  telefone      String?
+  ordem         Int?
+  pesoKg        Float?      @map("peso_kg")
+  volumes       Int         @default(1)
+  valor         Float?
+  janelaInicio  String?     @map("janela_inicio")
+  janelaFim     String?     @map("janela_fim")
+  prioridade    Prioridade  @default(MEDIA)
+  status        String      @default("PENDENTE")
+  entregueEm    DateTime?   @map("entregue_em")
+  motivoFalha   String?     @map("motivo_falha")
+  observacao    String?
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+  rotaEmpresa   RotaEmpresa @relation(fields: [rotaEmpresaId], references: [id], onDelete: Cascade)
+
+  @@index([rotaEmpresaId])
+  @@map("paradas_empresa")
+}
+
+model AtribuicaoHistorico {
+  id               String    @id @default(uuid())
+  motoristaId      String    @map("motorista_id")
+  rotaEmpresaId    String?   @map("rota_empresa_id")
+  acao             String
+  motivo           String?
+  atribuidoPor     String?   @map("atribuido_por")
+  metodoAtribuicao String?   @map("metodo_atribuicao")
+  timestamp        DateTime  @default(now())
+  motorista        Motorista @relation(fields: [motoristaId], references: [id], onDelete: Cascade)
+
+  @@index([motoristaId])
+  @@index([timestamp])
+  @@map("atribuicao_historico")
+}
+
+model PerformanceMotorista {
+  id                String    @id @default(uuid())
+  motoristaId       String    @map("motorista_id")
+  data              DateTime  @db.Date
+  totalRotas        Int       @default(0) @map("total_rotas")
+  totalEntregas     Int       @default(0) @map("total_entregas")
+  entregasSucesso   Int       @default(0) @map("entregas_sucesso")
+  entregasFalha     Int       @default(0) @map("entregas_falha")
+  kmRodados         Float     @default(0) @map("km_rodados")
+  tempoTrabalhoMin  Float     @default(0) @map("tempo_trabalho_min")
+  tempoEntregasMin  Float     @default(0) @map("tempo_entregas_min")
+  taxaSucesso       Float?    @map("taxa_sucesso")
+  tempoMedioEntrega Float?    @map("tempo_medio_entrega")
+  entregrasPorHora  Float?    @map("entregas_por_hora")
+  avaliacaoMedia    Float?    @map("avaliacao_media")
+  totalAvaliacoes   Int       @default(0) @map("total_avaliacoes")
+  custoCombustivel  Float?    @map("custo_combustivel")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  motorista         Motorista @relation(fields: [motoristaId], references: [id], onDelete: Cascade)
+
+  @@unique([motoristaId, data])
+  @@index([motoristaId])
+  @@index([data])
+  @@map("performance_motorista")
+}
+
+model VeiculoHistorico {
+  id               String    @id @default(uuid())
+  veiculoId        String    @map("veiculo_id")
+  motoristaId      String?   @map("motorista_id")
+  dataInicio       DateTime  @map("data_inicio")
+  dataFim          DateTime? @map("data_fim")
+  kmInicio         Float     @map("km_inicio")
+  kmFim            Float?    @map("km_fim")
+  combustivelL     Float?    @map("combustivel_l")
+  custoCombustivel Float?    @map("custo_combustivel")
+  veiculo          Veiculo   @relation(fields: [veiculoId], references: [id], onDelete: Cascade)
+
+  @@index([veiculoId])
+  @@index([dataInicio])
+  @@map("veiculo_historico")
+}
+
+model ApiKey {
+  id                 String          @id @default(uuid())
+  keyHash            String          @unique @map("key_hash")
+  keyPrefix          String          @map("key_prefix")
+  nome               String
+  empresaId          String?         @map("empresa_id")
+  userId             String?         @map("user_id")
+  permissoes         String[]
+  rateLimitPorMinuto Int             @default(100) @map("rate_limit_por_minuto")
+  ambiente           AmbienteApi     @default(PRODUCAO)
+  ativo              Boolean         @default(true)
+  expiresAt          DateTime?       @map("expires_at")
+  ultimoUso          DateTime?       @map("ultimo_uso")
+  totalRequisicoes   Int             @default(0) @map("total_requisicoes")
+  createdAt          DateTime        @default(now()) @map("created_at")
+  updatedAt          DateTime        @updatedAt @map("updated_at")
+  revogadoEm         DateTime?       @map("revogado_em")
+  empresa            Empresa?        @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  logsApi            LogApiPublica[]
+  webhooks           Webhook[]
+
+  @@index([keyPrefix])
+  @@index([empresaId])
+  @@index([userId])
+  @@map("api_keys")
+}
+
+model Webhook {
+  id            String           @id @default(uuid())
+  apiKeyId      String           @map("api_key_id")
+  url           String
+  eventos       String[]
+  segredo       String
+  ativo         Boolean          @default(true)
+  totalEnvios   Int              @default(0) @map("total_envios")
+  totalSucessos Int              @default(0) @map("total_sucessos")
+  totalFalhas   Int              @default(0) @map("total_falhas")
+  ultimoEnvio   DateTime?        @map("ultimo_envio")
+  ultimoStatus  Int?             @map("ultimo_status")
+  createdAt     DateTime         @default(now()) @map("created_at")
+  updatedAt     DateTime         @updatedAt @map("updated_at")
+  entregas      WebhookEntrega[]
+  apiKey        ApiKey           @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+
+  @@index([apiKeyId])
+  @@map("webhooks")
+}
+
+model WebhookEntrega {
+  id               String               @id @default(uuid())
+  webhookId        String               @map("webhook_id")
+  evento           String
+  payload          String
+  status           StatusWebhookEntrega @default(PENDENTE)
+  tentativas       Int                  @default(0)
+  proximaTentativa DateTime?            @map("proxima_tentativa")
+  httpStatus       Int?                 @map("http_status")
+  resposta         String?
+  erro             String?
+  createdAt        DateTime             @default(now()) @map("created_at")
+  enviadoEm        DateTime?            @map("enviado_em")
+  webhook          Webhook              @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+
+  @@index([webhookId])
+  @@index([status])
+  @@index([proximaTentativa])
+  @@map("webhook_entregas")
+}
+
+model LogApiPublica {
+  id         String   @id @default(uuid())
+  apiKeyId   String   @map("api_key_id")
+  metodo     String
+  path       String
+  ip         String?
+  userAgent  String?  @map("user_agent")
+  statusCode Int      @map("status_code")
+  tempoMs    Int      @map("tempo_ms")
+  createdAt  DateTime @default(now()) @map("created_at")
+  apiKey     ApiKey   @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+
+  @@index([apiKeyId])
+  @@index([createdAt])
+  @@map("log_api_publica")
+}
+
+model IntegracaoFornecedor {
+  id                     String            @id @default(uuid())
+  empresaId              String?           @map("empresa_id")
+  userId                 String?           @map("user_id")
+  fornecedor             TipoIntegracao
+  nome                   String?
+  credentials            String
+  configJson             String?           @map("config_json")
+  ativo                  Boolean           @default(true)
+  ultimaSincronizacao    DateTime?         @map("ultima_sincronizacao")
+  totalPedidosImportados Int               @default(0) @map("total_pedidos_importados")
+  createdAt              DateTime          @default(now()) @map("created_at")
+  updatedAt              DateTime          @updatedAt @map("updated_at")
+  empresa                Empresa?          @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  pedidosImportados      PedidoImportado[]
+
+  @@index([empresaId])
+  @@index([userId])
+  @@index([fornecedor])
+  @@map("integracoes_fornecedor")
+}
+
+model PedidoImportado {
+  id           String                @id @default(uuid())
+  integracaoId String                @map("integracao_id")
+  idExterno    String                @map("id_externo")
+  numeroNota   String?               @map("numero_nota")
+  cliente      String
+  endereco     String
+  cidade       String
+  uf           String
+  cep          String?
+  telefone     String?
+  valorTotal   Float?                @map("valor_total")
+  peso         Float?
+  volumes      Int?
+  status       StatusPedidoImportado @default(PENDENTE)
+  paradaId     String?               @map("parada_id")
+  createdAt    DateTime              @default(now()) @map("created_at")
+  processadoEm DateTime?             @map("processado_em")
+  integracao   IntegracaoFornecedor  @relation(fields: [integracaoId], references: [id], onDelete: Cascade)
+
+  @@unique([integracaoId, idExterno])
+  @@index([integracaoId])
+  @@index([status])
+  @@map("pedidos_importados")
+}
+
+model EventoGeofence {
+  id                  String             @id @default(uuid())
+  motoristaId         String             @map("motorista_id")
+  zonaId              String             @map("zona_id")
+  rotaId              String?            @map("rota_id")
+  tipo                TipoEventoGeofence
+  lat                 Float
+  lng                 Float
+  precisao            Float?
+  velocidade          Float?
+  enderecoApproximado String?            @map("endereco_approx")
+  tempoNaZonaMin      Int?               @map("tempo_na_zona_min")
+  notificacaoEnviada  Boolean            @default(false) @map("notificacao_enviada")
+  processadoEm        DateTime?          @map("processado_em")
+  createdAt           DateTime           @default(now()) @map("created_at")
+  motorista           Motorista          @relation(fields: [motoristaId], references: [id], onDelete: Cascade)
+  zona                ZonaAtuacao        @relation(fields: [zonaId], references: [id], onDelete: Cascade)
+
+  @@index([motoristaId])
+  @@index([zonaId])
+  @@index([createdAt])
+  @@map("eventos_geofence")
+}
+
+model ConfiguracaoGeofence {
+  id                   String      @id @default(uuid())
+  zonaId               String      @unique @map("zona_id")
+  alertaEntrada        Boolean     @default(true) @map("alerta_entrada")
+  alertaSaida          Boolean     @default(true) @map("alerta_saida")
+  alertaTempoExcedido  Boolean     @default(false) @map("alerta_tempo_excedido")
+  tempoMaximoMin       Int         @default(60) @map("tempo_maximo_min")
+  debounceSegundos     Int         @default(30) @map("debounce_segundos")
+  raioToleranciaMetros Int         @default(50) @map("raio_tolerancia_metros")
+  notificarGestor      Boolean     @default(true) @map("notificar_gestor")
+  notificarMotorista   Boolean     @default(false) @map("notificar_motorista")
+  webhookUrl           String?     @map("webhook_url")
+  createdAt            DateTime    @default(now()) @map("created_at")
+  updatedAt            DateTime    @updatedAt @map("updated_at")
+  zona                 ZonaAtuacao @relation(fields: [zonaId], references: [id], onDelete: Cascade)
+
+  @@map("configuracoes_geofence")
+}
+
+model CacheSefaz {
+  id               String    @id @default(uuid())
+  chaveAcesso      String    @unique @map("chave_acesso")
+  uf               String
+  status           StatusNfe
+  protocolo        String?
+  dataAutorizacao  DateTime? @map("data_autorizacao")
+  dataCancelamento DateTime? @map("data_cancelamento")
+  xmlNfe           String?   @map("xml_nfe")
+  xmlProcNfe       String?   @map("xml_proc_nfe")
+  numero           String?
+  serie            String?
+  dataEmissao      DateTime? @map("data_emissao")
+  valorTotal       Float?    @map("valor_total")
+  emitenteCnpj     String?   @map("emitente_cnpj")
+  emitenteNome     String?   @map("emitente_nome")
+  emitenteUf       String?   @map("emitente_uf")
+  destCpfCnpj      String?   @map("dest_cpf_cnpj")
+  destNome         String?   @map("dest_nome")
+  destEndereco     String?   @map("dest_endereco")
+  destNumero       String?   @map("dest_numero")
+  destComplemento  String?   @map("dest_complemento")
+  destBairro       String?   @map("dest_bairro")
+  destCidade       String?   @map("dest_cidade")
+  destUf           String?   @map("dest_uf")
+  destCep          String?   @map("dest_cep")
+  destTelefone     String?   @map("dest_telefone")
+  volumes          Int?      @default(1)
+  pesoLiquido      Float?    @map("peso_liquido")
+  pesoBruto        Float?    @map("peso_bruto")
+  consultadoEm     DateTime  @default(now()) @map("consultado_em")
+  expiraEm         DateTime  @map("expira_em")
+  totalConsultas   Int       @default(1) @map("total_consultas")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  @@index([chaveAcesso])
+  @@index([emitenteCnpj])
+  @@index([destCpfCnpj])
+  @@index([expiraEm])
+  @@map("cache_sefaz")
+}
+
+model ConfiguracaoSefaz {
+  id                  String        @id @default(uuid())
+  empresaId           String        @unique @map("empresa_id")
+  certificadoBase64   String?       @map("certificado_base64")
+  certificadoSenha    String?       @map("certificado_senha")
+  certificadoValidade DateTime?     @map("certificado_validade")
+  ambiente            AmbienteSefaz @default(PRODUCAO)
+  ufPadrao            String?       @map("uf_padrao")
+  consultaAutomatica  Boolean       @default(false) @map("consulta_automatica")
+  importarAutomatico  Boolean       @default(false) @map("importar_automatico")
+  maxConsultasDia     Int           @default(100) @map("max_consultas_dia")
+  consultasHoje       Int           @default(0) @map("consultas_hoje")
+  ultimoResetDia      DateTime?     @map("ultimo_reset_dia")
+  createdAt           DateTime      @default(now()) @map("created_at")
+  updatedAt           DateTime      @updatedAt @map("updated_at")
+  empresa             Empresa       @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  @@map("configuracoes_sefaz")
+}
+
+model CargaVeiculo {
+  id                String        @id @default(uuid())
+  veiculoId         String        @map("veiculo_id")
+  rotaId            String        @map("rota_id")
+  pesoAtualKg       Float         @default(0) @map("peso_atual_kg")
+  volumesAtuais     Int           @default(0) @map("volumes_atuais")
+  volumeM3Atual     Float         @default(0) @map("volume_m3_atual")
+  capacidadeKg      Float         @map("capacidade_kg")
+  capacidadeVolumes Int           @map("capacidade_volumes")
+  capacidadeM3      Float?        @map("capacidade_m3")
+  percentualPeso    Float         @default(0) @map("percentual_peso")
+  percentualVolumes Float         @default(0) @map("percentual_volumes")
+  alertaEnviado80   Boolean       @default(false) @map("alerta_enviado_80")
+  alertaEnviado95   Boolean       @default(false) @map("alerta_enviado_95")
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+  rotaEmpresas      RotaEmpresa[]
+
+  @@unique([veiculoId, rotaId])
+  @@index([rotaId])
+  @@map("cargas_veiculo")
+}
+
+model AgregacaoDemanda {
+  id                String   @id @default(uuid())
+  zona              String
+  diaSemana         Int      @map("dia_semana")
+  horaInicio        Int      @map("hora_inicio")
+  fornecedor        String?
+  totalEntregas     Int      @default(0) @map("total_entregas")
+  mediaEntregasDia  Float    @default(0) @map("media_entregas_dia")
+  desvioPadrao      Float    @default(0) @map("desvio_padrao")
+  tempoMedioEntrega Float    @default(0) @map("tempo_medio_entrega")
+  fatorSazonalidade Float    @default(1.0) @map("fator_sazonalidade")
+  periodoInicio     DateTime @map("periodo_inicio")
+  periodoFim        DateTime @map("periodo_fim")
+  totalDias         Int      @map("total_dias")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@unique([zona, diaSemana, horaInicio, fornecedor])
+  @@index([zona])
+  @@index([diaSemana, horaInicio])
+  @@map("agregacoes_demanda")
+}
+
+model PrevisaoDemanda {
+  id                String    @id @default(uuid())
+  zona              String
+  data              DateTime
+  horaInicio        Int       @map("hora_inicio")
+  horaFim           Int       @map("hora_fim")
+  fornecedor        String?
+  demandaPrevista   Int       @map("demanda_prevista")
+  confianca         Float
+  limiteInferior    Int       @map("limite_inferior")
+  limiteSuperior    Int       @map("limite_superior")
+  fatorDiaSemana    Float     @default(1.0) @map("fator_dia_semana")
+  fatorHorario      Float     @default(1.0) @map("fator_horario")
+  fatorSazonalidade Float     @default(1.0) @map("fator_sazonalidade")
+  fatorTendencia    Float     @default(1.0) @map("fator_tendencia")
+  demandaReal       Int?      @map("demanda_real")
+  erroAbsoluto      Float?    @map("erro_absoluto")
+  validadoEm        DateTime? @map("validado_em")
+  createdAt         DateTime  @default(now()) @map("created_at")
+
+  @@index([zona, data])
+  @@index([data])
+  @@map("previsoes_demanda")
+}
+
+model InsightDemanda {
+  id         String      @id @default(uuid())
+  tipo       TipoInsight
+  titulo     String
+  descricao  String
+  zona       String?
+  fornecedor String?
+  valor      Float
+  comparacao String
+  acao       String
+  prioridade Int         @default(1)
+  confianca  Float       @default(0.8)
+  validoAte  DateTime    @map("valido_ate")
+  createdAt  DateTime    @default(now()) @map("created_at")
+
+  @@index([tipo])
+  @@index([validoAte])
+  @@map("insights_demanda")
+}
+
+model Badge {
+  id             String         @id @default(uuid())
+  codigo         String         @unique
+  nome           String
+  descricao      String
+  icone          String
+  tipo           TipoBadge
+  requisito      Int
+  pontos         Int            @default(10)
+  raridade       Raridade       @default(COMUM)
+  ativo          Boolean        @default(true)
+  createdAt      DateTime       @default(now()) @map("created_at")
+  usuariosBadges UsuarioBadge[]
+
+  @@map("badges")
+}
+
+model UsuarioBadge {
+  id             String    @id @default(uuid())
+  userId         String    @map("user_id")
+  badgeId        String    @map("badge_id")
+  progressoAtual Int       @default(0) @map("progresso_atual")
+  desbloqueadoEm DateTime? @map("desbloqueado_em")
+  notificado     Boolean   @default(false)
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  badge          Badge     @relation(fields: [badgeId], references: [id])
+
+  @@unique([userId, badgeId])
+  @@index([userId])
+  @@map("usuarios_badges")
+}
+
+model Ranking {
+  id            String         @id @default(uuid())
+  userId        String         @map("user_id")
+  periodo       PeriodoRanking
+  dataInicio    DateTime       @map("data_inicio")
+  dataFim       DateTime       @map("data_fim")
+  totalEntregas Int            @default(0) @map("total_entregas")
+  totalKm       Float          @default(0) @map("total_km")
+  tempoMedioMin Float          @default(0) @map("tempo_medio_min")
+  taxaSucesso   Float          @default(1.0) @map("taxa_sucesso")
+  pontos        Int            @default(0)
+  posicao       Int?
+  posicaoZona   Int?           @map("posicao_zona")
+  zona          String?
+  streakAtual   Int            @default(0) @map("streak_atual")
+  maiorStreak   Int            @default(0) @map("maior_streak")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+
+  @@unique([userId, periodo, dataInicio])
+  @@index([periodo, dataInicio])
+  @@index([posicao])
+  @@map("rankings")
+}
+
+model Conquista {
+  id           String        @id @default(uuid())
+  userId       String        @map("user_id")
+  tipo         TipoConquista
+  valor        Int
+  descricao    String
+  data         DateTime      @default(now())
+  pontosGanhos Int           @default(0) @map("pontos_ganhos")
+  createdAt    DateTime      @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([tipo])
+  @@map("conquistas")
+}
+
+enum Plano {
+  FREE
+  PRO
+  FULL
+  ENTERPRISE
+  STARTER
+  FROTA_START
+  FROTA_PRO
+  FROTA_ENTERPRISE
+}
+
+enum TipoDesconto {
+  PERCENTUAL
+  VALOR_FIXO
+  MESES_GRATIS
+}
+
 enum TipoPOD {
   FOTO
   ASSINATURA
   CODIGO
 }
 
-// Prioridade de entrega (NOVO)
 enum Prioridade {
   ALTA
   MEDIA
@@ -372,51 +1171,20 @@ enum Prioridade {
 }
 
 enum StatusRota {
-  RASCUNHO // Destinos sendo adicionados
-  CALCULADA // Rota otimizada (também chamado PLANEJADA)
-  EM_ANDAMENTO // Entregador está executando
-  PAUSADA // Rota temporariamente pausada
-  FINALIZADA // Todas entregas feitas (também chamado CONCLUIDA)
+  RASCUNHO
+  CALCULADA
+  EM_ANDAMENTO
+  FINALIZADA
   CANCELADA
+  PAUSADA
 }
 
 enum StatusEntrega {
   PENDENTE
   ENTREGUE
-  AUSENTE // Destinatário ausente
+  AUSENTE
   RECUSADA
   REAGENDADA
-}
-
-// ==========================================
-// PAGAMENTOS (MERCADO PAGO)
-// ==========================================
-
-model Pagamento {
-  id String @id @default(uuid())
-
-  // Mercado Pago IDs
-  mpPreferenceId String? @map("mp_preference_id")
-  mpPaymentId    String? @map("mp_payment_id")
-
-  // Dados do pagamento
-  userId        String @map("user_id")
-  plano         Plano
-  valorCentavos Int    @map("valor_centavos") // Em centavos para evitar floating point
-  moeda         String @default("BRL")
-
-  // Status
-  status StatusPagamento @default(PENDENTE)
-
-  // Timestamps
-  pagoEm    DateTime? @map("pago_em")
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-
-  // Relacionamentos
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("pagamentos")
 }
 
 enum StatusPagamento {
@@ -428,667 +1196,26 @@ enum StatusPagamento {
   REEMBOLSADO
 }
 
-// ==========================================
-// CONFIGURAÇÕES DO SISTEMA
-// ==========================================
-
-model ConfiguracaoSistema {
-  id        String  @id @default(uuid())
-  chave     String  @unique
-  valor     String
-  descricao String?
-
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  @@map("configuracoes_sistema")
-}
-
-// ==========================================
-// HISTÓRICO DE TEMPO (Tráfego Real-time)
-// ==========================================
-// @description Armazena tempos reais vs estimados para aprendizado
-// @pre Rota finalizada com dados de tempo
-// @post Usado para melhorar estimativas futuras
-
-model HistoricoTempo {
-  id     String @id @default(uuid())
-  userId String @map("user_id")
-
-  // Trajeto
-  origemLat  Float @map("origem_lat")
-  origemLng  Float @map("origem_lng")
-  destinoLat Float @map("destino_lat")
-  destinoLng Float @map("destino_lng")
-
-  // Tempos
-  tempoEstimadoMin Float @map("tempo_estimado_min")
-  tempoRealMin     Float @map("tempo_real_min")
-  fatorCorrecao    Float @map("fator_correcao") // tempoReal / tempoEstimado
-
-  // Contexto
-  horaInicio  Int   @map("hora_inicio") // 0-23
-  diaSemana   Int   @map("dia_semana") // 0-6 (dom-sab)
-  distanciaKm Float @map("distancia_km")
-
-  // Timestamps
-  dataViagem DateTime @map("data_viagem")
-  createdAt  DateTime @default(now()) @map("created_at")
-
-  @@index([userId])
-  @@index([horaInicio])
-  @@index([diaSemana])
-  @@map("historico_tempo")
-}
-
-// ==========================================
-// NOTIFICAÇÕES PUSH
-// ==========================================
-// @description Sistema de notificações push para alertas em tempo real
-// @pre Usuário autenticado e token registrado
-// @post Notificações enviadas e rastreadas
-
-model TokenPush {
-  id     String @id @default(uuid())
-  userId String @map("user_id")
-
-  // Subscription data (Web Push)
-  endpoint String
-  p256dh   String
-  auth     String
-
-  // Device info
-  platform String  @default("web") // 'web' | 'android' | 'ios'
-  deviceId String? @map("device_id")
-
-  // Timestamps
-  criadoEm     DateTime @default(now()) @map("criado_em")
-  atualizadoEm DateTime @updatedAt @map("atualizado_em")
-
-  // Relacionamento
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, endpoint])
-  @@index([userId])
-  @@map("tokens_push")
-}
-
-model Notificacao {
-  id     String @id @default(uuid())
-  userId String @map("user_id")
-
-  // Conteúdo
-  tipo     String // TRAFEGO_INTENSO, CANCELAMENTO, etc.
-  titulo   String
-  mensagem String
-  icone    String?
-
-  // Referências
-  rotaId   String? @map("rota_id")
-  paradaId String? @map("parada_id")
-  dados    String? // JSON com dados extras
-  acaoUrl  String? @map("acao_url")
-
-  // Status
-  lida   Boolean   @default(false)
-  lidaEm DateTime? @map("lida_em")
-
-  // Timestamps
-  criadaEm DateTime @default(now()) @map("criada_em")
-
-  // Relacionamento
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([userId, lida])
-  @@index([tipo])
-  @@map("notificacoes")
-}
-
-// ==========================================
-// STATUS EM TEMPO REAL - TRACKING
-// ==========================================
-// @description Histórico de mudanças de status e tracking de posição
-// @pre Rota em andamento
-// @post Histórico completo para auditoria e analytics
-
-model StatusHistorico {
-  id       String  @id @default(uuid())
-  paradaId String? @map("parada_id")
-  rotaId   String  @map("rota_id")
-
-  // Status
-  status      String // PENDENTE, EM_TRANSITO, CHEGOU, ENTREGUE, FALHA, etc.
-  motivoFalha String? @map("motivo_falha")
-  observacao  String?
-
-  // Localização no momento
-  lat Float?
-  lng Float?
-
-  // Timestamp
-  timestamp DateTime @default(now())
-
-  // Relacionamentos
-  parada Parada? @relation(fields: [paradaId], references: [id], onDelete: Cascade)
-  rota   Rota    @relation(fields: [rotaId], references: [id], onDelete: Cascade)
-
-  @@index([rotaId])
-  @@index([paradaId])
-  @@index([timestamp])
-  @@map("status_historico")
-}
-
-model PosicaoHistorico {
-  id     String @id @default(uuid())
-  rotaId String @map("rota_id")
-
-  // Posição
-  lat        Float
-  lng        Float
-  heading    Float? // 0-360 graus
-  velocidade Float? // km/h
-  precisao   Float? // metros
-
-  // Timestamp
-  timestamp DateTime @default(now())
-
-  // Relacionamento
-  rota Rota @relation(fields: [rotaId], references: [id], onDelete: Cascade)
-
-  @@index([rotaId])
-  @@index([timestamp])
-  @@map("posicao_historico")
-}
-
-// ==========================================
-// MULTI-MOTORISTA / GESTÃO DE FROTA
-// ==========================================
-// @description Sistema completo de gestão de frota com distribuição inteligente
-// @pre Usuário com plano FROTA ou ENTERPRISE
-// @post Gestão centralizada de motoristas, veículos e entregas
-// @invariant Distribuição otimizada por zona, capacidade e performance
-
-model Empresa {
-  id String @id @default(uuid())
-
-  // Dados básicos
-  nome     String
-  cnpj     String? @unique
-  email    String
-  telefone String?
-
-  // Proprietário/Gestor principal
-  gestorId String @map("gestor_id")
-
-  // Configurações
-  limiteMotoristas Int @default(10) @map("limite_motoristas")
-  limiteVeiculos   Int @default(10) @map("limite_veiculos")
-
-  // Localização base
-  baseLat      Float?  @map("base_lat")
-  baseLng      Float?  @map("base_lng")
-  baseEndereco String? @map("base_endereco")
-
-  // Configurações de distribuição
-  modoDistribuicao   ModoDistribuicao @default(AUTOMATICO) @map("modo_distribuicao")
-  balanceamentoCarga Boolean          @default(true) @map("balanceamento_carga")
-  respeitarZonas     Boolean          @default(true) @map("respeitar_zonas")
-
-  // Timestamps
-  ativo     Boolean   @default(true)
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-  deletedAt DateTime? @map("deleted_at")
-
-  // Relacionamentos
-  gestor            User                   @relation("GestorEmpresa", fields: [gestorId], references: [id])
-  motoristas        Motorista[]
-  veiculos          Veiculo[]
-  equipes           Equipe[]
-  zonasAtuacao      ZonaAtuacao[]
-  rotasEmpresa      RotaEmpresa[]
-  apiKeys           ApiKey[]
-  integracoes       IntegracaoFornecedor[]
-  configuracaoSefaz ConfiguracaoSefaz?
-
-  @@index([gestorId])
-  @@map("empresas")
-}
-
-model Motorista {
-  id        String @id @default(uuid())
-  empresaId String @map("empresa_id")
-
-  // Dados pessoais
-  nome        String
-  email       String
-  telefone    String
-  cpf         String?
-  cnh         String?
-  cnhValidade DateTime? @map("cnh_validade")
-  foto        String? // URL da foto
-
-  // Credenciais (se tiver acesso ao app)
-  userId String? @unique @map("user_id") // Link com User se usar app
-  pin    String? // PIN de 4 dígitos para acesso rápido
-
-  // Status operacional
-  status             StatusMotorista @default(DISPONIVEL)
-  statusAtualizadoEm DateTime?       @map("status_atualizado_em")
-  motivoIndisponivel String?         @map("motivo_indisponivel")
-
-  // Localização atual
-  ultimaLat       Float?    @map("ultima_lat")
-  ultimaLng       Float?    @map("ultima_lng")
-  ultimaPosicaoEm DateTime? @map("ultima_posicao_em")
-
-  // Capacidade e preferências
-  capacidadeKg      Float @default(100) @map("capacidade_kg")
-  capacidadeVolumes Int   @default(50) @map("capacidade_volumes")
-  raioMaximoKm      Float @default(50) @map("raio_maximo_km")
-
-  // Performance (atualizado diariamente)
-  taxaEntrega       Float @default(100) @map("taxa_entrega") // %
-  tempoMedioEntrega Float @default(5) @map("tempo_medio_entrega") // min
-  avaliacaoMedia    Float @default(5) @map("avaliacao_media") // 1-5
-  totalEntregas     Int   @default(0) @map("total_entregas")
-  totalKm           Float @default(0) @map("total_km")
-
-  // Jornada de trabalho
-  horaInicio   String? @map("hora_inicio") // "08:00"
-  horaFim      String? @map("hora_fim") // "18:00"
-  diasTrabalho String? @map("dias_trabalho") // "1,2,3,4,5" (seg-sex)
-
-  // Veículo atual
-  veiculoAtualId String? @map("veiculo_atual_id")
-
-  // Equipe
-  equipeId String? @map("equipe_id")
-
-  // Timestamps
-  ativo     Boolean   @default(true)
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-  deletedAt DateTime? @map("deleted_at")
-
-  // Relacionamentos
-  empresa              Empresa                @relation(fields: [empresaId], references: [id], onDelete: Cascade)
-  user                 User?                  @relation(fields: [userId], references: [id])
-  veiculoAtual         Veiculo?               @relation("MotoristaVeiculoAtual", fields: [veiculoAtualId], references: [id])
-  equipe               Equipe?                @relation(fields: [equipeId], references: [id])
-  zonasPreferidas      MotoristaZona[]
-  rotasAtribuidas      RotaEmpresa[]          @relation("MotoristaRotas")
-  historicoAtribuicoes AtribuicaoHistorico[]
-  performanceHistorico PerformanceMotorista[]
-  eventosGeofence      EventoGeofence[]
-
-  @@index([empresaId])
-  @@index([status])
-  @@index([equipeId])
-  @@map("motoristas")
-}
-
-model Veiculo {
-  id        String @id @default(uuid())
-  empresaId String @map("empresa_id")
-
-  // Identificação
-  placa  String
-  modelo String
-  marca  String?
-  ano    Int?
-  cor    String?
-
-  // Tipo e capacidade
-  tipo              TipoVeiculo @default(MOTO)
-  capacidadeKg      Float       @default(50) @map("capacidade_kg")
-  capacidadeVolumes Int         @default(20) @map("capacidade_volumes")
-  capacidadeM3      Float?      @map("capacidade_m3") // Volume em m³
-
-  // Consumo
-  consumoKmL      Float   @default(15) @map("consumo_km_l") // km por litro
-  tipoCombustivel String? @map("tipo_combustivel") // GASOLINA, ETANOL, DIESEL, ELETRICO
-
-  // Documentação
-  renavam          String?
-  chassi           String?
-  seguroVencimento DateTime? @map("seguro_vencimento")
-  ipvaVencimento   DateTime? @map("ipva_vencimento")
-
-  // Status
-  status            StatusVeiculo @default(DISPONIVEL)
-  kmAtual           Float         @default(0) @map("km_atual")
-  ultimaManutencao  DateTime?     @map("ultima_manutencao")
-  proximaManutencao DateTime?     @map("proxima_manutencao")
-
-  // Timestamps
-  ativo     Boolean  @default(true)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  // Relacionamentos
-  empresa          Empresa            @relation(fields: [empresaId], references: [id], onDelete: Cascade)
-  motoristasUsando Motorista[]        @relation("MotoristaVeiculoAtual")
-  historicoUso     VeiculoHistorico[]
-
-  @@unique([empresaId, placa])
-  @@index([empresaId])
-  @@index([status])
-  @@map("veiculos")
-}
-
-model Equipe {
-  id        String @id @default(uuid())
-  empresaId String @map("empresa_id")
-
-  // Dados
-  nome      String
-  descricao String?
-  cor       String? // Cor para identificação visual
-
-  // Líder
-  liderId String? @map("lider_id")
-
-  // Zona padrão
-  zonaPadraoId String? @map("zona_padrao_id")
-
-  // Timestamps
-  ativo     Boolean  @default(true)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  // Relacionamentos
-  empresa    Empresa      @relation(fields: [empresaId], references: [id], onDelete: Cascade)
-  motoristas Motorista[]
-  zonaPadrao ZonaAtuacao? @relation(fields: [zonaPadraoId], references: [id])
-
-  @@index([empresaId])
-  @@map("equipes")
-}
-
-model ZonaAtuacao {
-  id        String @id @default(uuid())
-  empresaId String @map("empresa_id")
-
-  // Identificação
-  nome      String
-  descricao String?
-  cor       String? // Cor no mapa
-
-  // Polígono (GeoJSON simplificado - array de coordenadas)
-  // Formato: [[lat1,lng1], [lat2,lng2], ...]
-  poligono String? // JSON do polígono
-
-  // Centro e raio (alternativa ao polígono)
-  centroLat Float? @map("centro_lat")
-  centroLng Float? @map("centro_lng")
-  raioKm    Float? @map("raio_km")
-
-  // Cidades/bairros (lista)
-  cidades String? // JSON array de cidades
-  bairros String? // JSON array de bairros
-  ceps    String? // JSON array de prefixos CEP
-
-  // Prioridade
-  prioridade Int @default(1) // 1 = maior prioridade
-
-  // Timestamps
-  ativo     Boolean  @default(true)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  // Relacionamentos
-  empresa              Empresa               @relation(fields: [empresaId], references: [id], onDelete: Cascade)
-  motoristasZona       MotoristaZona[]
-  equipesZona          Equipe[]
-  eventosGeofence      EventoGeofence[]
-  configuracaoGeofence ConfiguracaoGeofence?
-
-  @@index([empresaId])
-  @@map("zonas_atuacao")
-}
-
-// Relação N:N entre Motorista e Zona
-model MotoristaZona {
-  id          String @id @default(uuid())
-  motoristaId String @map("motorista_id")
-  zonaId      String @map("zona_id")
-
-  // Preferência (1 = principal)
-  prioridade Int @default(1)
-
-  // Motorista
-  motorista Motorista   @relation(fields: [motoristaId], references: [id], onDelete: Cascade)
-  zona      ZonaAtuacao @relation(fields: [zonaId], references: [id], onDelete: Cascade)
-
-  @@unique([motoristaId, zonaId])
-  @@map("motorista_zonas")
-}
-
-// Rota atribuída a um motorista da empresa
-model RotaEmpresa {
-  id             String  @id @default(uuid())
-  empresaId      String  @map("empresa_id")
-  motoristaId    String? @map("motorista_id")
-  rotaOriginalId String? @map("rota_original_id") // Link com Rota se importada
-
-  // Status da atribuição
-  statusAtribuicao StatusAtribuicao @default(PENDENTE) @map("status_atribuicao")
-  atribuidoEm      DateTime?        @map("atribuido_em")
-  aceitoEm         DateTime?        @map("aceito_em")
-  recusadoEm       DateTime?        @map("recusado_em")
-  motivoRecusa     String?          @map("motivo_recusa")
-
-  // Dados da rota
-  origemLat      Float  @map("origem_lat")
-  origemLng      Float  @map("origem_lng")
-  origemEndereco String @map("origem_endereco")
-
-  // Métricas
-  totalParadas     Int    @default(0) @map("total_paradas")
-  distanciaKm      Float? @map("distancia_km")
-  tempoEstimadoMin Float? @map("tempo_estimado_min")
-  pesoTotalKg      Float? @map("peso_total_kg")
-  volumeTotal      Int?   @map("volume_total")
-
-  // Execução
-  status         StatusRota @default(RASCUNHO)
-  iniciadaEm     DateTime?  @map("iniciada_em")
-  finalizadaEm   DateTime?  @map("finalizada_em")
-  entreguesCount Int        @default(0) @map("entregues_count")
-  falhasCount    Int        @default(0) @map("falhas_count")
-
-  // Resultado
-  kmReal        Float? @map("km_real")
-  tempoRealMin  Float? @map("tempo_real_min")
-  custoReal     Float? @map("custo_real")
-  notaAvaliacao Float? @map("nota_avaliacao")
-
-  // Timestamps
-  dataRota  DateTime @default(now()) @map("data_rota")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  // Relacionamentos
-  empresa        Empresa         @relation(fields: [empresaId], references: [id], onDelete: Cascade)
-  motorista      Motorista?      @relation("MotoristaRotas", fields: [motoristaId], references: [id])
-  paradasEmpresa ParadaEmpresa[]
-  cargaVeiculo   CargaVeiculo?   @relation(fields: [cargaVeiculoId], references: [id])
-  cargaVeiculoId String?
-
-  @@index([empresaId])
-  @@index([motoristaId])
-  @@index([status])
-  @@index([dataRota])
-  @@map("rotas_empresa")
-}
-
-// Paradas da rota da empresa
-model ParadaEmpresa {
-  id            String @id @default(uuid())
-  rotaEmpresaId String @map("rota_empresa_id")
-
-  // Localização
-  lat      Float
-  lng      Float
-  endereco String
-  cidade   String
-  uf       String
-  cep      String?
-  bairro   String?
-
-  // Destinatário
-  nome     String
-  telefone String?
-
-  // Entrega
-  ordem   Int?
-  pesoKg  Float? @map("peso_kg")
-  volumes Int    @default(1)
-  valor   Float? // Valor da entrega/mercadoria
-
-  // Janela de tempo
-  janelaInicio String?    @map("janela_inicio")
-  janelaFim    String?    @map("janela_fim")
-  prioridade   Prioridade @default(MEDIA)
-
-  // Status
-  status      String    @default("PENDENTE")
-  entregueEm  DateTime? @map("entregue_em")
-  motivoFalha String?   @map("motivo_falha")
-  observacao  String?
-
-  // Timestamps
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  // Relacionamento
-  rotaEmpresa RotaEmpresa @relation(fields: [rotaEmpresaId], references: [id], onDelete: Cascade)
-
-  @@index([rotaEmpresaId])
-  @@map("paradas_empresa")
-}
-
-// Histórico de atribuições
-model AtribuicaoHistorico {
-  id            String  @id @default(uuid())
-  motoristaId   String  @map("motorista_id")
-  rotaEmpresaId String? @map("rota_empresa_id")
-
-  // Ação
-  acao String // ATRIBUIDO, ACEITO, RECUSADO, REATRIBUIDO, CONCLUIDO
-
-  // Contexto
-  motivo           String?
-  atribuidoPor     String? @map("atribuido_por") // ID do gestor
-  metodoAtribuicao String? @map("metodo_atribuicao") // AUTOMATICO, MANUAL
-
-  // Timestamp
-  timestamp DateTime @default(now())
-
-  // Relacionamento
-  motorista Motorista @relation(fields: [motoristaId], references: [id], onDelete: Cascade)
-
-  @@index([motoristaId])
-  @@index([timestamp])
-  @@map("atribuicao_historico")
-}
-
-// Performance diária do motorista
-model PerformanceMotorista {
-  id          String @id @default(uuid())
-  motoristaId String @map("motorista_id")
-
-  // Data
-  data DateTime @db.Date
-
-  // Métricas do dia
-  totalRotas      Int @default(0) @map("total_rotas")
-  totalEntregas   Int @default(0) @map("total_entregas")
-  entregasSucesso Int @default(0) @map("entregas_sucesso")
-  entregasFalha   Int @default(0) @map("entregas_falha")
-
-  // Distância e tempo
-  kmRodados        Float @default(0) @map("km_rodados")
-  tempoTrabalhoMin Float @default(0) @map("tempo_trabalho_min")
-  tempoEntregasMin Float @default(0) @map("tempo_entregas_min")
-
-  // Eficiência
-  taxaSucesso       Float? @map("taxa_sucesso") // %
-  tempoMedioEntrega Float? @map("tempo_medio_entrega") // min
-  entregrasPorHora  Float? @map("entregas_por_hora")
-
-  // Avaliação
-  avaliacaoMedia  Float? @map("avaliacao_media")
-  totalAvaliacoes Int    @default(0) @map("total_avaliacoes")
-
-  // Custo
-  custoCombustivel Float? @map("custo_combustivel")
-
-  // Timestamps
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  // Relacionamento
-  motorista Motorista @relation(fields: [motoristaId], references: [id], onDelete: Cascade)
-
-  @@unique([motoristaId, data])
-  @@index([motoristaId])
-  @@index([data])
-  @@map("performance_motorista")
-}
-
-// Histórico de uso de veículos
-model VeiculoHistorico {
-  id          String  @id @default(uuid())
-  veiculoId   String  @map("veiculo_id")
-  motoristaId String? @map("motorista_id")
-
-  // Período
-  dataInicio DateTime  @map("data_inicio")
-  dataFim    DateTime? @map("data_fim")
-
-  // Km
-  kmInicio Float  @map("km_inicio")
-  kmFim    Float? @map("km_fim")
-
-  // Custo
-  combustivelL     Float? @map("combustivel_l")
-  custoCombustivel Float? @map("custo_combustivel")
-
-  // Relacionamento
-  veiculo Veiculo @relation(fields: [veiculoId], references: [id], onDelete: Cascade)
-
-  @@index([veiculoId])
-  @@index([dataInicio])
-  @@map("veiculo_historico")
-}
-
-// ==========================================
-// ENUMS MULTI-MOTORISTA
-// ==========================================
-
 enum ModoDistribuicao {
-  AUTOMATICO // Sistema distribui automaticamente
-  MANUAL // Gestor atribui manualmente
-  HIBRIDO // Sugestão automática, confirmação manual
+  AUTOMATICO
+  MANUAL
+  HIBRIDO
 }
 
 enum StatusMotorista {
-  DISPONIVEL // Pronto para receber entregas
-  EM_ROTA // Executando rota
-  PAUSADO // Em pausa (almoço, etc)
-  INDISPONIVEL // Não disponível (folga, etc)
-  OFFLINE // Sem conexão/app fechado
+  DISPONIVEL
+  EM_ROTA
+  PAUSADO
+  INDISPONIVEL
+  OFFLINE
 }
 
 enum StatusVeiculo {
-  DISPONIVEL // Pronto para uso
-  EM_USO // Em uso por motorista
-  MANUTENCAO // Em manutenção
-  RESERVADO // Reservado para uso futuro
-  INATIVO // Fora de operação
+  DISPONIVEL
+  EM_USO
+  MANUTENCAO
+  RESERVADO
+  INATIVO
 }
 
 enum TipoVeiculo {
@@ -1103,230 +1230,12 @@ enum TipoVeiculo {
 }
 
 enum StatusAtribuicao {
-  PENDENTE // Aguardando aceite
-  ACEITO // Motorista aceitou
-  RECUSADO // Motorista recusou
-  REATRIBUIDO // Reatribuído a outro motorista
-  CANCELADO // Cancelado pelo gestor
+  PENDENTE
+  ACEITO
+  RECUSADO
+  REATRIBUIDO
+  CANCELADO
 }
-
-// ==========================================
-// API PÚBLICA E INTEGRAÇÕES
-// ==========================================
-// @description Chaves de API para integrações externas (Bling, Tiny, VTEX, etc.)
-// @pre Empresa ou User deve existir
-// @post API Key gerada com permissões específicas
-
-model ApiKey {
-  id String @id @default(uuid())
-
-  // Chave (hash do token)
-  keyHash   String @unique @map("key_hash")
-  keyPrefix String @map("key_prefix") // Primeiros 8 chars para identificação
-  nome      String // Nome descritivo
-
-  // Proprietário (empresa OU usuário)
-  empresaId String? @map("empresa_id")
-  userId    String? @map("user_id")
-
-  // Permissões
-  permissoes String[] // ['rotas:read', 'rotas:write', 'paradas:write', 'webhooks:write']
-
-  // Rate limiting
-  rateLimitPorMinuto Int @default(100) @map("rate_limit_por_minuto")
-
-  // Ambiente
-  ambiente AmbienteApi @default(PRODUCAO)
-
-  // Status
-  ativo            Boolean   @default(true)
-  expiresAt        DateTime? @map("expires_at")
-  ultimoUso        DateTime? @map("ultimo_uso")
-  totalRequisicoes Int       @default(0) @map("total_requisicoes")
-
-  // Timestamps
-  createdAt  DateTime  @default(now()) @map("created_at")
-  updatedAt  DateTime  @updatedAt @map("updated_at")
-  revogadoEm DateTime? @map("revogado_em")
-
-  // Relacionamentos
-  empresa  Empresa?        @relation(fields: [empresaId], references: [id], onDelete: Cascade)
-  webhooks Webhook[]
-  logsApi  LogApiPublica[]
-
-  @@index([keyPrefix])
-  @@index([empresaId])
-  @@index([userId])
-  @@map("api_keys")
-}
-
-// Webhooks configurados por integração
-model Webhook {
-  id       String @id @default(uuid())
-  apiKeyId String @map("api_key_id")
-
-  // Configuração
-  url     String // URL de callback
-  eventos String[] // ['rota.criada', 'parada.entregue', 'rota.finalizada']
-  segredo String // Secret para validar assinatura HMAC
-
-  // Status
-  ativo Boolean @default(true)
-
-  // Métricas
-  totalEnvios   Int       @default(0) @map("total_envios")
-  totalSucessos Int       @default(0) @map("total_sucessos")
-  totalFalhas   Int       @default(0) @map("total_falhas")
-  ultimoEnvio   DateTime? @map("ultimo_envio")
-  ultimoStatus  Int?      @map("ultimo_status") // HTTP status code
-
-  // Timestamps
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  // Relacionamentos
-  apiKey   ApiKey           @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
-  entregas WebhookEntrega[]
-
-  @@index([apiKeyId])
-  @@map("webhooks")
-}
-
-// Log de entregas de webhook (para retry)
-model WebhookEntrega {
-  id        String @id @default(uuid())
-  webhookId String @map("webhook_id")
-
-  // Payload
-  evento  String // 'rota.criada', etc.
-  payload String @db.Text // JSON do payload
-
-  // Status
-  status           StatusWebhookEntrega @default(PENDENTE)
-  tentativas       Int                  @default(0)
-  proximaTentativa DateTime?            @map("proxima_tentativa")
-
-  // Resposta
-  httpStatus Int?    @map("http_status")
-  resposta   String? @db.Text
-  erro       String?
-
-  // Timestamps
-  createdAt DateTime  @default(now()) @map("created_at")
-  enviadoEm DateTime? @map("enviado_em")
-
-  // Relacionamentos
-  webhook Webhook @relation(fields: [webhookId], references: [id], onDelete: Cascade)
-
-  @@index([webhookId])
-  @@index([status])
-  @@index([proximaTentativa])
-  @@map("webhook_entregas")
-}
-
-// Log de requisições da API pública
-model LogApiPublica {
-  id       String @id @default(uuid())
-  apiKeyId String @map("api_key_id")
-
-  // Request
-  metodo    String // GET, POST, etc.
-  path      String
-  ip        String?
-  userAgent String? @map("user_agent")
-
-  // Response
-  statusCode Int @map("status_code")
-  tempoMs    Int @map("tempo_ms")
-
-  // Timestamps
-  createdAt DateTime @default(now()) @map("created_at")
-
-  // Relacionamentos
-  apiKey ApiKey @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
-
-  @@index([apiKeyId])
-  @@index([createdAt])
-  @@map("log_api_publica")
-}
-
-// Integrações com ERPs/Fornecedores
-model IntegracaoFornecedor {
-  id        String  @id @default(uuid())
-  empresaId String? @map("empresa_id")
-  userId    String? @map("user_id")
-
-  // Fornecedor
-  fornecedor TipoIntegracao
-  nome       String? // Nome customizado
-
-  // Credenciais (criptografadas)
-  credentials String @db.Text // JSON criptografado
-
-  // Configuração
-  configJson String? @map("config_json") @db.Text // Mapeamentos, filtros, etc.
-
-  // Status
-  ativo                  Boolean   @default(true)
-  ultimaSincronizacao    DateTime? @map("ultima_sincronizacao")
-  totalPedidosImportados Int       @default(0) @map("total_pedidos_importados")
-
-  // Timestamps
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  // Relacionamentos
-  empresa           Empresa?          @relation(fields: [empresaId], references: [id], onDelete: Cascade)
-  pedidosImportados PedidoImportado[]
-
-  @@index([empresaId])
-  @@index([userId])
-  @@index([fornecedor])
-  @@map("integracoes_fornecedor")
-}
-
-// Pedidos importados de ERPs
-model PedidoImportado {
-  id           String @id @default(uuid())
-  integracaoId String @map("integracao_id")
-
-  // Referência externa
-  idExterno  String  @map("id_externo") // ID no ERP
-  numeroNota String? @map("numero_nota")
-
-  // Dados do pedido
-  cliente  String
-  endereco String
-  cidade   String
-  uf       String
-  cep      String?
-  telefone String?
-
-  // Valores
-  valorTotal Float? @map("valor_total")
-  peso       Float?
-  volumes    Int?
-
-  // Status
-  status   StatusPedidoImportado @default(PENDENTE)
-  paradaId String?               @map("parada_id") // Se já virou parada
-
-  // Timestamps
-  createdAt    DateTime  @default(now()) @map("created_at")
-  processadoEm DateTime? @map("processado_em")
-
-  // Relacionamentos
-  integracao IntegracaoFornecedor @relation(fields: [integracaoId], references: [id], onDelete: Cascade)
-
-  @@unique([integracaoId, idExterno])
-  @@index([integracaoId])
-  @@index([status])
-  @@map("pedidos_importados")
-}
-
-// ==========================================
-// ENUMS API PÚBLICA
-// ==========================================
 
 enum AmbienteApi {
   SANDBOX
@@ -1352,199 +1261,20 @@ enum TipoIntegracao {
   SHOPEE
   IFOOD
   RAPPI
-  CUSTOM // Webhook genérico
+  CUSTOM
 }
 
 enum StatusPedidoImportado {
-  PENDENTE // Aguardando processamento
-  PROCESSADO // Virou parada
-  IGNORADO // Descartado (duplicado, etc.)
-  ERRO // Erro no processamento
-}
-
-// ==========================================
-// GEOFENCING
-// ==========================================
-// @description Eventos de entrada/saída de zonas geográficas
-// @pre Zona deve ter polígono OU centro+raio definidos
-// @post Evento registrado com timestamp e coordenadas
-// @invariant Debounce de 30s entre eventos do mesmo tipo
-
-model EventoGeofence {
-  id String @id @default(uuid())
-
-  // Relacionamentos
-  motoristaId String  @map("motorista_id")
-  zonaId      String  @map("zona_id")
-  rotaId      String? @map("rota_id") // Rota ativa no momento
-
-  // Evento
-  tipo       TipoEventoGeofence
-  lat        Float
-  lng        Float
-  precisao   Float? // Precisão GPS em metros
-  velocidade Float? // Velocidade km/h
-
-  // Contexto
-  enderecoApproximado String? @map("endereco_approx")
-  tempoNaZonaMin      Int?    @map("tempo_na_zona_min") // Só para SAIDA
-
-  // Processamento
-  notificacaoEnviada Boolean   @default(false) @map("notificacao_enviada")
-  processadoEm       DateTime? @map("processado_em")
-
-  // Timestamps
-  createdAt DateTime @default(now()) @map("created_at")
-
-  // Relacionamentos
-  motorista Motorista   @relation(fields: [motoristaId], references: [id], onDelete: Cascade)
-  zona      ZonaAtuacao @relation(fields: [zonaId], references: [id], onDelete: Cascade)
-
-  @@index([motoristaId])
-  @@index([zonaId])
-  @@index([createdAt])
-  @@map("eventos_geofence")
-}
-
-// Configuração de alerta por zona
-model ConfiguracaoGeofence {
-  id String @id @default(uuid())
-
-  zonaId String @map("zona_id")
-
-  // Alertas habilitados
-  alertaEntrada       Boolean @default(true) @map("alerta_entrada")
-  alertaSaida         Boolean @default(true) @map("alerta_saida")
-  alertaTempoExcedido Boolean @default(false) @map("alerta_tempo_excedido")
-
-  // Configurações
-  tempoMaximoMin       Int @default(60) @map("tempo_maximo_min") // Alerta se > X min
-  debounceSegundos     Int @default(30) @map("debounce_segundos")
-  raioToleranciaMetros Int @default(50) @map("raio_tolerancia_metros")
-
-  // Notificações
-  notificarGestor    Boolean @default(true) @map("notificar_gestor")
-  notificarMotorista Boolean @default(false) @map("notificar_motorista")
-  webhookUrl         String? @map("webhook_url")
-
-  // Timestamps
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  // Relacionamentos
-  zona ZonaAtuacao @relation(fields: [zonaId], references: [id], onDelete: Cascade)
-
-  @@unique([zonaId])
-  @@map("configuracoes_geofence")
+  PENDENTE
+  PROCESSADO
+  IGNORADO
+  ERRO
 }
 
 enum TipoEventoGeofence {
   ENTRADA
   SAIDA
   TEMPO_EXCEDIDO
-}
-
-// ==========================================
-// INTEGRAÇÃO SEFAZ
-// ==========================================
-// @description Cache de consultas NF-e à SEFAZ
-// @pre Chave de 44 dígitos válida
-// @post XML armazenado por 7 dias
-// @invariant Não consultar mesma chave mais de 1x por hora
-
-model CacheSefaz {
-  id String @id @default(uuid())
-
-  // Chave de acesso
-  chaveAcesso String @unique @map("chave_acesso") // 44 dígitos
-  uf          String // UF do emitente (2 dígitos)
-
-  // Status da NF-e
-  status           StatusNfe
-  protocolo        String?
-  dataAutorizacao  DateTime? @map("data_autorizacao")
-  dataCancelamento DateTime? @map("data_cancelamento")
-
-  // XML (comprimido ou referência)
-  xmlNfe     String? @map("xml_nfe") // XML da NF-e (pode ser grande)
-  xmlProcNfe String? @map("xml_proc_nfe") // XML de processamento
-
-  // Dados extraídos do XML (para consulta rápida)
-  numero      String?
-  serie       String?
-  dataEmissao DateTime? @map("data_emissao")
-  valorTotal  Float?    @map("valor_total")
-
-  // Emitente
-  emitenteCnpj String? @map("emitente_cnpj")
-  emitenteNome String? @map("emitente_nome")
-  emitenteUf   String? @map("emitente_uf")
-
-  // Destinatário
-  destCpfCnpj     String? @map("dest_cpf_cnpj")
-  destNome        String? @map("dest_nome")
-  destEndereco    String? @map("dest_endereco")
-  destNumero      String? @map("dest_numero")
-  destComplemento String? @map("dest_complemento")
-  destBairro      String? @map("dest_bairro")
-  destCidade      String? @map("dest_cidade")
-  destUf          String? @map("dest_uf")
-  destCep         String? @map("dest_cep")
-  destTelefone    String? @map("dest_telefone")
-
-  // Transporte
-  volumes     Int?   @default(1)
-  pesoLiquido Float? @map("peso_liquido")
-  pesoBruto   Float? @map("peso_bruto")
-
-  // Metadados
-  consultadoEm   DateTime @default(now()) @map("consultado_em")
-  expiraEm       DateTime @map("expira_em") // Expirar cache após 7 dias
-  totalConsultas Int      @default(1) @map("total_consultas")
-
-  // Timestamps
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  @@index([chaveAcesso])
-  @@index([emitenteCnpj])
-  @@index([destCpfCnpj])
-  @@index([expiraEm])
-  @@map("cache_sefaz")
-}
-
-// Configuração de integração SEFAZ por empresa
-model ConfiguracaoSefaz {
-  id String @id @default(uuid())
-
-  empresaId String @unique @map("empresa_id")
-
-  // Certificado Digital (criptografado)
-  certificadoBase64   String?   @map("certificado_base64")
-  certificadoSenha    String?   @map("certificado_senha") // Criptografado
-  certificadoValidade DateTime? @map("certificado_validade")
-
-  // Ambiente
-  ambiente AmbienteSefaz @default(PRODUCAO)
-  ufPadrao String?       @map("uf_padrao") // UF padrão para consultas
-
-  // Configurações
-  consultaAutomatica Boolean @default(false) @map("consulta_automatica")
-  importarAutomatico Boolean @default(false) @map("importar_automatico")
-
-  // Limites
-  maxConsultasDia Int       @default(100) @map("max_consultas_dia")
-  consultasHoje   Int       @default(0) @map("consultas_hoje")
-  ultimoResetDia  DateTime? @map("ultimo_reset_dia")
-
-  // Timestamps
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  // Relacionamentos
-  empresa Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
-
-  @@map("configuracoes_sefaz")
 }
 
 enum StatusNfe {
@@ -1560,297 +1290,24 @@ enum AmbienteSefaz {
   HOMOLOGACAO
 }
 
-// ==========================================
-// CAPACIDADE DE VEÍCULO - TRACKING
-// ==========================================
-// @description Registro de carga do veículo durante a rota
-// @pre Veículo atribuído à rota
-// @post Atualizado a cada entrega
-// @invariant cargaAtualKg <= capacidadeKg (sempre)
-
-model CargaVeiculo {
-  id String @id @default(uuid())
-
-  veiculoId String @map("veiculo_id")
-  rotaId    String @map("rota_id")
-
-  // Carga atual
-  pesoAtualKg   Float @default(0) @map("peso_atual_kg")
-  volumesAtuais Int   @default(0) @map("volumes_atuais")
-  volumeM3Atual Float @default(0) @map("volume_m3_atual")
-
-  // Capacidade do veículo (snapshot no momento)
-  capacidadeKg      Float  @map("capacidade_kg")
-  capacidadeVolumes Int    @map("capacidade_volumes")
-  capacidadeM3      Float? @map("capacidade_m3")
-
-  // Percentuais
-  percentualPeso    Float @default(0) @map("percentual_peso")
-  percentualVolumes Float @default(0) @map("percentual_volumes")
-
-  // Alertas
-  alertaEnviado80 Boolean @default(false) @map("alerta_enviado_80")
-  alertaEnviado95 Boolean @default(false) @map("alerta_enviado_95")
-
-  // Timestamps
-  createdAt    DateTime      @default(now()) @map("created_at")
-  updatedAt    DateTime      @updatedAt @map("updated_at")
-  rotaEmpresas RotaEmpresa[]
-
-  @@unique([veiculoId, rotaId])
-  @@index([rotaId])
-  @@map("cargas_veiculo")
-}
-
-// ==========================================
-// MACHINE LEARNING - PREVISÃO DE DEMANDA
-// ==========================================
-// @description Agregação de dados históricos para ML
-// @pre Entregas concluídas com geolocalização
-// @post Previsões com score de confiança 0-1
-// @invariant demandaPrevista >= 0
-
-model AgregacaoDemanda {
-  id String @id @default(uuid())
-
-  // Dimensões
-  zona        String // CEP prefix (5 dígitos) ou bairro
-  diaSemana   Int    @map("dia_semana") // 0=Dom, 6=Sab
-  horaInicio  Int    @map("hora_inicio") // 0-23
-  fornecedor  String? // natura, mercadolivre, shopee, etc
-  
-  // Métricas agregadas
-  totalEntregas     Int   @default(0) @map("total_entregas")
-  mediaEntregasDia  Float @default(0) @map("media_entregas_dia")
-  desvioPadrao      Float @default(0) @map("desvio_padrao")
-  tempoMedioEntrega Float @default(0) @map("tempo_medio_entrega") // minutos
-  
-  // Sazonalidade
-  fatorSazonalidade Float @default(1.0) @map("fator_sazonalidade")
-  
-  // Período de agregação
-  periodoInicio DateTime @map("periodo_inicio")
-  periodoFim    DateTime @map("periodo_fim")
-  totalDias     Int      @map("total_dias")
-  
-  // Timestamps
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  @@unique([zona, diaSemana, horaInicio, fornecedor])
-  @@index([zona])
-  @@index([diaSemana, horaInicio])
-  @@map("agregacoes_demanda")
-}
-
-model PrevisaoDemanda {
-  id String @id @default(uuid())
-
-  // Contexto da previsão
-  zona       String
-  data       DateTime
-  horaInicio Int      @map("hora_inicio")
-  horaFim    Int      @map("hora_fim")
-  fornecedor String?
-
-  // Previsão
-  demandaPrevista Int   @map("demanda_prevista")
-  confianca       Float // 0-1
-  limiteInferior  Int   @map("limite_inferior") // IC 95%
-  limiteSuperior  Int   @map("limite_superior")
-
-  // Fatores considerados
-  fatorDiaSemana    Float @default(1.0) @map("fator_dia_semana")
-  fatorHorario      Float @default(1.0) @map("fator_horario")
-  fatorSazonalidade Float @default(1.0) @map("fator_sazonalidade")
-  fatorTendencia    Float @default(1.0) @map("fator_tendencia")
-
-  // Validação (quando disponível)
-  demandaReal   Int?      @map("demanda_real")
-  erroAbsoluto  Float?    @map("erro_absoluto")
-  validadoEm    DateTime? @map("validado_em")
-
-  // Timestamps
-  createdAt DateTime @default(now()) @map("created_at")
-
-  @@index([zona, data])
-  @@index([data])
-  @@map("previsoes_demanda")
-}
-
-model InsightDemanda {
-  id String @id @default(uuid())
-
-  // Tipo de insight
-  tipo      TipoInsight
-  titulo    String
-  descricao String
-  
-  // Contexto
-  zona       String?
-  fornecedor String?
-  
-  // Métricas do insight
-  valor       Float  // ex: +40% demanda
-  comparacao  String // ex: "vs semana anterior"
-  acao        String // ex: "Posicione-se na Zona Sul às 14h"
-  
-  // Prioridade
-  prioridade  Int @default(1) // 1=alta, 2=média, 3=baixa
-  confianca   Float @default(0.8)
-  
-  // Período
-  validoAte DateTime @map("valido_ate")
-  
-  // Timestamps
-  createdAt DateTime @default(now()) @map("created_at")
-
-  @@index([tipo])
-  @@index([validoAte])
-  @@map("insights_demanda")
-}
-
 enum TipoInsight {
-  PICO_DEMANDA      // "Zona X terá +40% amanhã"
-  MELHOR_HORARIO    // "Melhor horário: 14h-17h"
-  FORNECEDOR_PICO   // "Natura tem pico dia 15"
-  ZONA_EVITAR       // "Evite Centro após 18h"
-  TENDENCIA         // "Demanda crescendo 10%/semana"
-  OPORTUNIDADE      // "Shopee cresceu 25% na região"
-}
-
-// ==========================================
-// GAMIFICAÇÃO - BADGES E RANKING
-// ==========================================
-// @description Sistema de conquistas e ranking
-// @pre Usuário com entregas completadas
-// @post Badges desbloqueados automaticamente
-// @invariant Pontos >= 0
-
-model Badge {
-  id String @id @default(uuid())
-
-  // Identificação
-  codigo    String @unique // ex: "PRIMEIRO_100", "STREAK_7"
-  nome      String
-  descricao String
-  icone     String // emoji ou URL
-  
-  // Requisitos
-  tipo       TipoBadge
-  requisito  Int // valor numérico para desbloquear
-  
-  // Pontos concedidos
-  pontos Int @default(10)
-  
-  // Raridade
-  raridade Raridade @default(COMUM)
-  
-  // Status
-  ativo Boolean @default(true)
-  
-  // Timestamps
-  createdAt DateTime @default(now()) @map("created_at")
-
-  // Relacionamentos
-  usuariosBadges UsuarioBadge[]
-
-  @@map("badges")
-}
-
-model UsuarioBadge {
-  id String @id @default(uuid())
-
-  userId  String @map("user_id")
-  badgeId String @map("badge_id")
-
-  // Progresso
-  progressoAtual Int      @default(0) @map("progresso_atual")
-  desbloqueadoEm DateTime? @map("desbloqueado_em")
-  
-  // Notificado
-  notificado Boolean @default(false)
-
-  // Timestamps
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  badge Badge @relation(fields: [badgeId], references: [id])
-
-  @@unique([userId, badgeId])
-  @@index([userId])
-  @@map("usuarios_badges")
-}
-
-model Ranking {
-  id String @id @default(uuid())
-
-  userId String @map("user_id")
-  
-  // Período
-  periodo     PeriodoRanking
-  dataInicio  DateTime @map("data_inicio")
-  dataFim     DateTime @map("data_fim")
-  
-  // Métricas
-  totalEntregas   Int   @default(0) @map("total_entregas")
-  totalKm         Float @default(0) @map("total_km")
-  tempoMedioMin   Float @default(0) @map("tempo_medio_min")
-  taxaSucesso     Float @default(1.0) @map("taxa_sucesso") // 0-1
-  pontos          Int   @default(0)
-  
-  // Posição
-  posicao       Int?
-  posicaoZona   Int?   @map("posicao_zona")
-  zona          String?
-  
-  // Streak
-  streakAtual   Int @default(0) @map("streak_atual")
-  maiorStreak   Int @default(0) @map("maior_streak")
-  
-  // Timestamps
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  @@unique([userId, periodo, dataInicio])
-  @@index([periodo, dataInicio])
-  @@index([posicao])
-  @@map("rankings")
-}
-
-model Conquista {
-  id String @id @default(uuid())
-
-  userId String @map("user_id")
-  
-  // Tipo
-  tipo  TipoConquista
-  valor Int // valor alcançado
-  
-  // Detalhes
-  descricao String
-  data      DateTime @default(now())
-  
-  // Pontos
-  pontosGanhos Int @default(0) @map("pontos_ganhos")
-  
-  // Timestamps
-  createdAt DateTime @default(now()) @map("created_at")
-
-  @@index([userId])
-  @@index([tipo])
-  @@map("conquistas")
+  PICO_DEMANDA
+  MELHOR_HORARIO
+  FORNECEDOR_PICO
+  ZONA_EVITAR
+  TENDENCIA
+  OPORTUNIDADE
 }
 
 enum TipoBadge {
-  ENTREGAS      // Total de entregas
-  STREAK        // Dias consecutivos
-  VELOCIDADE    // Tempo médio
-  PRECISAO      // Taxa de sucesso
-  DISTANCIA     // Km rodados
-  FORNECEDOR    // Especialista em fornecedor
-  ZONA          // Mestre de zona
-  ESPECIAL      // Eventos especiais
+  ENTREGAS
+  STREAK
+  VELOCIDADE
+  PRECISAO
+  DISTANCIA
+  FORNECEDOR
+  ZONA
+  ESPECIAL
 }
 
 enum Raridade {
@@ -1871,7 +1328,7 @@ enum PeriodoRanking {
 
 enum TipoConquista {
   PRIMEIRA_ENTREGA
-  MARCO_ENTREGAS    // 100, 500, 1000, etc
+  MARCO_ENTREGAS
   STREAK_RECORD
   MELHOR_DIA
   NOVO_BADGE

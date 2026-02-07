@@ -532,4 +532,71 @@ interface SpeedRotaApi {
     suspend fun analisarImagemNota(
         @Body dados: Map<String, String>
     ): retrofit2.Response<OcrAnaliseResponse>
+
+    // ==================== MATCHING CAIXA ↔ NF-e ====================
+
+    /**
+     * Listar caixas escaneadas de uma rota
+     */
+    @GET("rotas/{rotaId}/caixas")
+    suspend fun listarCaixas(
+        @Path("rotaId") rotaId: String
+    ): retrofit2.Response<ListaCaixasResponse>
+
+    /**
+     * Adicionar caixa escaneada
+     */
+    @POST("rotas/{rotaId}/caixas")
+    suspend fun adicionarCaixa(
+        @Path("rotaId") rotaId: String,
+        @Body dados: Map<String, String>
+    ): retrofit2.Response<AdicionarCaixaResponse>
+
+    /**
+     * Executar matching automático
+     */
+    @POST("rotas/{rotaId}/match")
+    suspend fun executarMatching(
+        @Path("rotaId") rotaId: String
+    ): retrofit2.Response<MatchingResponse>
+
+    /**
+     * Buscar matches de uma rota
+     */
+    @GET("rotas/{rotaId}/matches")
+    suspend fun buscarMatches(
+        @Path("rotaId") rotaId: String
+    ): retrofit2.Response<MatchesResponse>
+
+    // ==================== PREPARAÇÃO DE ROTAS ====================
+
+    /**
+     * Buscar rotas preparadas disponíveis para download
+     */
+    @GET("rotas/preparadas")
+    suspend fun buscarRotasPreparadas(): retrofit2.Response<RotasPreparadasResponse>
+
+    /**
+     * Baixar (assumir) uma rota preparada
+     */
+    @POST("rotas/{rotaId}/baixar")
+    suspend fun baixarRota(
+        @Path("rotaId") rotaId: String
+    ): retrofit2.Response<BaixarRotaResponse>
+
+    /**
+     * Marcar rota como preparada (armazenista)
+     */
+    @POST("rotas/{rotaId}/preparar")
+    suspend fun prepararRota(
+        @Path("rotaId") rotaId: String
+    ): retrofit2.Response<PrepararRotaResponse>
+
+    /**
+     * Verificar status de preparação
+     */
+    @GET("rotas/{rotaId}/status-preparacao")
+    suspend fun statusPreparacao(
+        @Path("rotaId") rotaId: String
+    ): retrofit2.Response<StatusPreparacaoResponse>
 }

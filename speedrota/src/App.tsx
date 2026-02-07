@@ -19,12 +19,15 @@ import { TelaPrevisaoDemanda } from './components/PrevisaoDemanda';
 import { TelaGamificacao } from './components/Gamificacao';
 import TelaEcommerce from './components/Ecommerce';
 import { TelaQrCodeScanner } from './components/QrCodeScanner';
+import TelaMatching from './components/TelaMatching';
+import { TelaEscolhaCarga } from './components/TelaEscolhaCarga';
 import './styles/global.css';
 import './styles/frota.css';
 
 const TITULOS: Record<string, string> = {
   home: 'SpeedRota',
   origem: 'Definir Origem',
+  'escolha-carga': 'Preparação da Carga',
   destinos: 'Adicionar Destinos',
   rota: 'Rota Otimizada',
   navegacao: 'Navegação',
@@ -34,6 +37,7 @@ const TITULOS: Record<string, string> = {
   gamificacao: 'Conquistas',
   ecommerce: 'Integrações E-commerce',
   qrcode: 'Scanner QR Code',
+  matching: 'Match Caixa ↔ NF-e',
 };
 
 // Verificar se é página de retorno do pagamento
@@ -167,6 +171,7 @@ export default function App() {
       <main className="main">
         {etapaAtual === 'home' && <TelaHome onAbrirHistorico={() => setMostrarHistorico(true)} />}
         {etapaAtual === 'origem' && <TelaOrigem />}
+        {etapaAtual === 'escolha-carga' && <TelaEscolhaCarga />}
         {etapaAtual === 'destinos' && <TelaDestinos />}
         {etapaAtual === 'rota' && <TelaRota />}
         {etapaAtual === 'dashboard' && <TelaDashboard onAbrirPlanos={() => setMostrarPlanos(true)} />}
@@ -175,6 +180,7 @@ export default function App() {
         {etapaAtual === 'gamificacao' && <TelaGamificacao />}
         {etapaAtual === 'ecommerce' && <TelaEcommerce />}
         {etapaAtual === 'qrcode' && <TelaQrCodeScanner />}
+        {etapaAtual === 'matching' && <TelaMatching />}
       </main>
       
       {/* Footer com info da origem (se definida e não na home) */}

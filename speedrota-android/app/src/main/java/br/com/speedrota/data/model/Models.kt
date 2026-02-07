@@ -2018,3 +2018,140 @@ data class OcrNotaFiscal(
     val chaveAcesso: String? = null
 )
 
+// ==================== MATCHING CAIXA ↔ NF-e ====================
+
+@Serializable
+data class ListaCaixasResponse(
+    val caixas: List<CaixaEscaneadaData> = emptyList()
+)
+
+@Serializable
+data class CaixaEscaneadaData(
+    val id: String,
+    val pedido: String? = null,
+    val remessa: String? = null,
+    val destinatario: String? = null,
+    val cep: String? = null,
+    val bairro: String? = null,
+    val cidade: String? = null,
+    val uf: String? = null,
+    val itens: Int? = null,
+    val pesoKg: Double? = null,
+    val tagVisual: String? = null,
+    val tagCor: Int? = null,
+    val numeroCaixa: Int? = null,
+    val totalCaixas: Int? = null,
+    val statusMatch: String = "PENDENTE",
+    val matchScore: Double? = null
+)
+
+@Serializable
+data class AdicionarCaixaResponse(
+    val success: Boolean = false,
+    val caixaId: String? = null,
+    val dados: CaixaEscaneadaData? = null,
+    val error: String? = null
+)
+
+@Serializable
+data class MatchingResponse(
+    val matches: List<MatchData> = emptyList(),
+    val totalPareados: Int = 0,
+    val totalSemMatch: Int = 0
+)
+
+@Serializable
+data class MatchData(
+    val caixaId: String,
+    val paradaId: String,
+    val score: Int,
+    val tagVisual: String,
+    val tagCor: Int,
+    val destinatario: String? = null,
+    val endereco: String? = null,
+    val numeroCaixa: Int? = null,
+    val totalCaixas: Int? = null
+)
+
+@Serializable
+data class MatchesResponse(
+    val matches: List<MatchData> = emptyList()
+)
+
+// ==================== PREPARAÇÃO DE ROTAS ====================
+
+@Serializable
+data class RotasPreparadasResponse(
+    val rotas: List<RotaPreparadaData> = emptyList()
+)
+
+@Serializable
+data class RotaPreparadaData(
+    val id: String,
+    val preparadaEm: String? = null,
+    val preparadaPorId: String? = null,
+    val paradas: List<ParadaPreviewData>? = null,
+    val caixas: List<CaixaPreviewData>? = null
+)
+
+@Serializable
+data class ParadaPreviewData(
+    val id: String,
+    val nome: String,
+    val endereco: String,
+    val cidade: String,
+    val tagVisual: String? = null,
+    val tagCor: Int? = null
+)
+
+@Serializable
+data class CaixaPreviewData(
+    val id: String,
+    val pedido: String? = null,
+    val remessa: String? = null,
+    val destinatario: String? = null,
+    val tagVisual: String? = null,
+    val tagCor: Int? = null,
+    val numeroCaixa: Int? = null,
+    val totalCaixas: Int? = null
+)
+
+@Serializable
+data class BaixarRotaResponse(
+    val success: Boolean = false,
+    val message: String? = null,
+    val rota: RotaDetalhadaData? = null,
+    val error: String? = null
+)
+
+@Serializable
+data class RotaDetalhadaData(
+    val id: String,
+    val status: String? = null,
+    val statusPreparacao: String? = null,
+    val origemEndereco: String? = null,
+    val distanciaTotalKm: Double? = null,
+    val tempoViagemMin: Double? = null
+)
+
+@Serializable
+data class PrepararRotaResponse(
+    val success: Boolean = false,
+    val message: String? = null,
+    val error: String? = null
+)
+
+@Serializable
+data class StatusPreparacaoResponse(
+    val rotaId: String,
+    val status: String,
+    val preparadaPor: String? = null,
+    val preparadaEm: String? = null,
+    val baixadaPor: String? = null,
+    val baixadaEm: String? = null,
+    val totalCaixas: Int = 0,
+    val caixasPareadas: Int = 0,
+    val totalParadas: Int = 0,
+    val prontaParaBaixar: Boolean = false
+)
+
