@@ -19,6 +19,7 @@
 
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { prisma } from '../lib/prisma';
+import { authenticate } from '../middlewares/auth.middleware';
 import distribuicaoService, { EntregaParaDistribuir, ConfiguracaoDistribuicao } from '../services/distribuicao';
 
 // ==========================================
@@ -64,6 +65,9 @@ async function verificarGestor(request: AuthRequest, reply: FastifyReply) {
 // ==========================================
 
 export default async function frotaRoutes(fastify: FastifyInstance) {
+  // Todas as rotas requerem autenticação
+  fastify.addHook('onRequest', authenticate);
+
   // ==========================================
   // EMPRESA ROUTES
   // ==========================================
