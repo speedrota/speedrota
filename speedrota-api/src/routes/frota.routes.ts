@@ -134,7 +134,7 @@ export default async function frotaRoutes(fastify: FastifyInstance) {
             motoristas: true,
             veiculos: true,
             equipes: true,
-            rotas: true,
+            rotasEmpresa: true,
           },
         },
       },
@@ -177,7 +177,8 @@ export default async function frotaRoutes(fastify: FastifyInstance) {
       baseLat?: number;
       baseLng?: number;
       baseEndereco?: string;
-      maxMotoristas?: number;
+      limiteMotoristas?: number;
+      limiteVeiculos?: number;
       modoDistribuicao?: 'AUTOMATICO' | 'MANUAL' | 'HIBRIDO';
       configDistribuicao?: object;
     };
@@ -242,9 +243,9 @@ export default async function frotaRoutes(fastify: FastifyInstance) {
     }
 
     // Verificar limite de motoristas
-    if (empresa._count.motoristas >= empresa.maxMotoristas) {
+    if (empresa._count.motoristas >= empresa.limiteMotoristas) {
       return reply.code(400).send({
-        error: `Limite de ${empresa.maxMotoristas} motoristas atingido`,
+        error: `Limite de ${empresa.limiteMotoristas} motoristas atingido`,
       });
     }
 
