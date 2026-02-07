@@ -172,7 +172,9 @@ fun TelaFrotaGestor(
                     )
                 }
                 uiState.empresas.isEmpty() -> {
-                    EmptyEmpresaState()
+                    EmptyEmpresaState(
+                        onCriarEmpresa = { viewModel.toggleCriarEmpresa(true) }
+                    )
                 }
                 else -> {
                     when (uiState.tabAtual) {
@@ -183,6 +185,46 @@ fun TelaFrotaGestor(
                         4 -> TabDistribuir(uiState)
                     }
                 }
+            }
+        }
+        
+        // Modal Criar Empresa
+        if (uiState.showCriarEmpresa) {
+            CriarEmpresaDialog(
+                criando = uiState.criandoEmpresa,
+                onDismiss = { viewModel.toggleCriarEmpresa(false) },
+                onConfirm = { nome, cnpj, endereco, modo ->
+                    viewModel.criarEmpresa(nome, cnpj, endereco, modo)
+                }
+            )
+        }
+        
+        // Modal Criar Motorista
+        if (uiState.showCriarMotorista) {
+            CriarMotoristaDialog(
+                criando = uiState.criandoMotorista,
+                temEmpresa = uiState.empresaSelecionada != null,
+                onDismiss = { viewModel.toggleCriarMotorista(false) },
+                onConfirm = { nome, email, telefone, cpf, tipo ->
+                    viewModel.criarMotorista(nome, email, telefone, cpf, tipo)
+                },
+                onCriarEmpresa = {
+                    viewModel.toggleCriarMotorista(false)
+                    viewModel.toggleCriarEmpresa(true)
+                }
+            )
+        }
+        
+        // Snackbar de sucesso
+        uiState.mensagemSucesso?.let { mensagem ->
+            LaunchedEffect(mensagem) {
+                kotlinx.coroutines.delay(3000)
+                viewModel.limparMensagemSucesso()
+            }
+            Snackbar(
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Text(mensagem)
             }
         }
     }
@@ -366,32 +408,49 @@ private fun TabMotoristas(
     uiState: FrotaGestorUiState,
     viewModel: FrotaGestorViewModel
 ) {
-    if (uiState.motoristas.isEmpty()) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (uiState.motoristas.isEmpty()) {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
                 Text("🚚", fontSize = 48.sp)
                 Spacer(modifier = Modifier.height(8.dp))
                 Text("Nenhum motorista cadastrado")
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(onClick = { viewModel.toggleCriarMotorista(true) }) {
+                    Icon(Icons.Default.Add, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Adicionar Motorista")
+                }
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(uiState.motoristas) { motorista ->
+                    MotoristaCard(
+                        motorista = motorista,
+                        onStatusChange = { novoStatus ->
+                            viewModel.atualizarStatusMotorista(motorista.id, novoStatus)
+                        }
+                    )
+                }
             }
         }
-        return
-    }
-    
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        items(uiState.motoristas) { motorista ->
-            MotoristaCard(
-                motorista = motorista,
-                onStatusChange = { novoStatus ->
-                    viewModel.atualizarStatusMotorista(motorista.id, novoStatus)
-                }
-            )
+        
+        // FAB para adicionar motorista
+        FloatingActionButton(
+            onClick = { viewModel.toggleCriarMotorista(true) },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp),
+            containerColor = MaterialTheme.colorScheme.primary
+        ) {
+            Icon(Icons.Default.Add, contentDescription = "Adicionar Motorista")
         }
     }
 }
@@ -871,7 +930,9 @@ private fun ErrorState(message: String, onRetry: () -> Unit) {
 }
 
 @Composable
-private fun EmptyEmpresaState() {
+private fun EmptyEmpresaState(
+    onCriarEmpresa: () -> Unit = {}
+) {
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
@@ -888,8 +949,313 @@ private fun EmptyEmpresaState() {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(onClick = onCriarEmpresa) {
+                Icon(Icons.Default.Add, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Criar Empresa")
+            }
         }
     }
+}
+
+// ==========================================
+// DIALOGS
+// ==========================================
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CriarEmpresaDialog(
+    criando: Boolean,
+    onDismiss: () -> Unit,
+    onConfirm: (nome: String, cnpj: String, endereco: String, modo: String) -> Unit
+) {
+    var nome by remember { mutableStateOf("") }
+    var cnpj by remember { mutableStateOf("") }
+    var endereco by remember { mutableStateOf("") }
+    var modoDistribuicao by remember { mutableStateOf("AUTOMATICO") }
+    var modoExpanded by remember { mutableStateOf(false) }
+
+    AlertDialog(
+        onDismissRequest = { if (!criando) onDismiss() },
+        title = { Text("🏢 Criar Nova Empresa") },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                OutlinedTextField(
+                    value = nome,
+                    onValueChange = { nome = it },
+                    label = { Text("Nome da Empresa *") },
+                    placeholder = { Text("Ex: Transportadora XYZ") },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !criando,
+                    singleLine = true
+                )
+                
+                OutlinedTextField(
+                    value = cnpj,
+                    onValueChange = { cnpj = it },
+                    label = { Text("CNPJ") },
+                    placeholder = { Text("00.000.000/0000-00") },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !criando,
+                    singleLine = true
+                )
+                
+                OutlinedTextField(
+                    value = endereco,
+                    onValueChange = { endereco = it },
+                    label = { Text("Endereço Base") },
+                    placeholder = { Text("Rua, número, bairro, cidade") },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !criando,
+                    singleLine = true
+                )
+                
+                ExposedDropdownMenuBox(
+                    expanded = modoExpanded,
+                    onExpandedChange = { modoExpanded = it }
+                ) {
+                    OutlinedTextField(
+                        value = when (modoDistribuicao) {
+                            "AUTOMATICO" -> "Automático (IA distribui)"
+                            "MANUAL" -> "Manual (você distribui)"
+                            "HIBRIDO" -> "Híbrido (IA sugere)"
+                            else -> modoDistribuicao
+                        },
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Modo de Distribuição") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = modoExpanded) },
+                        modifier = Modifier
+                            .menuAnchor()
+                            .fillMaxWidth(),
+                        enabled = !criando
+                    )
+                    ExposedDropdownMenu(
+                        expanded = modoExpanded,
+                        onDismissRequest = { modoExpanded = false }
+                    ) {
+                        listOf(
+                            "AUTOMATICO" to "Automático (IA distribui)",
+                            "MANUAL" to "Manual (você distribui)",
+                            "HIBRIDO" to "Híbrido (IA sugere)"
+                        ).forEach { (value, label) ->
+                            DropdownMenuItem(
+                                text = { Text(label) },
+                                onClick = {
+                                    modoDistribuicao = value
+                                    modoExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onConfirm(nome, cnpj, endereco, modoDistribuicao) },
+                enabled = nome.isNotBlank() && !criando
+            ) {
+                if (criando) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+                Text(if (criando) "Criando..." else "Criar Empresa")
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onDismiss,
+                enabled = !criando
+            ) {
+                Text("Cancelar")
+            }
+        }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CriarMotoristaDialog(
+    criando: Boolean,
+    temEmpresa: Boolean,
+    onDismiss: () -> Unit,
+    onConfirm: (nome: String, email: String, telefone: String, cpf: String, tipo: String) -> Unit,
+    onCriarEmpresa: () -> Unit
+) {
+    var nome by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
+    var telefone by remember { mutableStateOf("") }
+    var cpf by remember { mutableStateOf("") }
+    var tipoMotorista by remember { mutableStateOf("VINCULADO") }
+    var tipoExpanded by remember { mutableStateOf(false) }
+
+    AlertDialog(
+        onDismissRequest = { if (!criando) onDismiss() },
+        title = { Text("🚚 Adicionar Motorista") },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Tipo de motorista
+                ExposedDropdownMenuBox(
+                    expanded = tipoExpanded,
+                    onExpandedChange = { tipoExpanded = it }
+                ) {
+                    OutlinedTextField(
+                        value = when (tipoMotorista) {
+                            "VINCULADO" -> "Vinculado à Empresa"
+                            "AUTONOMO" -> "Autônomo"
+                            "AUTONOMO_PARCEIRO" -> "Autônomo Parceiro"
+                            else -> tipoMotorista
+                        },
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Tipo de Motorista *") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = tipoExpanded) },
+                        modifier = Modifier
+                            .menuAnchor()
+                            .fillMaxWidth(),
+                        enabled = !criando
+                    )
+                    ExposedDropdownMenu(
+                        expanded = tipoExpanded,
+                        onDismissRequest = { tipoExpanded = false }
+                    ) {
+                        listOf(
+                            "VINCULADO" to "Vinculado à Empresa",
+                            "AUTONOMO" to "Autônomo",
+                            "AUTONOMO_PARCEIRO" to "Autônomo Parceiro"
+                        ).forEach { (value, label) ->
+                            DropdownMenuItem(
+                                text = { Text(label) },
+                                onClick = {
+                                    tipoMotorista = value
+                                    tipoExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+                
+                // Hint sobre tipo
+                Text(
+                    text = when (tipoMotorista) {
+                        "VINCULADO" -> "Motorista que trabalha para sua empresa"
+                        "AUTONOMO" -> "Motorista independente, entregas avulsas"
+                        "AUTONOMO_PARCEIRO" -> "Autônomo com parceria preferencial"
+                        else -> ""
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                
+                // Alerta se VINCULADO sem empresa
+                if (tipoMotorista == "VINCULADO" && !temEmpresa) {
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = YellowWarning.copy(alpha = 0.2f)
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("⚠️", fontSize = 20.sp)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Crie uma empresa primeiro",
+                                    fontWeight = FontWeight.Medium,
+                                    fontSize = 14.sp
+                                )
+                                TextButton(
+                                    onClick = onCriarEmpresa,
+                                    contentPadding = PaddingValues(0.dp)
+                                ) {
+                                    Text("Criar Empresa →")
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                OutlinedTextField(
+                    value = nome,
+                    onValueChange = { nome = it },
+                    label = { Text("Nome *") },
+                    placeholder = { Text("Nome completo") },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !criando,
+                    singleLine = true
+                )
+                
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = { Text("Email *") },
+                    placeholder = { Text("email@exemplo.com") },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !criando,
+                    singleLine = true
+                )
+                
+                OutlinedTextField(
+                    value = telefone,
+                    onValueChange = { telefone = it },
+                    label = { Text("Telefone *") },
+                    placeholder = { Text("(00) 00000-0000") },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !criando,
+                    singleLine = true
+                )
+                
+                OutlinedTextField(
+                    value = cpf,
+                    onValueChange = { cpf = it },
+                    label = { Text("CPF") },
+                    placeholder = { Text("000.000.000-00") },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !criando,
+                    singleLine = true
+                )
+            }
+        },
+        confirmButton = {
+            val podeConfirmar = nome.isNotBlank() && email.isNotBlank() && telefone.isNotBlank() &&
+                    (tipoMotorista != "VINCULADO" || temEmpresa)
+            
+            Button(
+                onClick = { onConfirm(nome, email, telefone, cpf, tipoMotorista) },
+                enabled = podeConfirmar && !criando
+            ) {
+                if (criando) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+                Text(if (criando) "Criando..." else "Adicionar")
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onDismiss,
+                enabled = !criando
+            ) {
+                Text("Cancelar")
+            }
+        }
+    )
 }
 
 // ==========================================

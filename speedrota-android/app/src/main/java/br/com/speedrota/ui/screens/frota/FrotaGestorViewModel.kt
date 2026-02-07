@@ -161,7 +161,14 @@ data class FrotaGestorUiState(
     val veiculos: List<VeiculoGestor> = emptyList(),
     
     // Zonas
-    val zonas: List<ZonaGestor> = emptyList()
+    val zonas: List<ZonaGestor> = emptyList(),
+    
+    // Modais
+    val showCriarEmpresa: Boolean = false,
+    val showCriarMotorista: Boolean = false,
+    val criandoEmpresa: Boolean = false,
+    val criandoMotorista: Boolean = false,
+    val mensagemSucesso: String? = null
 )
 
 // ==========================================
@@ -261,6 +268,201 @@ class FrotaGestorViewModel @Inject constructor(
      */
     fun mudarTab(tab: Int) {
         _uiState.update { it.copy(tabAtual = tab) }
+    }
+
+    /**
+     * Toggle modal criar empresa
+     */
+    fun toggleCriarEmpresa(show: Boolean) {
+        _uiState.update { it.copy(showCriarEmpresa = show) }
+    }
+
+    /**
+     * Toggle modal criar motorista
+     */
+    fun toggleCriarMotorista(show: Boolean) {
+        _uiState.update { it.copy(showCriarMotorista = show) }
+    }
+
+    /**
+     * Limpa mensagem de sucesso
+     */
+    fun limparMensagemSucesso() {
+        _uiState.update { it.copy(mensagemSucesso = null) }
+    }
+
+    /**
+     * Cria nova empresa
+     * @param nome Nome da empresa (obrigatório)
+     * @param cnpj CNPJ (opcional)
+     * @param baseEndereco Endereço base (opcional)
+     * @param modoDistribuicao Modo de distribuição (AUTOMATICO, MANUAL, HIBRIDO)
+     */
+    fun criarEmpresa(
+        nome: String,
+        cnpj: String = "",
+        baseEndereco: String = "",
+        modoDistribuicao: String = "AUTOMATICO"
+    ) {
+        if (nome.isBlank()) {
+            _uiState.update { it.copy(erro = "Nome da empresa é obrigatório") }
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(criandoEmpresa = true, erro = null) }
+
+            val authToken = getToken() ?: run {
+                _uiState.update { it.copy(criandoEmpresa = false, erro = "Não autenticado") }
+                return@launch
+            }
+
+            val requestBody = buildString {
+                append("{")
+                append("\"nome\": \"$nome\"")
+                if (cnpj.isNotBlank()) append(", \"cnpj\": \"$cnpj\"")
+                if (baseEndereco.isNotBlank()) append(", \"baseEndereco\": \"$baseEndereco\"")
+                append(", \"modoDistribuicao\": \"$modoDistribuicao\"")
+                append("}")
+            }.toRequestBody("application/json".toMediaType())
+
+            val request = Request.Builder()
+                .url("$apiUrl/frota/empresa")
+                .post(requestBody)
+                .addHeader("Authorization", "Bearer $authToken")
+                .addHeader("Content-Type", "application/json")
+                .build()
+
+            try {
+                client.newCall(request).execute().use { response ->
+                    if (response.isSuccessful) {
+                        val body = response.body?.string() ?: ""
+                        val empresa = json.decodeFromString<EmpresaGestor>(body)
+                        
+                        _uiState.update { 
+                            it.copy(
+                                empresas = it.empresas + empresa,
+                                empresaSelecionada = empresa,
+                                showCriarEmpresa = false,
+                                criandoEmpresa = false,
+                                mensagemSucesso = "Empresa criada com sucesso!"
+                            )
+                        }
+                        
+                        // Carregar dados da nova empresa
+                        carregarDadosEmpresa(empresa.id)
+                    } else {
+                        val errorBody = response.body?.string() ?: "Erro desconhecido"
+                        _uiState.update { 
+                            it.copy(criandoEmpresa = false, erro = "Erro ao criar empresa: $errorBody")
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                _uiState.update { 
+                    it.copy(criandoEmpresa = false, erro = "Erro: ${e.message}")
+                }
+            }
+        }
+    }
+
+    /**
+     * Cria novo motorista
+     * @param nome Nome do motorista (obrigatório)
+     * @param email Email (obrigatório)
+     * @param telefone Telefone (obrigatório)
+     * @param cpf CPF (opcional)
+     * @param tipoMotorista Tipo: VINCULADO, AUTONOMO, AUTONOMO_PARCEIRO
+     */
+    fun criarMotorista(
+        nome: String,
+        email: String,
+        telefone: String,
+        cpf: String = "",
+        tipoMotorista: String = "VINCULADO"
+    ) {
+        if (nome.isBlank() || email.isBlank() || telefone.isBlank()) {
+            _uiState.update { it.copy(erro = "Nome, email e telefone são obrigatórios") }
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(criandoMotorista = true, erro = null) }
+
+            val authToken = getToken() ?: run {
+                _uiState.update { it.copy(criandoMotorista = false, erro = "Não autenticado") }
+                return@launch
+            }
+
+            val url: String
+            val requestBody: RequestBody
+
+            if (tipoMotorista == "VINCULADO") {
+                // Motorista vinculado a empresa
+                val empresaId = _uiState.value.empresaSelecionada?.id ?: run {
+                    _uiState.update { 
+                        it.copy(criandoMotorista = false, erro = "Selecione uma empresa primeiro")
+                    }
+                    return@launch
+                }
+                url = "$apiUrl/frota/empresa/$empresaId/motorista"
+                requestBody = buildString {
+                    append("{")
+                    append("\"nome\": \"$nome\"")
+                    append(", \"email\": \"$email\"")
+                    append(", \"telefone\": \"$telefone\"")
+                    if (cpf.isNotBlank()) append(", \"cpf\": \"$cpf\"")
+                    append("}")
+                }.toRequestBody("application/json".toMediaType())
+            } else {
+                // Motorista autônomo
+                url = "$apiUrl/frota/motorista/autonomo"
+                requestBody = buildString {
+                    append("{")
+                    append("\"nome\": \"$nome\"")
+                    append(", \"email\": \"$email\"")
+                    append(", \"telefone\": \"$telefone\"")
+                    if (cpf.isNotBlank()) append(", \"cpf\": \"$cpf\"")
+                    append(", \"tipoMotorista\": \"$tipoMotorista\"")
+                    append("}")
+                }.toRequestBody("application/json".toMediaType())
+            }
+
+            val request = Request.Builder()
+                .url(url)
+                .post(requestBody)
+                .addHeader("Authorization", "Bearer $authToken")
+                .addHeader("Content-Type", "application/json")
+                .build()
+
+            try {
+                client.newCall(request).execute().use { response ->
+                    if (response.isSuccessful) {
+                        _uiState.update { 
+                            it.copy(
+                                showCriarMotorista = false,
+                                criandoMotorista = false,
+                                mensagemSucesso = "Motorista criado com sucesso!"
+                            )
+                        }
+                        
+                        // Recarregar motoristas
+                        _uiState.value.empresaSelecionada?.let {
+                            carregarMotoristas(it.id)
+                        }
+                    } else {
+                        val errorBody = response.body?.string() ?: "Erro desconhecido"
+                        _uiState.update { 
+                            it.copy(criandoMotorista = false, erro = "Erro ao criar motorista: $errorBody")
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                _uiState.update { 
+                    it.copy(criandoMotorista = false, erro = "Erro: ${e.message}")
+                }
+            }
+        }
     }
 
     /**
