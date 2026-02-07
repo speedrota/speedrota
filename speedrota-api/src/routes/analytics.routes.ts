@@ -16,6 +16,12 @@ import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma.js';
 import { authenticate, requirePlano } from '../middlewares/auth.middleware.js';
+import {
+  validateAnalyticsKPIs,
+  validateDeliveryData,
+  logSanityResult,
+  withSanityCheck,
+} from '../utils/sanityChecks.js';
 
 // ==========================================
 // SCHEMAS DE VALIDAÇÃO
@@ -281,9 +287,13 @@ export async function analyticsRoutes(app: FastifyInstance) {
       };
     }
 
+    // SANITY CHECK: Validar KPIs antes de retornar (Quality Gate)
+    const sanityResult = validateAnalyticsKPIs(kpis);
+    logSanityResult('analytics/overview', sanityResult);
+
     return {
       success: true,
-      data: {
+      data: withSanityCheck('analytics/overview', () => sanityResult, {
         plano,
         dashboardNivel: getDashboardNivel(plano),
         periodo: {
@@ -294,7 +304,7 @@ export async function analyticsRoutes(app: FastifyInstance) {
         kpis,
         comparativoAnterior,
         featuresDisponiveis: getFeaturesDisponiveis(plano),
-      },
+      }),
     };
   });
 
@@ -333,18 +343,32 @@ export async function analyticsRoutes(app: FastifyInstance) {
       ]);
 
     const total = entregues + pendentes + ausentes + recusadas + reagendadas;
+    const taxaSucesso = total > 0 ? Math.round((entregues / total) * 1000) / 10 : 0;
+
+    const statusBreakdown = {
+      ENTREGUE: entregues,
+      PENDENTE: pendentes,
+      AUSENTE: ausentes,
+      RECUSADA: recusadas,
+      REAGENDADA: reagendadas,
+    };
+
+    const totais = {
+      total,
+      podsRegistrados,
+      alertasDistancia,
+      taxaSucesso,
+    };
+
+    // SANITY CHECK: Validar dados de entregas antes de retornar (Quality Gate)
+    const sanityResult = validateDeliveryData({ statusBreakdown, totais });
+    logSanityResult('analytics/deliveries', sanityResult);
 
     return {
       success: true,
-      data: {
+      data: withSanityCheck('analytics/deliveries', () => sanityResult, {
         periodo: { inicio: inicio.toISOString(), fim: fim.toISOString() },
-        statusBreakdown: {
-          ENTREGUE: entregues,
-          PENDENTE: pendentes,
-          AUSENTE: ausentes,
-          RECUSADA: recusadas,
-          REAGENDADA: reagendadas,
-        },
+        statusBreakdown,
         pieChartData: [
           { id: 'Entregue', value: entregues, color: '#22c55e' },
           { id: 'Pendente', value: pendentes, color: '#6b7280' },
@@ -352,13 +376,8 @@ export async function analyticsRoutes(app: FastifyInstance) {
           { id: 'Recusada', value: recusadas, color: '#ef4444' },
           { id: 'Reagendada', value: reagendadas, color: '#8b5cf6' },
         ].filter((d) => d.value > 0),
-        totais: {
-          total,
-          podsRegistrados,
-          alertasDistancia,
-          taxaSucesso: total > 0 ? Math.round((entregues / total) * 1000) / 10 : 0,
-        },
-      },
+        totais,
+      }),
     };
   });
 
