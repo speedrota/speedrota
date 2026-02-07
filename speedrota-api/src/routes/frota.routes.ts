@@ -77,29 +77,36 @@ export default async function frotaRoutes(fastify: FastifyInstance) {
     Body: {
       nome: string;
       cnpj?: string;
+      email?: string;
+      telefone?: string;
       baseLat?: number;
       baseLng?: number;
       baseEndereco?: string;
-      maxMotoristas?: number;
+      limiteMotoristas?: number;
+      limiteVeiculos?: number;
       modoDistribuicao?: 'AUTOMATICO' | 'MANUAL' | 'HIBRIDO';
     };
   }>('/empresa', async (request: AuthRequest, reply) => {
     const userId = request.user?.userId;
+    const userEmail = request.user?.email;
     if (!userId) {
       return reply.code(401).send({ error: 'Não autenticado' });
     }
 
-    const { nome, cnpj, baseLat, baseLng, baseEndereco, maxMotoristas, modoDistribuicao } = request.body;
+    const { nome, cnpj, email, telefone, baseLat, baseLng, baseEndereco, limiteMotoristas, limiteVeiculos, modoDistribuicao } = request.body;
 
     try {
       const empresa = await prisma.empresa.create({
         data: {
           nome,
           cnpj,
+          email: email || userEmail || '',
+          telefone,
           baseLat,
           baseLng,
           baseEndereco,
-          maxMotoristas: maxMotoristas || 10,
+          limiteMotoristas: limiteMotoristas || 10,
+          limiteVeiculos: limiteVeiculos || 10,
           modoDistribuicao: modoDistribuicao || 'AUTOMATICO',
           gestorId: userId,
         },
