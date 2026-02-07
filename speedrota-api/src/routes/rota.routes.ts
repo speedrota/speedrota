@@ -190,7 +190,7 @@ export async function rotaRoutes(app: FastifyInstance) {
     const rotasFormatadas = rotas.map(rota => ({
       id: rota.id,
       nome: `Rota de ${new Date(rota.createdAt).toLocaleDateString('pt-BR')}`,
-      criadoEm: rota.createdAt.toISOString(),
+      createdAt: rota.createdAt.toISOString(),
       fornecedor: rota.paradas[0]?.fornecedor || null,
       totalParadas: rota.paradas.length,
       distanciaTotal: rota.distanciaTotalKm ? rota.distanciaTotalKm * 1000 : null, // km para metros
@@ -255,7 +255,7 @@ export async function rotaRoutes(app: FastifyInstance) {
     const rotaFormatada = {
       id: rota.id,
       nome: `Rota de ${new Date(rota.createdAt).toLocaleDateString('pt-BR')}`,
-      criadoEm: rota.createdAt.toISOString(),
+      createdAt: rota.createdAt.toISOString(),
       fornecedor: rota.paradas[0]?.fornecedor || null,
       totalParadas: rota.paradas.length,
       distanciaTotal: rota.distanciaTotalKm ? rota.distanciaTotalKm * 1000 : null,

@@ -131,7 +131,7 @@ export async function registrarToken(token: TokenPush): Promise<void> {
       auth: token.keys.auth,
       platform: token.platform,
       deviceId: token.deviceId,
-      atualizadoEm: new Date(),
+      updatedAt: new Date(),
     },
     create: {
       userId: token.userId,
@@ -296,8 +296,8 @@ export async function obterNotificacoes(
     titulo: string;
     mensagem: string;
     icone: string | null;
-    lida: boolean;
-    criadaEm: Date;
+    read: boolean;
+    createdAt: Date;
     rotaId: string | null;
     acaoUrl: string | null;
   }>;
@@ -306,13 +306,13 @@ export async function obterNotificacoes(
   const { limite = 50, apenasNaoLidas = false, tipo } = options;
 
   const where: Record<string, unknown> = { userId };
-  if (apenasNaoLidas) where.lida = false;
+  if (apenasNaoLidas) where.read = false;
   if (tipo) where.tipo = tipo;
 
   const [notificacoes, naoLidas] = await Promise.all([
     prisma.notificacao.findMany({
       where,
-      orderBy: { criadaEm: 'desc' },
+      orderBy: { createdAt: 'desc' },
       take: limite,
       select: {
         id: true,
@@ -320,14 +320,14 @@ export async function obterNotificacoes(
         titulo: true,
         mensagem: true,
         icone: true,
-        lida: true,
-        criadaEm: true,
+        read: true,
+        createdAt: true,
         rotaId: true,
         acaoUrl: true,
       },
     }),
     prisma.notificacao.count({
-      where: { userId, lida: false },
+      where: { userId, read: false },
     }),
   ]);
 
@@ -343,7 +343,7 @@ export async function marcarComoLida(
 ): Promise<void> {
   await prisma.notificacao.updateMany({
     where: { id: notificacaoId, userId },
-    data: { lida: true, lidaEm: new Date() },
+    data: { read: true, readAt: new Date() },
   });
 }
 
@@ -352,8 +352,8 @@ export async function marcarComoLida(
  */
 export async function marcarTodasComoLidas(userId: string): Promise<number> {
   const result = await prisma.notificacao.updateMany({
-    where: { userId, lida: false },
-    data: { lida: true, lidaEm: new Date() },
+    where: { userId, read: false },
+    data: { read: true, readAt: new Date() },
   });
   return result.count;
 }

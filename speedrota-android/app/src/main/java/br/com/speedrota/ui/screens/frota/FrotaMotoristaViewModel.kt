@@ -349,7 +349,7 @@ class FrotaMotoristaViewModel @Inject constructor(
                     } catch (e: Exception) {
                         StatusRota.PENDENTE
                     },
-                    criadoEm = extractString(rotaJson, "criadoEm") ?: "",
+                    createdAt = extractString(rotaJson, "createdAt") ?: "",
                     paradas = emptyList() // Paradas são carregadas separadamente
                 )
             }.toList()

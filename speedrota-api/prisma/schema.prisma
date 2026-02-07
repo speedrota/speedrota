@@ -151,14 +151,14 @@ model Rota {
   posicaoHistorico   PosicaoHistorico[]
   user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   statusHistorico    StatusHistorico[]
-  caixas             CaixaEscaneada[]   // Caixas escaneadas para matching
+  caixas             CaixaEscaneada[] // Caixas escaneadas para matching
 
   // Preparação pelo armazenista (upload/download)
-  statusPreparacao   String?   @default("NAO_PREPARADA") @map("status_preparacao") // NAO_PREPARADA, PREPARANDO, PRONTA
-  preparadaPorId     String?   @map("preparada_por_id") // ID do armazenista
-  preparadaEm        DateTime? @map("preparada_em")
-  baixadaPorId       String?   @map("baixada_por_id") // ID do motorista que baixou
-  baixadaEm          DateTime? @map("baixada_em")
+  statusPreparacao String?   @default("NAO_PREPARADA") @map("status_preparacao") // NAO_PREPARADA, PREPARANDO, PRONTA
+  preparadaPorId   String?   @map("preparada_por_id") // ID do armazenista
+  preparadaEm      DateTime? @map("preparada_em")
+  baixadaPorId     String?   @map("baixada_por_id") // ID do motorista que baixou
+  baixadaEm        DateTime? @map("baixada_em")
 
   @@map("rotas")
 }
@@ -200,23 +200,23 @@ model Parada {
   // ==========================================
   // Tag visual para identificação rápida no veículo
   // Formato: {NOME3}-{CEP3}-{ITENS} = Ex: PAU-474-09
-  tagVisual     String? @map("tag_visual")
-  tagCor        Int?    @map("tag_cor") // 1-8 para cores diferentes
-  
+  tagVisual String? @map("tag_visual")
+  tagCor    Int?    @map("tag_cor") // 1-8 para cores diferentes
+
   // Dados de matching
-  matchScore    Float?  @map("match_score") // Pontuação do matching (0-100)
-  caixaId       String? @map("caixa_id") // ID da caixa pareada
-  
+  matchScore Float?  @map("match_score") // Pontuação do matching (0-100)
+  caixaId    String? @map("caixa_id") // ID da caixa pareada
+
   // Dados extraídos da etiqueta da caixa
-  pedido        String? // Número do pedido
-  remessa       String? // Número da remessa/REM
-  subrota       String? // Código da SubRota
-  itens         Int?    // Quantidade de itens
-  pesoKg        Float?  @map("peso_kg") // Peso em kg
-  valorNf       Float?  @map("valor_nf") // Valor da NF-e
-  
+  pedido  String? // Número do pedido
+  remessa String? // Número da remessa/REM
+  subrota String? // Código da SubRota
+  itens   Int? // Quantidade de itens
+  pesoKg  Float?  @map("peso_kg") // Peso em kg
+  valorNf Float?  @map("valor_nf") // Valor da NF-e
+
   // Relacionamento com caixa (opcional)
-  caixa         CaixaEscaneada? @relation(fields: [caixaId], references: [id])
+  caixa CaixaEscaneada? @relation(fields: [caixaId], references: [id])
 
   @@map("paradas")
 }
@@ -254,52 +254,52 @@ model ProofOfDelivery {
 model CaixaEscaneada {
   id     String @id @default(uuid())
   rotaId String @map("rota_id")
-  
+
   // Imagem original
-  fotoUrl     String?  @map("foto_url") // URL ou base64
-  fotoThumb   String?  @map("foto_thumb") // Thumbnail para preview
-  
+  fotoUrl   String? @map("foto_url") // URL ou base64
+  fotoThumb String? @map("foto_thumb") // Thumbnail para preview
+
   // Dados extraídos via OCR
-  pedido      String? // PED - pedido
-  remessa     String? // REM - remessa
+  pedido       String? // PED - pedido
+  remessa      String? // REM - remessa
   destinatario String? // Nome do destinatário
-  cep         String?
-  bairro      String?
-  cidade      String?
-  uf          String?
-  
+  cep          String?
+  bairro       String?
+  cidade       String?
+  uf           String?
+
   // Detalhes do pacote
-  itens       Int?    // Quantidade de itens
-  pesoKg      Float?  @map("peso_kg")
-  barcode     String? // Código de barras
-  
+  itens   Int? // Quantidade de itens
+  pesoKg  Float?  @map("peso_kg")
+  barcode String? // Código de barras
+
   // Status do processamento
-  statusOcr   String  @default("PENDENTE") @map("status_ocr") // PENDENTE, PROCESSANDO, SUCESSO, ERRO
-  confianca   Float?  // Confiança do OCR (0-1)
-  textoRaw    String? @map("texto_raw") // Texto bruto do OCR
-  
+  statusOcr String  @default("PENDENTE") @map("status_ocr") // PENDENTE, PROCESSANDO, SUCESSO, ERRO
+  confianca Float? // Confiança do OCR (0-1)
+  textoRaw  String? @map("texto_raw") // Texto bruto do OCR
+
   // Status do matching
   statusMatch String  @default("PENDENTE") @map("status_match") // PENDENTE, PAREADO, SEM_MATCH
   paradaId    String? @map("parada_id") // ID da parada pareada
   matchScore  Float?  @map("match_score")
-  
+
   // Suporte a múltiplas caixas por NF-e (N:1)
-  numeroCaixa Int?    @map("numero_caixa") // Ex: 1 de 2 -> numeroCaixa=1
-  totalCaixas Int?    @map("total_caixas") // Ex: 1 de 2 -> totalCaixas=2
+  numeroCaixa  Int?    @map("numero_caixa") // Ex: 1 de 2 -> numeroCaixa=1
+  totalCaixas  Int?    @map("total_caixas") // Ex: 1 de 2 -> totalCaixas=2
   grupoCaixaId String? @map("grupo_caixa_id") // UUID para agrupar caixas do mesmo pedido
-  
+
   // Tag visual (mesma para caixas do mesmo pedido)
-  tagVisual   String? @map("tag_visual")
-  tagCor      Int?    @map("tag_cor")
-  
+  tagVisual String? @map("tag_visual")
+  tagCor    Int?    @map("tag_cor")
+
   // Timestamps
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
   // Relacionamentos
-  rota        Rota     @relation(fields: [rotaId], references: [id], onDelete: Cascade)
-  paradas     Parada[]
-  
+  rota    Rota     @relation(fields: [rotaId], references: [id], onDelete: Cascade)
+  paradas Parada[]
+
   @@map("caixas_escaneadas")
 }
 
@@ -354,16 +354,16 @@ model HistoricoTempo {
 }
 
 model TokenPush {
-  id           String   @id @default(uuid())
-  userId       String   @map("user_id")
-  endpoint     String
-  p256dh       String
-  auth         String
-  platform     String   @default("web")
-  deviceId     String?  @map("device_id")
-  criadoEm     DateTime @default(now()) @map("criado_em")
-  atualizadoEm DateTime @updatedAt @map("atualizado_em")
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  endpoint  String
+  p256dh    String
+  auth      String
+  platform  String   @default("web")
+  deviceId  String?  @map("device_id")
+  createdAt DateTime @default(now()) @map("criado_em")
+  updatedAt DateTime @updatedAt @map("atualizado_em")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, endpoint])
   @@index([userId])
@@ -371,23 +371,23 @@ model TokenPush {
 }
 
 model Notificacao {
-  id       String    @id @default(uuid())
-  userId   String    @map("user_id")
-  tipo     String
-  titulo   String
-  mensagem String
-  icone    String?
-  rotaId   String?   @map("rota_id")
-  paradaId String?   @map("parada_id")
-  dados    String?
-  acaoUrl  String?   @map("acao_url")
-  lida     Boolean   @default(false)
-  lidaEm   DateTime? @map("lida_em")
-  criadaEm DateTime  @default(now()) @map("criada_em")
-  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  tipo      String
+  titulo    String
+  mensagem  String
+  icone     String?
+  rotaId    String?   @map("rota_id")
+  paradaId  String?   @map("parada_id")
+  dados     String?
+  acaoUrl   String?   @map("acao_url")
+  read      Boolean   @default(false) @map("lida")
+  readAt    DateTime? @map("lida_em")
+  createdAt DateTime  @default(now()) @map("criada_em")
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
-  @@index([userId, lida])
+  @@index([userId, read])
   @@index([tipo])
   @@map("notificacoes")
 }
@@ -1161,8 +1161,8 @@ enum TipoUsuario {
 }
 
 enum TipoMotorista {
-  VINCULADO        // Motorista contratado da empresa
-  AUTONOMO         // Motorista autônomo individual
+  VINCULADO // Motorista contratado da empresa
+  AUTONOMO // Motorista autônomo individual
   AUTONOMO_PARCEIRO // Autônomo que aceita entregas de empresas
 }
 

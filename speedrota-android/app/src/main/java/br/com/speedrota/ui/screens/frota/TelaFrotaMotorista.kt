@@ -39,7 +39,7 @@ data class RotaAtribuida(
     val distanciaKm: Float,
     val tempoEstimadoMin: Int,
     val status: StatusRota,
-    val criadoEm: String,
+    val createdAt: String,
     val paradas: List<ParadaRota>
 )
 
@@ -310,7 +310,7 @@ fun RotaCard(
             ) {
                 StatusBadge(status = rota.status)
                 Text(
-                    text = rota.criadoEm,
+                    text = rota.createdAt,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

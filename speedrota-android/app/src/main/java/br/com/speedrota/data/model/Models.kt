@@ -176,7 +176,7 @@ data class RotaDetalheResponse(
 data class RotaListItem(
     val id: String,
     val nome: String,
-    val criadoEm: String,
+    val createdAt: String,
     val fornecedor: String? = null,
     val totalParadas: Int,
     val distanciaTotal: Double? = null,
@@ -988,7 +988,7 @@ data class HistoricoStatusItem(
     val status: String,
     val motivoFalha: String? = null,
     val observacao: String? = null,
-    val criadoEm: String
+    val createdAt: String
 )
 
 /**
@@ -1013,7 +1013,7 @@ data class HistoricoPosicaoItem(
     val heading: Float? = null,
     val velocidade: Float? = null,
     val precisao: Float? = null,
-    val criadoEm: String
+    val createdAt: String
 )
 
 /**

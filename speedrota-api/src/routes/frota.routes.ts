@@ -386,7 +386,7 @@ export default async function frotaRoutes(fastify: FastifyInstance) {
         },
         rotas: {
           where: { status: { in: ['EM_ANDAMENTO', 'CONCLUIDA'] } },
-          orderBy: { criadoEm: 'desc' },
+          orderBy: { createdAt: 'desc' },
           take: 10,
         },
       },
