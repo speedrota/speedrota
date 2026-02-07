@@ -281,6 +281,55 @@ export default async function frotaRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // Criar motorista autônomo (sem empresa)
+  fastify.post<{
+    Body: {
+      nome: string;
+      telefone: string;
+      email: string;
+      cpf?: string;
+      tipoMotorista: 'AUTONOMO' | 'AUTONOMO_PARCEIRO';
+      foto?: string;
+      capacidadeKg?: number;
+      capacidadeVolumes?: number;
+      raioMaximoKm?: number;
+    };
+  }>('/motorista/autonomo', async (request: AuthRequest, reply) => {
+    const userId = request.user?.userId;
+    if (!userId) {
+      return reply.code(401).send({ error: 'Não autenticado' });
+    }
+
+    const { nome, telefone, email, cpf, tipoMotorista, foto, capacidadeKg, capacidadeVolumes, raioMaximoKm } = request.body;
+
+    // Validar tipo
+    if (!tipoMotorista || !['AUTONOMO', 'AUTONOMO_PARCEIRO'].includes(tipoMotorista)) {
+      return reply.code(400).send({ error: 'tipoMotorista deve ser AUTONOMO ou AUTONOMO_PARCEIRO' });
+    }
+
+    try {
+      const motorista = await prisma.motorista.create({
+        data: {
+          nome,
+          telefone,
+          email,
+          cpf,
+          tipoMotorista: tipoMotorista as any,
+          foto,
+          capacidadeKg: capacidadeKg || 50,
+          capacidadeVolumes: capacidadeVolumes || 30,
+          raioMaximoKm: raioMaximoKm || 50,
+          empresaId: null, // Motorista autônomo
+        },
+      });
+
+      return reply.code(201).send(motorista);
+    } catch (error: any) {
+      console.error('[API] Erro ao criar motorista autônomo:', error);
+      return reply.code(400).send({ error: error.message });
+    }
+  });
+
   // Listar motoristas da empresa
   fastify.get<{
     Params: EmpresaIdParam;

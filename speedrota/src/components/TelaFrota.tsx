@@ -110,9 +110,84 @@ export default function TelaFrota() {
   });
   const [criandoEmpresa, setCriandoEmpresa] = useState(false);
 
+  // Estados para modal de criar motorista
+  const [showCriarMotorista, setShowCriarMotorista] = useState(false);
+  const [novoMotorista, setNovoMotorista] = useState({
+    nome: '',
+    email: '',
+    telefone: '',
+    cpf: '',
+    tipoMotorista: 'VINCULADO' as 'VINCULADO' | 'AUTONOMO' | 'AUTONOMO_PARCEIRO',
+  });
+  const [criandoMotorista, setCriandoMotorista] = useState(false);
+
   // Helper para funcionalidades ainda não implementadas
   const handleComingSoon = (feature: string) => {
     alert(`${feature} - Em breve!`);
+  };
+
+  // Handler para criar motorista
+  const handleCriarMotorista = async () => {
+    if (!novoMotorista.nome.trim() || !novoMotorista.email.trim() || !novoMotorista.telefone.trim()) {
+      alert('Nome, email e telefone são obrigatórios');
+      return;
+    }
+
+    setCriandoMotorista(true);
+    try {
+      let url: string;
+      let body: object;
+
+      if (novoMotorista.tipoMotorista === 'VINCULADO') {
+        // Motorista vinculado a empresa
+        if (!empresaId) {
+          alert('Selecione uma empresa primeiro');
+          setCriandoMotorista(false);
+          return;
+        }
+        url = `${API_URL}/frota/empresa/${empresaId}/motorista`;
+        body = {
+          nome: novoMotorista.nome,
+          email: novoMotorista.email,
+          telefone: novoMotorista.telefone,
+          cpf: novoMotorista.cpf || undefined,
+        };
+      } else {
+        // Motorista autônomo
+        url = `${API_URL}/frota/motorista/autonomo`;
+        body = {
+          nome: novoMotorista.nome,
+          email: novoMotorista.email,
+          telefone: novoMotorista.telefone,
+          cpf: novoMotorista.cpf || undefined,
+          tipoMotorista: novoMotorista.tipoMotorista,
+        };
+      }
+
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Erro ao criar motorista');
+      }
+
+      const motorista = await res.json();
+      setMotoristas(prev => [...prev, motorista]);
+      setShowCriarMotorista(false);
+      setNovoMotorista({ nome: '', email: '', telefone: '', cpf: '', tipoMotorista: 'VINCULADO' });
+      alert('Motorista criado com sucesso!');
+    } catch (e: any) {
+      alert(e.message);
+    } finally {
+      setCriandoMotorista(false);
+    }
   };
 
   // Handler para criar empresa
@@ -408,7 +483,7 @@ export default function TelaFrota() {
     <div className="frota-motoristas">
       <div className="frota-section-header">
         <h2>Motoristas ({motoristas.length})</h2>
-        <button className="frota-btn-primary" onClick={() => handleComingSoon('Adicionar motorista')}>
+        <button className="frota-btn-primary" onClick={() => setShowCriarMotorista(true)}>
           + Adicionar Motorista
         </button>
       </div>
@@ -682,6 +757,106 @@ export default function TelaFrota() {
                   disabled={criandoEmpresa}
                 >
                   {criandoEmpresa ? 'Criando...' : 'Criar Empresa'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal Criar Motorista */}
+        {showCriarMotorista && (
+          <div className="frota-modal-overlay" onClick={() => setShowCriarMotorista(false)}>
+            <div className="frota-modal" onClick={e => e.stopPropagation()}>
+              <h2>🚚 Adicionar Motorista</h2>
+              
+              <div className="frota-form-group">
+                <label>Tipo de Motorista *</label>
+                <select
+                  value={novoMotorista.tipoMotorista}
+                  onChange={e => setNovoMotorista(prev => ({ ...prev, tipoMotorista: e.target.value as any }))}
+                >
+                  <option value="VINCULADO">Vinculado à Empresa</option>
+                  <option value="AUTONOMO">Autônomo</option>
+                  <option value="AUTONOMO_PARCEIRO">Autônomo Parceiro</option>
+                </select>
+                <small className="frota-form-hint">
+                  {novoMotorista.tipoMotorista === 'VINCULADO' 
+                    ? 'Motorista que trabalha exclusivamente para sua empresa'
+                    : novoMotorista.tipoMotorista === 'AUTONOMO'
+                    ? 'Motorista independente que faz entregas avulsas'
+                    : 'Motorista autônomo com parceria preferencial'}
+                </small>
+              </div>
+
+              {novoMotorista.tipoMotorista === 'VINCULADO' && !empresaId && (
+                <div className="frota-alert frota-alert-warning">
+                  ⚠️ Você precisa criar uma empresa primeiro para adicionar motoristas vinculados.
+                  <button 
+                    className="frota-btn-link"
+                    onClick={() => {
+                      setShowCriarMotorista(false);
+                      setShowCriarEmpresa(true);
+                    }}
+                  >
+                    Criar Empresa
+                  </button>
+                </div>
+              )}
+
+              <div className="frota-form-group">
+                <label>Nome *</label>
+                <input
+                  type="text"
+                  value={novoMotorista.nome}
+                  onChange={e => setNovoMotorista(prev => ({ ...prev, nome: e.target.value }))}
+                  placeholder="Nome completo"
+                />
+              </div>
+
+              <div className="frota-form-group">
+                <label>Email *</label>
+                <input
+                  type="email"
+                  value={novoMotorista.email}
+                  onChange={e => setNovoMotorista(prev => ({ ...prev, email: e.target.value }))}
+                  placeholder="email@exemplo.com"
+                />
+              </div>
+
+              <div className="frota-form-group">
+                <label>Telefone *</label>
+                <input
+                  type="tel"
+                  value={novoMotorista.telefone}
+                  onChange={e => setNovoMotorista(prev => ({ ...prev, telefone: e.target.value }))}
+                  placeholder="(00) 00000-0000"
+                />
+              </div>
+
+              <div className="frota-form-group">
+                <label>CPF</label>
+                <input
+                  type="text"
+                  value={novoMotorista.cpf}
+                  onChange={e => setNovoMotorista(prev => ({ ...prev, cpf: e.target.value }))}
+                  placeholder="000.000.000-00"
+                />
+              </div>
+
+              <div className="frota-modal-actions">
+                <button 
+                  className="frota-btn-secondary" 
+                  onClick={() => setShowCriarMotorista(false)}
+                  disabled={criandoMotorista}
+                >
+                  Cancelar
+                </button>
+                <button 
+                  className="frota-btn-primary" 
+                  onClick={handleCriarMotorista}
+                  disabled={criandoMotorista || (novoMotorista.tipoMotorista === 'VINCULADO' && !empresaId)}
+                >
+                  {criandoMotorista ? 'Criando...' : 'Adicionar Motorista'}
                 </button>
               </div>
             </div>
