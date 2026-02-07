@@ -62,15 +62,15 @@ interface MetricasML {
 // API SERVICE
 // ==========================================
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1';
 
 async function fetchPrevisao(zona: string, data?: string): Promise<Previsao> {
   const params = new URLSearchParams();
   if (data) params.append('data', data);
   
-  const response = await fetch(`${API_URL}/api/v1/ml/previsao/${zona}?${params}`, {
+  const response = await fetch(`${API_URL}/ml/previsao/${zona}?${params}`, {
     headers: {
-      'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      'Authorization': `Bearer ${localStorage.getItem('speedrota_token')}`,
     },
   });
   const result = await response.json();
@@ -82,9 +82,9 @@ async function fetchMapaCalor(data?: string): Promise<ZonaCalor[]> {
   const params = new URLSearchParams();
   if (data) params.append('data', data);
   
-  const response = await fetch(`${API_URL}/api/v1/ml/mapa-calor?${params}`, {
+  const response = await fetch(`${API_URL}/ml/mapa-calor?${params}`, {
     headers: {
-      'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      'Authorization': `Bearer ${localStorage.getItem('speedrota_token')}`,
     },
   });
   const result = await response.json();
@@ -96,9 +96,9 @@ async function fetchInsights(zona?: string): Promise<Insight[]> {
   const params = new URLSearchParams();
   if (zona) params.append('zona', zona);
   
-  const response = await fetch(`${API_URL}/api/v1/ml/insights?${params}`, {
+  const response = await fetch(`${API_URL}/ml/insights?${params}`, {
     headers: {
-      'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      'Authorization': `Bearer ${localStorage.getItem('speedrota_token')}`,
     },
   });
   const result = await response.json();
@@ -107,9 +107,9 @@ async function fetchInsights(zona?: string): Promise<Insight[]> {
 }
 
 async function fetchMetricas(): Promise<MetricasML> {
-  const response = await fetch(`${API_URL}/api/v1/ml/metricas`, {
+  const response = await fetch(`${API_URL}/ml/metricas`, {
     headers: {
-      'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      'Authorization': `Bearer ${localStorage.getItem('speedrota_token')}`,
     },
   });
   const result = await response.json();

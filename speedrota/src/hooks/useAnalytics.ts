@@ -88,8 +88,9 @@ export function useAnalytics(): UseAnalyticsReturn {
         setSuppliers(suppliersData);
       }
 
-      // FULL+ - Heatmap, Performance, Insights
-      if (plano === 'FULL' || plano === 'ENTERPRISE') {
+      // FULL+ e FROTA - Heatmap, Performance, Insights
+      const planosCompletos = ['FULL', 'ENTERPRISE', 'FROTA_START', 'FROTA_PRO', 'FROTA_ENTERPRISE'];
+      if (planosCompletos.includes(plano)) {
         const [heatmapData, performanceData, insightsData] = await Promise.all([
           analyticsService.getHeatmap(params),
           analyticsService.getPerformance(params),

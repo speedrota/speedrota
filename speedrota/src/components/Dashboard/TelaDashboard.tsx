@@ -25,9 +25,13 @@ export function TelaDashboard({ onAbrirPlanos }: TelaDashboardProps) {
     case 'FREE':
       return <DashboardEssencial onAbrirPlanos={onAbrirPlanos} />;
     case 'PRO':
+    case 'STARTER':
       return <DashboardAvancado onAbrirPlanos={onAbrirPlanos} />;
     case 'FULL':
     case 'ENTERPRISE':
+    case 'FROTA_START':
+    case 'FROTA_PRO':
+    case 'FROTA_ENTERPRISE':
       return <DashboardCompleto />;
     default:
       return <DashboardEssencial onAbrirPlanos={onAbrirPlanos} />;

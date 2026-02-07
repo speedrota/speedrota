@@ -8,8 +8,8 @@
  */
 
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import { useRouteStore } from '../store/routeStore';
 
 // ==========================================
 // TIPOS
@@ -92,13 +92,17 @@ interface Zona {
 // ==========================================
 
 export default function TelaFrota() {
-  const navigate = useNavigate();
+  const { irPara } = useRouteStore();
   const { token } = useAuthStore();
   const [empresaId, setEmpresaId] = useState<string | null>(null);
   const [empresas, setEmpresas] = useState<Empresa[]>([]);
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [motoristas, setMotoristas] = useState<Motorista[]>([]);
-  const [veiculos, setVeiculos] = useState<Veiculo[]>([]);
+
+  // Helper para funcionalidades ainda não implementadas
+  const handleComingSoon = (feature: string) => {
+    alert(`${feature} - Em breve!`);
+  };  const [veiculos, setVeiculos] = useState<Veiculo[]>([]);
   const [zonas, setZonas] = useState<Zona[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<'dashboard' | 'motoristas' | 'veiculos' | 'zonas' | 'distribuir'>('dashboard');
@@ -360,7 +364,7 @@ export default function TelaFrota() {
     <div className="frota-motoristas">
       <div className="frota-section-header">
         <h2>Motoristas ({motoristas.length})</h2>
-        <button className="frota-btn-primary" onClick={() => navigate('/frota/motorista/novo')}>
+        <button className="frota-btn-primary" onClick={() => handleComingSoon('Adicionar motorista')}>
           + Adicionar Motorista
         </button>
       </div>
@@ -433,7 +437,7 @@ export default function TelaFrota() {
                     </select>
                     <button
                       className="frota-btn-icon"
-                      onClick={() => navigate(`/frota/motorista/${m.id}`)}
+                      onClick={() => handleComingSoon('Detalhes do motorista')}
                       title="Ver detalhes"
                     >
                       👁️
@@ -452,7 +456,7 @@ export default function TelaFrota() {
     <div className="frota-veiculos">
       <div className="frota-section-header">
         <h2>Veículos ({veiculos.length})</h2>
-        <button className="frota-btn-primary" onClick={() => navigate('/frota/veiculo/novo')}>
+        <button className="frota-btn-primary" onClick={() => handleComingSoon('Adicionar veículo')}>
           + Adicionar Veículo
         </button>
       </div>
@@ -497,7 +501,7 @@ export default function TelaFrota() {
     <div className="frota-zonas">
       <div className="frota-section-header">
         <h2>Zonas de Atuação ({zonas.length})</h2>
-        <button className="frota-btn-primary" onClick={() => navigate('/frota/zona/nova')}>
+        <button className="frota-btn-primary" onClick={() => handleComingSoon('Criar zona')}>
           + Adicionar Zona
         </button>
       </div>
@@ -536,13 +540,13 @@ export default function TelaFrota() {
       </div>
 
       <div className="frota-distribuir-actions">
-        <button className="frota-btn-primary" onClick={() => navigate('/frota/importar')}>
+        <button className="frota-btn-primary" onClick={() => handleComingSoon('Importar entregas')}>
           📄 Importar Entregas (NF-e)
         </button>
-        <button className="frota-btn-secondary" onClick={() => navigate('/frota/distribuir/manual')}>
+        <button className="frota-btn-secondary" onClick={() => handleComingSoon('Distribuição manual')}>
           ✋ Distribuir Manualmente
         </button>
-        <button className="frota-btn-success" onClick={() => navigate('/frota/distribuir/auto')}>
+        <button className="frota-btn-success" onClick={() => handleComingSoon('Distribuição automática')}>
           🤖 Distribuição Automática
         </button>
       </div>
@@ -567,7 +571,7 @@ export default function TelaFrota() {
         <div className="frota-empty">
           <h2>Nenhuma empresa cadastrada</h2>
           <p>Crie sua empresa para começar a gerenciar sua frota.</p>
-          <button className="frota-btn-primary" onClick={() => navigate('/frota/empresa/nova')}>
+          <button className="frota-btn-primary" onClick={() => handleComingSoon('Criar empresa')}>
             + Criar Empresa
           </button>
         </div>
@@ -593,7 +597,7 @@ export default function TelaFrota() {
             </select>
           )}
         </div>
-        <button className="frota-btn-icon" onClick={() => navigate('/')}>
+        <button className="frota-btn-icon" onClick={() => irPara('home')}>
           ✕
         </button>
       </div>
