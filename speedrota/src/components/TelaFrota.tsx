@@ -10,6 +10,7 @@
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { useRouteStore } from '../store/routeStore';
+import './TelaFrota.css';
 
 // ==========================================
 // TIPOS
@@ -99,10 +100,53 @@ export default function TelaFrota() {
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [motoristas, setMotoristas] = useState<Motorista[]>([]);
 
+  // Estados para modal de criar empresa
+  const [showCriarEmpresa, setShowCriarEmpresa] = useState(false);
+  const [novaEmpresa, setNovaEmpresa] = useState({
+    nome: '',
+    cnpj: '',
+    baseEndereco: '',
+    modoDistribuicao: 'AUTOMATICO' as 'AUTOMATICO' | 'MANUAL' | 'HIBRIDO',
+  });
+  const [criandoEmpresa, setCriandoEmpresa] = useState(false);
+
   // Helper para funcionalidades ainda não implementadas
   const handleComingSoon = (feature: string) => {
     alert(`${feature} - Em breve!`);
-  };  const [veiculos, setVeiculos] = useState<Veiculo[]>([]);
+  };
+
+  // Handler para criar empresa
+  const handleCriarEmpresa = async () => {
+    if (!novaEmpresa.nome.trim()) {
+      alert('Nome da empresa é obrigatório');
+      return;
+    }
+    setCriandoEmpresa(true);
+    try {
+      const res = await fetch(`${API_URL}/frota/empresa`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(novaEmpresa),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Erro ao criar empresa');
+      }
+      const empresa = await res.json();
+      setEmpresas(prev => [...prev, empresa]);
+      setEmpresaId(empresa.id);
+      setShowCriarEmpresa(false);
+      setNovaEmpresa({ nome: '', cnpj: '', baseEndereco: '', modoDistribuicao: 'AUTOMATICO' });
+    } catch (e: any) {
+      alert(e.message);
+    } finally {
+      setCriandoEmpresa(false);
+    }
+  };
+  const [veiculos, setVeiculos] = useState<Veiculo[]>([]);
   const [zonas, setZonas] = useState<Zona[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<'dashboard' | 'motoristas' | 'veiculos' | 'zonas' | 'distribuir'>('dashboard');
@@ -571,10 +615,78 @@ export default function TelaFrota() {
         <div className="frota-empty">
           <h2>Nenhuma empresa cadastrada</h2>
           <p>Crie sua empresa para começar a gerenciar sua frota.</p>
-          <button className="frota-btn-primary" onClick={() => handleComingSoon('Criar empresa')}>
+          <button className="frota-btn-primary" onClick={() => setShowCriarEmpresa(true)}>
             + Criar Empresa
           </button>
         </div>
+
+        {/* Modal Criar Empresa */}
+        {showCriarEmpresa && (
+          <div className="frota-modal-overlay" onClick={() => setShowCriarEmpresa(false)}>
+            <div className="frota-modal" onClick={e => e.stopPropagation()}>
+              <h2>🏢 Criar Nova Empresa</h2>
+              
+              <div className="frota-form-group">
+                <label>Nome da Empresa *</label>
+                <input
+                  type="text"
+                  value={novaEmpresa.nome}
+                  onChange={e => setNovaEmpresa(prev => ({ ...prev, nome: e.target.value }))}
+                  placeholder="Ex: Transportadora XYZ"
+                />
+              </div>
+
+              <div className="frota-form-group">
+                <label>CNPJ</label>
+                <input
+                  type="text"
+                  value={novaEmpresa.cnpj}
+                  onChange={e => setNovaEmpresa(prev => ({ ...prev, cnpj: e.target.value }))}
+                  placeholder="00.000.000/0000-00"
+                />
+              </div>
+
+              <div className="frota-form-group">
+                <label>Endereço Base</label>
+                <input
+                  type="text"
+                  value={novaEmpresa.baseEndereco}
+                  onChange={e => setNovaEmpresa(prev => ({ ...prev, baseEndereco: e.target.value }))}
+                  placeholder="Rua, número, bairro, cidade"
+                />
+              </div>
+
+              <div className="frota-form-group">
+                <label>Modo de Distribuição</label>
+                <select
+                  value={novaEmpresa.modoDistribuicao}
+                  onChange={e => setNovaEmpresa(prev => ({ ...prev, modoDistribuicao: e.target.value as any }))}
+                >
+                  <option value="AUTOMATICO">Automático (IA distribui)</option>
+                  <option value="MANUAL">Manual (você distribui)</option>
+                  <option value="HIBRIDO">Híbrido (IA sugere, você confirma)</option>
+                </select>
+              </div>
+
+              <div className="frota-modal-actions">
+                <button 
+                  className="frota-btn-secondary" 
+                  onClick={() => setShowCriarEmpresa(false)}
+                  disabled={criandoEmpresa}
+                >
+                  Cancelar
+                </button>
+                <button 
+                  className="frota-btn-primary" 
+                  onClick={handleCriarEmpresa}
+                  disabled={criandoEmpresa}
+                >
+                  {criandoEmpresa ? 'Criando...' : 'Criar Empresa'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }

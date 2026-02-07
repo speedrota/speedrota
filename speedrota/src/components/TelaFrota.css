@@ -1,0 +1,458 @@
+/**
+ * @fileoverview Estilos para Gestão de Frota
+ */
+
+/* Container Principal */
+.frota-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+  color: white;
+  padding: 1rem;
+}
+
+/* Loading */
+.frota-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 50vh;
+  font-size: 1.2rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* Empty State */
+.frota-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 60vh;
+  text-align: center;
+  gap: 1rem;
+}
+
+.frota-empty h2 {
+  font-size: 1.5rem;
+  margin: 0;
+}
+
+.frota-empty p {
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0;
+}
+
+/* Header */
+.frota-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0 1rem;
+}
+
+.frota-header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.frota-header h1 {
+  font-size: 1.5rem;
+  margin: 0;
+}
+
+/* Tabs */
+.frota-tabs {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  overflow-x: auto;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.frota-tab {
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  border: none;
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.frota-tab:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.frota-tab.active {
+  background: var(--primary, #2563eb);
+  color: white;
+}
+
+/* Content */
+.frota-content {
+  padding: 1rem 0;
+}
+
+/* Error */
+.frota-error {
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  padding: 1rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+  color: #fca5a5;
+}
+
+/* Cards Grid */
+.frota-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.frota-card {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.frota-card-icon {
+  font-size: 2rem;
+}
+
+.frota-card-content h3 {
+  font-size: 1.5rem;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.frota-card-content span {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.frota-card-detail {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin-top: 0.25rem;
+}
+
+/* Section */
+.frota-section {
+  margin-bottom: 1.5rem;
+}
+
+.frota-section h2 {
+  font-size: 1.1rem;
+  margin: 0 0 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Status Grid */
+.frota-status-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.frota-status-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 0.5rem;
+  border-left: 3px solid;
+}
+
+.frota-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.frota-status-label {
+  font-size: 0.85rem;
+}
+
+.frota-status-count {
+  font-weight: 600;
+}
+
+/* Top Motoristas */
+.frota-top-motoristas {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.frota-top-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 0.5rem;
+}
+
+.frota-top-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.frota-top-info {
+  flex: 1;
+}
+
+.frota-top-nome {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.frota-top-taxa {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Lista de Motoristas */
+.frota-motoristas-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.frota-motorista-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.frota-motorista-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.frota-motorista-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.frota-motorista-info {
+  flex: 1;
+}
+
+.frota-motorista-nome {
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.frota-motorista-meta {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.frota-motorista-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Buttons */
+.frota-btn-primary {
+  background: var(--primary, #2563eb);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.frota-btn-primary:hover {
+  background: #1d4ed8;
+}
+
+.frota-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.frota-btn-secondary {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.frota-btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.frota-btn-success {
+  background: #22c55e;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.frota-btn-success:hover {
+  background: #16a34a;
+}
+
+.frota-btn-icon {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+}
+
+.frota-btn-small {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8rem;
+  border-radius: 0.25rem;
+}
+
+/* Select */
+.frota-select {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+}
+
+/* Badge de Status */
+.frota-badge {
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+/* Modal */
+.frota-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.frota-modal {
+  background: #1e1b4b;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.frota-modal h2 {
+  margin: 0 0 1.5rem;
+  font-size: 1.25rem;
+}
+
+.frota-form-group {
+  margin-bottom: 1rem;
+}
+
+.frota-form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.frota-form-group input,
+.frota-form-group select,
+.frota-form-group textarea {
+  width: 100%;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 0.5rem;
+  color: white;
+  font-size: 1rem;
+}
+
+.frota-form-group input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.frota-form-group input:focus,
+.frota-form-group select:focus {
+  outline: none;
+  border-color: var(--primary, #2563eb);
+}
+
+.frota-modal-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+}
+
+/* Veículos e Zonas */
+.frota-veiculos-list,
+.frota-zonas-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.frota-veiculo-item,
+.frota-zona-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 0.5rem;
+}
+
+.frota-zona-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+/* Distribuir */
+.frota-distribuir-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}

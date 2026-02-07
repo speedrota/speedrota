@@ -18,9 +18,9 @@
  */
 
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { prisma } from '../lib/prisma';
-import { authenticate } from '../middlewares/auth.middleware';
-import distribuicaoService, { EntregaParaDistribuir, ConfiguracaoDistribuicao } from '../services/distribuicao';
+import { prisma } from '../lib/prisma.js';
+import { authenticate } from '../middlewares/auth.middleware.js';
+import distribuicaoService, { EntregaParaDistribuir, ConfiguracaoDistribuicao } from '../services/distribuicao.js';
 
 // ==========================================
 // TIPOS DE REQUEST

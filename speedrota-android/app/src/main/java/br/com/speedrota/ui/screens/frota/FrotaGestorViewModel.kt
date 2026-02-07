@@ -13,11 +13,13 @@ package br.com.speedrota.ui.screens.frota
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import br.com.speedrota.data.local.PreferencesManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
@@ -168,7 +170,8 @@ data class FrotaGestorUiState(
 
 @HiltViewModel
 class FrotaGestorViewModel @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val preferencesManager: PreferencesManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FrotaGestorUiState())
@@ -180,9 +183,12 @@ class FrotaGestorViewModel @Inject constructor(
     private val apiUrl: String
         get() = context.getString(br.com.speedrota.R.string.api_base_url)
 
-    private val token: String?
-        get() = context.getSharedPreferences("speedrota", Context.MODE_PRIVATE)
-            .getString("auth_token", null)
+    /**
+     * Obtém token do DataStore de forma suspensa
+     */
+    private suspend fun getToken(): String? {
+        return preferencesManager.token.first()
+    }
 
     // ==========================================
     // SANITY CHECKS (Quality Gates)
@@ -262,7 +268,7 @@ class FrotaGestorViewModel @Inject constructor(
      */
     fun atualizarStatusMotorista(motoristaId: String, novoStatus: String) {
         viewModelScope.launch {
-            val authToken = token ?: return@launch
+            val authToken = getToken() ?: return@launch
             
             val requestBody = """{"status": "$novoStatus"}"""
                 .toRequestBody("application/json".toMediaType())
@@ -293,7 +299,7 @@ class FrotaGestorViewModel @Inject constructor(
      */
     fun atualizarStatusVeiculo(veiculoId: String, novoStatus: String) {
         viewModelScope.launch {
-            val authToken = token ?: return@launch
+            val authToken = getToken() ?: return@launch
             
             val requestBody = """{"status": "$novoStatus"}"""
                 .toRequestBody("application/json".toMediaType())
@@ -323,7 +329,7 @@ class FrotaGestorViewModel @Inject constructor(
     // ==========================================
 
     private suspend fun carregarEmpresas() {
-        val authToken = token ?: run {
+        val authToken = getToken() ?: run {
             _uiState.update { it.copy(loading = false, erro = "Não autenticado") }
             return
         }
@@ -371,7 +377,7 @@ class FrotaGestorViewModel @Inject constructor(
     }
 
     private suspend fun carregarDashboard(empresaId: String) {
-        val authToken = token ?: return
+        val authToken = getToken() ?: return
 
         val request = Request.Builder()
             .url("$apiUrl/frota/empresa/$empresaId/dashboard")
@@ -397,7 +403,7 @@ class FrotaGestorViewModel @Inject constructor(
     }
 
     private suspend fun carregarMotoristas(empresaId: String) {
-        val authToken = token ?: return
+        val authToken = getToken() ?: return
 
         val request = Request.Builder()
             .url("$apiUrl/frota/empresa/$empresaId/motoristas")
@@ -419,7 +425,7 @@ class FrotaGestorViewModel @Inject constructor(
     }
 
     private suspend fun carregarVeiculos(empresaId: String) {
-        val authToken = token ?: return
+        val authToken = getToken() ?: return
 
         val request = Request.Builder()
             .url("$apiUrl/frota/empresa/$empresaId/veiculos")
@@ -441,7 +447,7 @@ class FrotaGestorViewModel @Inject constructor(
     }
 
     private suspend fun carregarZonas(empresaId: String) {
-        val authToken = token ?: return
+        val authToken = getToken() ?: return
 
         val request = Request.Builder()
             .url("$apiUrl/frota/empresa/$empresaId/zonas")

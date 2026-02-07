@@ -462,7 +462,8 @@ model Empresa {
 
 model Motorista {
   id                   String                 @id @default(uuid())
-  empresaId            String                 @map("empresa_id")
+  empresaId            String?                @map("empresa_id")
+  tipoMotorista        TipoMotorista          @default(VINCULADO) @map("tipo_motorista")
   nome                 String
   email                String
   telefone             String
@@ -498,7 +499,7 @@ model Motorista {
   historicoAtribuicoes AtribuicaoHistorico[]
   eventosGeofence      EventoGeofence[]
   zonasPreferidas      MotoristaZona[]
-  empresa              Empresa                @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  empresa              Empresa?               @relation(fields: [empresaId], references: [id], onDelete: Cascade)
   equipe               Equipe?                @relation(fields: [equipeId], references: [id])
   user                 User?                  @relation(fields: [userId], references: [id])
   veiculoAtual         Veiculo?               @relation("MotoristaVeiculoAtual", fields: [veiculoAtualId], references: [id])
@@ -508,6 +509,7 @@ model Motorista {
   @@index([empresaId])
   @@index([status])
   @@index([equipeId])
+  @@index([tipoMotorista])
   @@map("motoristas")
 }
 
@@ -1156,6 +1158,12 @@ enum Plano {
 enum TipoUsuario {
   ENTREGADOR
   GESTOR_FROTA
+}
+
+enum TipoMotorista {
+  VINCULADO        // Motorista contratado da empresa
+  AUTONOMO         // Motorista autônomo individual
+  AUTONOMO_PARCEIRO // Autônomo que aceita entregas de empresas
 }
 
 enum TipoDesconto {
