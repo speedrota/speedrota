@@ -167,7 +167,8 @@ export function TelaEscolhaCarga() {
           lat: dados.origem.lat,
           lng: dados.origem.lng,
           endereco: dados.origem.endereco,
-          fonte: 'manual' // Importação de arquivo é considerada entrada manual
+          fonte: 'manual', // Importação de arquivo é considerada entrada manual
+          timestamp: new Date() // Timestamp da importação
         });
       }
       
