@@ -543,7 +543,7 @@ export default async function frotaRoutes(fastify: FastifyInstance) {
     const veiculos = await prisma.veiculo.findMany({
       where: { empresaId, ativo: true },
       include: {
-        motoristaAtual: { select: { id: true, nome: true, status: true } },
+        motoristasUsando: { select: { id: true, nome: true, status: true } },
       },
       orderBy: { placa: 'asc' },
     });
@@ -612,7 +612,7 @@ export default async function frotaRoutes(fastify: FastifyInstance) {
     const zonas = await prisma.zonaAtuacao.findMany({
       where: { empresaId, ativo: true },
       include: {
-        _count: { select: { motoristas: true } },
+        _count: { select: { motoristasZona: true } },
       },
     });
 

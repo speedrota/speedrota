@@ -45,7 +45,7 @@ interface Veiculo {
   status: 'DISPONIVEL' | 'EM_USO' | 'MANUTENCAO' | 'RESERVADO' | 'INATIVO';
   capacidadeKg: number;
   capacidadeVolumes: number;
-  motoristaAtual?: { id: string; nome: string };
+  motoristasUsando?: Array<{ id: string; nome: string; status: string }>;
 }
 
 interface DashboardData {
@@ -85,7 +85,7 @@ interface Zona {
   cor: string;
   cidades: string[];
   bairros: string[];
-  _count: { motoristas: number };
+  _count: { motoristasZona: number };
 }
 
 // ==========================================
@@ -603,10 +603,10 @@ export default function TelaFrota() {
                 <span>Capacidade</span>
                 <strong>{v.capacidadeKg}kg / {v.capacidadeVolumes} vol</strong>
               </div>
-              {v.motoristaAtual && (
+              {v.motoristasUsando && v.motoristasUsando.length > 0 && (
                 <div className="frota-veiculo-stat">
                   <span>Motorista</span>
-                  <strong>{v.motoristaAtual.nome}</strong>
+                  <strong>{v.motoristasUsando[0].nome}</strong>
                 </div>
               )}
             </div>
@@ -632,7 +632,7 @@ export default function TelaFrota() {
             <div className="frota-zona-info">
               <p><strong>Cidades:</strong> {z.cidades.join(', ') || 'Nenhuma'}</p>
               <p><strong>Bairros:</strong> {z.bairros.length > 0 ? z.bairros.slice(0, 3).join(', ') + (z.bairros.length > 3 ? '...' : '') : 'Todos'}</p>
-              <p><strong>Motoristas:</strong> {z._count.motoristas}</p>
+              <p><strong>Motoristas:</strong> {z._count.motoristasZona}</p>
             </div>
           </div>
         ))}
@@ -688,11 +688,25 @@ export default function TelaFrota() {
     return (
       <div className="frota-container">
         <div className="frota-empty">
-          <h2>Nenhuma empresa cadastrada</h2>
-          <p>Crie sua empresa para começar a gerenciar sua frota.</p>
-          <button className="frota-btn-primary" onClick={() => setShowCriarEmpresa(true)}>
-            + Criar Empresa
-          </button>
+          <h2>Gestão de Frota</h2>
+          <p>Escolha uma opção para começar:</p>
+          
+          <div className="frota-opcoes-iniciais">
+            <button className="frota-btn-opcao" onClick={() => setShowCriarEmpresa(true)}>
+              <span className="frota-btn-emoji">🏢</span>
+              <span className="frota-btn-titulo">Criar Empresa</span>
+              <span className="frota-btn-desc">Cadastre sua empresa para gerenciar motoristas vinculados</span>
+            </button>
+            
+            <button className="frota-btn-opcao" onClick={() => {
+              setNovoMotorista(prev => ({ ...prev, tipoMotorista: 'AUTONOMO' }));
+              setShowCriarMotorista(true);
+            }}>
+              <span className="frota-btn-emoji">🚴</span>
+              <span className="frota-btn-titulo">Motorista Autônomo</span>
+              <span className="frota-btn-desc">Cadastre motorista autônomo sem vínculo empresarial</span>
+            </button>
+          </div>
         </div>
 
         {/* Modal Criar Empresa */}
