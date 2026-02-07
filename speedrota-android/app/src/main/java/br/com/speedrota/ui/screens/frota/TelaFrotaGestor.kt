@@ -56,14 +56,15 @@ private val PurpleAccent = Color(0xFF8B5CF6)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TelaFrotaGestor(
+    empresaId: String = "",
     onNavigateBack: () -> Unit,
     onNavigateToRota: (String) -> Unit = {},
     viewModel: FrotaGestorViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     
-    LaunchedEffect(Unit) {
-        viewModel.carregarDados()
+    LaunchedEffect(empresaId) {
+        viewModel.carregarDados(empresaIdSelecionada = empresaId.takeIf { it.isNotBlank() })
     }
 
     Scaffold(

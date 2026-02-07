@@ -245,13 +245,23 @@ class FrotaGestorViewModel @Inject constructor(
 
     /**
      * Carrega dados iniciais do gestor
+     * @param empresaIdSelecionada Se informado, seleciona automaticamente esta empresa
      */
-    fun carregarDados() {
+    fun carregarDados(empresaIdSelecionada: String? = null) {
         viewModelScope.launch {
             _uiState.update { it.copy(loading = true, erro = null) }
             
             try {
                 carregarEmpresas()
+                
+                // Se foi passada uma empresaId, seleciona automaticamente
+                if (!empresaIdSelecionada.isNullOrBlank()) {
+                    val empresa = _uiState.value.empresas.find { it.id == empresaIdSelecionada }
+                    if (empresa != null) {
+                        _uiState.update { it.copy(empresaSelecionada = empresa) }
+                        carregarDadosEmpresa(empresaIdSelecionada)
+                    }
+                }
             } catch (e: Exception) {
                 _uiState.update { 
                     it.copy(loading = false, erro = e.message)

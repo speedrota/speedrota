@@ -16,6 +16,7 @@ import br.com.speedrota.ui.screens.dashboard.DashboardScreen
 import br.com.speedrota.ui.screens.home.HomeScreen
 import br.com.speedrota.ui.screens.frota.TelaFrotaMotorista
 import br.com.speedrota.ui.screens.frota.TelaFrotaGestor
+import br.com.speedrota.ui.screens.frota.TelaMenuFrota
 import br.com.speedrota.ui.screens.historico.HistoricoScreen
 import br.com.speedrota.ui.screens.origem.OrigemScreen
 import br.com.speedrota.ui.screens.destinos.DestinosScreen
@@ -97,7 +98,7 @@ fun SpeedRotaNavHost() {
                     navController.navigate(Screen.Frota.route)
                 },
                 onFrotaGestor = {
-                    navController.navigate(Screen.FrotaGestor.route)
+                    navController.navigate(Screen.MenuFrota.route)
                 },
                 onPrevisao = {
                     navController.navigate(Screen.Previsao.route)
@@ -134,9 +135,30 @@ fun SpeedRotaNavHost() {
             )
         }
         
+        // Menu de Frota (intermediário)
+        composable(Screen.MenuFrota.route) {
+            TelaMenuFrota(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onNavigateToFrotaGestor = { empresaId ->
+                    navController.navigate(Screen.FrotaGestor.createRoute(empresaId))
+                },
+                onNavigateToMotorista = { motoristaId ->
+                    // Por enquanto vai para Dashboard
+                    navController.navigate(Screen.Dashboard.route)
+                }
+            )
+        }
+        
         // Gestão de Frota - Gestor
-        composable(Screen.FrotaGestor.route) {
+        composable(
+            route = Screen.FrotaGestor.route,
+            arguments = listOf(navArgument("empresaId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val empresaId = backStackEntry.arguments?.getString("empresaId") ?: ""
             TelaFrotaGestor(
+                empresaId = empresaId,
                 onNavigateBack = {
                     navController.popBackStack()
                 },

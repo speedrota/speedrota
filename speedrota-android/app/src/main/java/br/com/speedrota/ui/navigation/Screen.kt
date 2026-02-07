@@ -11,8 +11,11 @@ sealed class Screen(val route: String) {
     
     // Main
     data object Home : Screen("home")
+    data object MenuFrota : Screen("menu-frota") // Menu intermediário
     data object Frota : Screen("frota") // Motorista
-    data object FrotaGestor : Screen("frota-gestor") // Gestor
+    data object FrotaGestor : Screen("frota-gestor/{empresaId}") {
+        fun createRoute(empresaId: String) = "frota-gestor/$empresaId"
+    }
     data object Origem : Screen("origem")
     data object Destinos : Screen("destinos")
     data object Rota : Screen("rota?rotaId={rotaId}") {
