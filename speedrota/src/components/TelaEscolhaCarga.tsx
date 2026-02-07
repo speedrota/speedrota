@@ -6,7 +6,7 @@
  * @post Navega para download de rotas prontas OU para tela de matching
  */
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouteStore } from '../store/routeStore';
 import './EscolhaCarga.css';
 
@@ -46,7 +46,7 @@ const CORES_TAG: Record<number, string> = {
 };
 
 export function TelaEscolhaCarga() {
-  const { irPara, setRotaId } = useRouteStore();
+  const { irPara, carregarRota } = useRouteStore();
   const [rotasDisponiveis, setRotasDisponiveis] = useState<RotaPreparada[]>([]);
   const [carregando, setCarregando] = useState(false);
   const [baixando, setBaixando] = useState<string | null>(null);
@@ -96,8 +96,7 @@ export function TelaEscolhaCarga() {
       });
       
       if (res.ok) {
-        const data = await res.json();
-        setRotaId(rotaId);
+        await carregarRota(rotaId);
         // Ir direto para a rota (já calculada)
         irPara('rota');
       } else {
