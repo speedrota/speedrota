@@ -6,9 +6,36 @@
  * @post Navega para download de rotas prontas OU para tela de matching
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouteStore } from '../store/routeStore';
 import './EscolhaCarga.css';
+
+// Tipo do arquivo de rota exportada (.speedrota)
+interface ArquivoRota {
+  versao: string;
+  exportadoEm: string;
+  origem: {
+    lat: number;
+    lng: number;
+    endereco: string;
+  };
+  paradas: {
+    ordem: number;
+    nome: string;
+    endereco: string;
+    cidade: string;
+    uf: string;
+    cep: string;
+    lat: number;
+    lng: number;
+    telefone?: string;
+    tagVisual?: string;
+    tagCor?: number;
+    pedido?: string;
+    remessa?: string;
+    itens?: number;
+  }[];
+}
 
 interface RotaPreparada {
   id: string;
@@ -46,11 +73,13 @@ const CORES_TAG: Record<number, string> = {
 };
 
 export function TelaEscolhaCarga() {
-  const { irPara, carregarRota } = useRouteStore();
+  const { irPara, carregarRota, definirOrigem, adicionarDestino, limparDestinos } = useRouteStore();
   const [rotasDisponiveis, setRotasDisponiveis] = useState<RotaPreparada[]>([]);
   const [carregando, setCarregando] = useState(false);
   const [baixando, setBaixando] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+  const [importando, setImportando] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Buscar rotas preparadas ao carregar
   useEffect(() => {
@@ -113,6 +142,70 @@ export function TelaEscolhaCarga() {
   function fazerSeparacaoManual() {
     // Ir para tela de destinos para fazer o processo completo
     irPara('destinos');
+  }
+  
+  // Função para importar arquivo .speedrota
+  async function importarArquivoRota(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    setImportando(true);
+    setErro(null);
+    
+    try {
+      const texto = await file.text();
+      const dados: ArquivoRota = JSON.parse(texto);
+      
+      // Validar versão e estrutura
+      if (!dados.versao || !dados.paradas || dados.paradas.length === 0) {
+        throw new Error('Arquivo inválido ou sem paradas');
+      }
+      
+      // Configurar origem
+      if (dados.origem) {
+        definirOrigem({
+          lat: dados.origem.lat,
+          lng: dados.origem.lng,
+          endereco: dados.origem.endereco,
+          fonte: 'arquivo'
+        });
+      }
+      
+      // Limpar destinos antigos e adicionar novos
+      limparDestinos();
+      
+      for (const p of dados.paradas) {
+        adicionarDestino({
+          nome: p.nome,
+          endereco: p.endereco,
+          cidade: p.cidade,
+          uf: p.uf,
+          cep: p.cep || '',
+          lat: p.lat,
+          lng: p.lng,
+          telefone: p.telefone,
+          fornecedor: 'importado',
+          fonte: 'arquivo',
+          confianca: 1
+        });
+      }
+      
+      // Ir para a tela de rota
+      irPara('rota');
+    } catch (error) {
+      console.error('Erro ao importar:', error);
+      setErro('Erro ao importar arquivo. Verifique se é um arquivo .speedrota válido.');
+    } finally {
+      setImportando(false);
+      // Limpar input para permitir selecionar mesmo arquivo novamente
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  }
+  
+  function abrirSeletorArquivo() {
+    fileInputRef.current?.click();
   }
   
   return (
@@ -188,6 +281,35 @@ export function TelaEscolhaCarga() {
             ⚠️ {erro}
           </div>
         )}
+      </section>
+      
+      {/* Opção 1.5: Importar arquivo de rota */}
+      <section className="secao-importar-arquivo">
+        <h3>📁 Importar Arquivo de Rota</h3>
+        <p>Carregue um arquivo .speedrota exportado pelo gestor</p>
+        
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".speedrota,.json"
+          onChange={importarArquivoRota}
+          style={{ display: 'none' }}
+        />
+        
+        <button 
+          className="btn-importar-arquivo"
+          onClick={abrirSeletorArquivo}
+          disabled={importando}
+        >
+          {importando ? (
+            <>
+              <span className="spinner-small"></span>
+              Importando...
+            </>
+          ) : (
+            <>📂 Selecionar Arquivo .speedrota</>
+          )}
+        </button>
       </section>
       
       {/* Divider */}

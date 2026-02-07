@@ -157,6 +157,53 @@
   font-size: 0.9rem;
 }
 
+/* Seção de importar arquivo */
+.secao-importar-arquivo {
+  background: #faf5ff;
+  border: 1px solid #a855f7;
+  border-radius: 12px;
+  padding: 1rem;
+  margin-top: 1rem;
+  text-align: center;
+}
+
+.secao-importar-arquivo h3 {
+  color: #7c3aed;
+  margin-bottom: 0.5rem;
+  font-size: 1.1rem;
+}
+
+.secao-importar-arquivo p {
+  color: #6b7280;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.btn-importar-arquivo {
+  width: 100%;
+  padding: 1rem;
+  background: #a855f7;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.btn-importar-arquivo:hover:not(:disabled) {
+  background: #9333ea;
+}
+
+.btn-importar-arquivo:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* Divider */
 .divider {
   display: flex;
