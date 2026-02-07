@@ -825,7 +825,7 @@ export default async function frotaRoutes(fastify: FastifyInstance) {
     const rotas = await prisma.rotaEmpresa.findMany({
       where: {
         empresaId,
-        criadoEm: { gte: hoje },
+        createdAt: { gte: hoje },
       },
       include: {
         _count: { select: { paradasEmpresa: true } },
@@ -847,7 +847,7 @@ export default async function frotaRoutes(fastify: FastifyInstance) {
 
     // Métricas
     const kmHoje = rotas.reduce((sum, r) => sum + (r.distanciaKm || 0), 0);
-    const tempoHoje = rotas.reduce((sum, r) => sum + (r.tempoMin || 0), 0);
+    const tempoHoje = rotas.reduce((sum, r) => sum + (r.tempoEstimadoMin || 0), 0);
 
     // Top motoristas
     const topMotoristas = await prisma.motorista.findMany({
@@ -945,7 +945,7 @@ export default async function frotaRoutes(fastify: FastifyInstance) {
       where: {
         rota: {
           empresaId,
-          criadoEm: { gte: hoje },
+          createdAt: { gte: hoje },
         },
         status: { in: ['PENDENTE', 'EM_ANDAMENTO'] },
       },
