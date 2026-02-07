@@ -64,6 +64,13 @@ data class VeiculoResumo(
 )
 
 @Serializable
+data class MotoristaResumo(
+    val id: String,
+    val nome: String,
+    val status: String = "DISPONIVEL"
+)
+
+@Serializable
 data class VeiculoGestor(
     val id: String,
     val placa: String,
@@ -72,13 +79,7 @@ data class VeiculoGestor(
     val status: String,
     val capacidadeKg: Float,
     val capacidadeVolumes: Int,
-    val motoristaAtual: MotoristaResumo? = null
-)
-
-@Serializable
-data class MotoristaResumo(
-    val id: String,
-    val nome: String
+    val motoristasUsando: List<MotoristaResumo> = emptyList()
 )
 
 @Serializable
@@ -88,7 +89,13 @@ data class ZonaGestor(
     val cor: String,
     val cidades: List<String>,
     val bairros: List<String>,
-    val countMotoristas: Int = 0
+    @kotlinx.serialization.SerialName("_count")
+    val count: ZonaCount? = null
+)
+
+@Serializable
+data class ZonaCount(
+    val motoristasZona: Int = 0
 )
 
 @Serializable

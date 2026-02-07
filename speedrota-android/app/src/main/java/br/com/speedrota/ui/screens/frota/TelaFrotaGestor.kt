@@ -173,7 +173,8 @@ fun TelaFrotaGestor(
                 }
                 uiState.empresas.isEmpty() -> {
                     EmptyEmpresaState(
-                        onCriarEmpresa = { viewModel.toggleCriarEmpresa(true) }
+                        onCriarEmpresa = { viewModel.toggleCriarEmpresa(true) },
+                        onCriarMotoristaAutonomo = { viewModel.toggleCriarMotorista(true) }
                     )
                 }
                 else -> {
@@ -626,7 +627,7 @@ private fun VeiculoCard(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    veiculo.motoristaAtual?.let {
+                    veiculo.motoristasUsando.firstOrNull()?.let {
                         Text(
                             text = "👤 ${it.nome}",
                             style = MaterialTheme.typography.bodySmall,
@@ -755,7 +756,7 @@ private fun ZonaCard(zona: ZonaGestor) {
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = zona.countMotoristas.toString(),
+                    text = (zona.count?.motoristasZona ?: 0).toString(),
                     fontWeight = FontWeight.Bold,
                     fontSize = 20.sp
                 )
@@ -931,29 +932,88 @@ private fun ErrorState(message: String, onRetry: () -> Unit) {
 
 @Composable
 private fun EmptyEmpresaState(
-    onCriarEmpresa: () -> Unit = {}
+    onCriarEmpresa: () -> Unit = {},
+    onCriarMotoristaAutonomo: () -> Unit = {}
 ) {
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
         Column(
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(24.dp)
         ) {
-            Text("🏢", fontSize = 48.sp)
-            Spacer(modifier = Modifier.height(8.dp))
-            Text("Nenhuma empresa cadastrada")
+            Text("🚚", fontSize = 48.sp)
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "Gestão de Frota",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold
+            )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Crie sua empresa para começar",
-                style = MaterialTheme.typography.bodySmall,
+                text = "Escolha uma opção para começar:",
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(onClick = onCriarEmpresa) {
-                Icon(Icons.Default.Add, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Criar Empresa")
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            // Botão Criar Empresa
+            Card(
+                onClick = onCriarEmpresa,
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text("🏢", fontSize = 32.sp)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Criar Empresa",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Gerencie motoristas vinculados à sua empresa",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            // Botão Motorista Autônomo
+            Card(
+                onClick = onCriarMotoristaAutonomo,
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text("🚴", fontSize = 32.sp)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Motorista Autônomo",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Cadastre motorista sem vínculo empresarial",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }
