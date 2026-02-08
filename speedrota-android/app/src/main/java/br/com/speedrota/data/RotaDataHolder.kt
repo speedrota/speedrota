@@ -106,4 +106,40 @@ class RotaDataHolder @Inject constructor() {
      * Obtém lista de endereços dos destinos
      */
     fun getDestinosEnderecos(): List<String> = _destinos.value.map { it.endereco }
+    
+    // ============================================================
+    // DADOS DE SEPARAÇÃO (persistidos entre navegações)
+    // ============================================================
+    
+    data class SeparacaoState(
+        val step: String = "caixas",
+        val caixasCount: Int = 0,
+        val notasCount: Int = 0,
+        val paresCount: Int = 0,
+        val caixasNaoPareadasCount: Int = 0,
+        val notasNaoPareadasCount: Int = 0
+    )
+    
+    private val _separacaoState = MutableStateFlow<SeparacaoState?>(null)
+    val separacaoState: StateFlow<SeparacaoState?> = _separacaoState.asStateFlow()
+    
+    /**
+     * Salva estado da separação para restaurar após navegação
+     */
+    fun saveSeparacaoState(state: SeparacaoState) {
+        _separacaoState.value = state
+        android.util.Log.d("RotaDataHolder", "Separação salva: ${state.step}, ${state.paresCount} pares")
+    }
+    
+    /**
+     * Limpa estado de separação
+     */
+    fun clearSeparacaoState() {
+        _separacaoState.value = null
+    }
+    
+    /**
+     * Verifica se tem estado de separação salvo
+     */
+    fun hasSeparacaoState(): Boolean = _separacaoState.value != null
 }

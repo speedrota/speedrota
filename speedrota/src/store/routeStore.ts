@@ -54,6 +54,58 @@ interface SyncState {
   // Separação de carga
   motoristaSelecionado: { id: string; nome: string; email?: string } | null;
   empresaSelecionada: { id: string; nome: string } | null;
+  // Dados de separação (persistidos entre navegações)
+  separacaoData: SeparacaoData | null;
+}
+
+// Tipos para persistência de separação
+interface SeparacaoCaixaItem {
+  id: string;
+  thumb: string;
+  status: 'pending' | 'processing' | 'ready' | 'error';
+  data?: {
+    pedido?: string;
+    remessa?: string;
+    subRota?: string;
+    destinatario?: string;
+    cep?: string;
+    itens?: number;
+    pesoKg?: number;
+    caixaTotal?: number;
+  };
+  textoOCR?: string;
+}
+
+interface SeparacaoNotaItem {
+  id: string;
+  thumb: string;
+  status: 'pending' | 'processing' | 'ready' | 'error';
+  data?: DadosNFe;
+  textoOCR?: string;
+}
+
+interface SeparacaoParMatch {
+  id: string;
+  tagVisual: string;
+  tagCor: number;
+  matchScore: number;
+  caixas: SeparacaoCaixaItem[];
+  nota: SeparacaoNotaItem;
+  destino?: Destino;
+  matchedBy: string[];
+  totalVolumes: number;
+  caixasFaltando: number;
+}
+
+export interface SeparacaoData {
+  step: 'caixas' | 'notas' | 'matching' | 'resultado';
+  caixas: SeparacaoCaixaItem[];
+  notas: SeparacaoNotaItem[];
+  pares: SeparacaoParMatch[];
+  naoPareados: {
+    caixas: SeparacaoCaixaItem[];
+    notas: SeparacaoNotaItem[];
+  };
 }
 
 // ==========================================
@@ -96,6 +148,8 @@ interface RouteStore extends AppState, SyncState {
   // Separação de carga
   setMotoristaSelecionado: (motorista: { id: string; nome: string; email?: string } | null) => void;
   setEmpresaSelecionada: (empresa: { id: string; nome: string } | null) => void;
+  setSeparacaoData: (data: SeparacaoData | null) => void;
+  limparSeparacao: () => void;
   
   // Reset
   novaRota: () => void;
@@ -121,6 +175,7 @@ export const useRouteStore = create<RouteStore>((set, get) => ({
   rotasHistorico: [],
   motoristaSelecionado: null,
   empresaSelecionada: null,
+  separacaoData: null,
   
   // ----------------------------------------
   // NAVEGAÇÃO
@@ -352,6 +407,16 @@ export const useRouteStore = create<RouteStore>((set, get) => ({
   
   setEmpresaSelecionada: (empresa) => {
     set({ empresaSelecionada: empresa, motoristaSelecionado: null });
+  },
+  
+  setSeparacaoData: (data) => {
+    set({ separacaoData: data });
+    console.log('[Store] Separação salva:', data?.step, data?.caixas?.length, 'caixas', data?.pares?.length, 'pares');
+  },
+  
+  limparSeparacao: () => {
+    set({ separacaoData: null });
+    console.log('[Store] Separação limpa');
   },
   
   // ----------------------------------------

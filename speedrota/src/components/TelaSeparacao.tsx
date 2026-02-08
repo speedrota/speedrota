@@ -12,7 +12,7 @@
  * @post Pares NF-e ↔ Caixa com tagVisual gerado
  */
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouteStore } from '../store/routeStore';
 import { processarImagemNFe, processarOcrViaApi } from '../services/ocr';
 import { geocodificarEndereco } from '../services/geolocalizacao';
@@ -86,15 +86,33 @@ export default function TelaSeparacao() {
     motoristaSelecionado, 
     empresaSelecionada,
     adicionarDestino,
-    setCarregando 
+    setCarregando,
+    separacaoData,
+    setSeparacaoData
   } = useRouteStore();
   
-  // Estado do fluxo
-  const [step, setStep] = useState<StepType>('caixas');
-  const [caixas, setCaixas] = useState<CaixaItem[]>([]);
-  const [notas, setNotas] = useState<NotaItem[]>([]);
-  const [pares, setPares] = useState<ParMatch[]>([]);
-  const [naoPareados, setNaoPareados] = useState<{ caixas: CaixaItem[], notas: NotaItem[] }>({ caixas: [], notas: [] });
+  // Estado do fluxo - inicializa a partir do store se existir
+  const [step, setStep] = useState<StepType>(separacaoData?.step || 'caixas');
+  const [caixas, setCaixas] = useState<CaixaItem[]>(separacaoData?.caixas as CaixaItem[] || []);
+  const [notas, setNotas] = useState<NotaItem[]>(separacaoData?.notas as NotaItem[] || []);
+  const [pares, setPares] = useState<ParMatch[]>(separacaoData?.pares as ParMatch[] || []);
+  const [naoPareados, setNaoPareados] = useState<{ caixas: CaixaItem[], notas: NotaItem[] }>(
+    separacaoData?.naoPareados as { caixas: CaixaItem[], notas: NotaItem[] } || { caixas: [], notas: [] }
+  );
+  
+  // Persistir automaticamente no store quando estado mudar
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setSeparacaoData({
+        step,
+        caixas: caixas as any,
+        notas: notas as any,
+        pares: pares as any,
+        naoPareados: naoPareados as any
+      });
+    }, 500); // Debounce para não salvar a cada keystroke
+    return () => clearTimeout(timeout);
+  }, [step, caixas, notas, pares, naoPareados, setSeparacaoData]);
   
   // Estado de processamento
   const [processando, setProcessando] = useState(false);
@@ -508,7 +526,9 @@ export default function TelaSeparacao() {
     // Adicionar destinos pareados à rota
     for (const par of pares) {
       if (par.destino) {
-        adicionarDestino(par.destino);
+        // Remover 'id' pois adicionarDestino gera um novo
+        const { id, ...destinoSemId } = par.destino;
+        adicionarDestino(destinoSemId);
       }
     }
     

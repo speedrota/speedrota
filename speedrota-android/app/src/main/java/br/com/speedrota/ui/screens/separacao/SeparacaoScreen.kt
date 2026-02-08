@@ -315,10 +315,14 @@ fun SeparacaoScreen(
                     caixasNaoPareadas = uiState.caixasNaoPareadas,
                     notasNaoPareadas = uiState.notasNaoPareadas,
                     onBaixarArquivo = { 
-                        val arquivo = viewModel.gerarArquivoSeparacao()
-                        // TODO: Salvar arquivo
+                        viewModel.compartilharArquivo(context)
                     },
-                    onGerarRota = onConcluir,
+                    onGerarRota = {
+                        // Transferir destinos para o holder antes de navegar
+                        if (viewModel.transferirDestinosParaRota()) {
+                            onConcluir()
+                        }
+                    },
                     onAdicionarCaixa = { viewModel.voltarParaAdicionarCaixas() },
                     onAdicionarNota = { viewModel.voltarParaAdicionarNotas() }
                 )
