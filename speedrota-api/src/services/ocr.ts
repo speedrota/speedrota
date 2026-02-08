@@ -666,6 +666,17 @@ function extrairEtiquetaCaixaNatura(texto: string): DadosEtiquetaCaixa | null {
   // === NOME DO DESTINATÁRIO ===
   // Procurar nome que vem ANTES do endereço (padrão Natura)
   // Nome = sequência de 2+ palavras maiúsculas sem números
+  // LISTA NEGRA: palavras que NÃO são nome de pessoa
+  const PALAVRAS_NAO_NOME = [
+    'ENTREGA', 'PADRAO', 'RESIDENCIAL', 'WARECLOUDS', 'AMERICANA',
+    'ASSINATURA', 'RECEBEDO', 'RECEBEDOR', 'RECEBIMENTO', 'IDENTIFICACAO',
+    'DATA', 'SERIE', 'PEDIDO', 'VOLUMES', 'TOTAL', 'ITENS', 'SUBROTA',
+    'SEQUENCIAL', 'CONSULTORIA', 'ROTA', 'PESO', 'REMESSA', 'NOTA',
+    'FISCAL', 'CHAVE', 'ACESSO', 'PORTAL', 'NACIONAL', 'DESTINATARIO',
+    'EMITENTE', 'TRANSPORTE', 'FRETE', 'DANFE', 'DESTINATAR', 'CAT DE',
+    'NATUREZA', 'OPERACAO', 'PROTOCOLO', 'AUTORIZACAO', 'VALOR',
+  ];
+  
   const nomePatterns = [
     // Nome seguido de R/RUA (próxima linha é endereço)
     /\b([A-ZÁÉÍÓÚÂÊÎÔÛÃÕ]{2,}(?:\s+(?:DOS?|DAS?|DE|DA)?\s*[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ]{2,}){1,4})\s*\n?\s*R(?:UA)?\.?\s/i,
@@ -676,16 +687,15 @@ function extrairEtiquetaCaixaNatura(texto: string): DadosEtiquetaCaixa | null {
   for (const p of nomePatterns) {
     const m = texto.match(p);
     if (m) {
-      const nomeCandidate = m[1].trim();
+      const nomeCandidate = m[1].trim().toUpperCase();
       // Validar que não é parte do endereço ou outros campos
-      if (nomeCandidate.length > 5 && 
-          !nomeCandidate.includes('ENTREGA') &&
-          !nomeCandidate.includes('PADRAO') &&
-          !nomeCandidate.includes('RESIDENCIAL') &&
-          !nomeCandidate.includes('WARECLOUDS')) {
-        dados.nome = nomeCandidate.toUpperCase();
+      const contemPalavraProibida = PALAVRAS_NAO_NOME.some(p => nomeCandidate.includes(p));
+      if (nomeCandidate.length > 5 && !contemPalavraProibida) {
+        dados.nome = nomeCandidate;
         console.log(`[Parser Etiqueta] Nome: ${dados.nome}`);
         break;
+      } else if (contemPalavraProibida) {
+        console.log(`[Parser Etiqueta] Nome rejeitado (palavra proibida): ${nomeCandidate}`);
       }
     }
   }
@@ -1359,13 +1369,27 @@ function extrairEnderecoCompleto(texto: string): string {
       end = end.trim();
       // Limpar sufixos indesejados
       end = end.replace(/\s*(BAIRRO|CEP|MUNIC|CIDADE|UF|FONE|TEL).*$/i, '');
-      // Validar que não é "COSMETICOS" ou similar (nome de empresa) ou remetente
-      if (end.toUpperCase().includes('COSMET') || 
-          end.toUpperCase().includes('NATURA') ||
-          end.toUpperCase().includes('TOLEDO') ||
-          end.toUpperCase().includes('CABREUVA')) {
+      
+      const endUpper = end.toUpperCase();
+      
+      // LISTA DE PALAVRAS QUE INDICAM LIXO DE OCR (não é endereço)
+      const PALAVRAS_NAO_ENDERECO = [
+        'COSMET', 'NATURA', 'TOLEDO', 'CABREUVA',  // Nomes de empresa/cidade do remetente
+        'CHAVE', 'ACESSO', 'PORTAL', 'NACIONAL',  // Partes de "chave de acesso"
+        'NOTA', 'FISCAL', 'DANFE', 'EMITENTE',    // Termos de NF-e
+        'ASSINATURA', 'RECEBEDO', 'RECEBIMENTO',  // Campos de formulário
+        'IDENTIFICACAO', 'PROTOCOLO', 'SERIE',    // Outros campos
+        'PEDIDO', 'REMESSA', 'VOLUMES', 'ITENS',  // Campos de etiqueta
+        'GEIRONICA', 'EIRONICA', 'ETRONICA',      // Erros de OCR de "ELETRÔNICA"
+      ];
+      
+      // Validar que não contém palavras proibidas
+      const contemPalavraProibida = PALAVRAS_NAO_ENDERECO.some(p => endUpper.includes(p));
+      if (contemPalavraProibida) {
+        console.log(`[OCR] Endereço rejeitado (palavra proibida): ${end.substring(0, 50)}...`);
         continue;
       }
+      
       // Normalizar R. para RUA, AV. para AV
       end = end.replace(/^AV\.\s*/i, 'AV ');
       end = end.replace(/^R\.\s*/i, 'RUA ');
@@ -1592,7 +1616,15 @@ function extrairEnderecoComFornecedor(texto: string): EnderecoExtraido {
   const dadosUniversal = extrairDadosUniversal(texto);
   
   // Se encontrou dados via parser específico de fornecedor
-  if (dadosUniversal && (dadosUniversal.endereco || dadosUniversal.cidade)) {
+  // Aceita se tem: endereco, cidade, cep+bairro, ou pedido/remessa (etiqueta)
+  const temDadosEtiqueta = dadosUniversal?.pedido || dadosUniversal?.remessa;
+  const temEnderecoMinimo = dadosUniversal && (
+    dadosUniversal.endereco || 
+    dadosUniversal.cidade || 
+    (dadosUniversal.cep && dadosUniversal.bairro)
+  );
+  
+  if (dadosUniversal && (temDadosEtiqueta || temEnderecoMinimo)) {
     console.log(`[OCR] Usando dados extraídos via parser ${dadosUniversal.fornecedor || 'universal'}`);
     fornecedorDetectado = dadosUniversal.fornecedor;
     
@@ -1878,15 +1910,25 @@ export async function analisarImagemNota(imagemBase64: string): Promise<OcrResul
     
     console.log(`[OCR] Texto extraído (${textoExtraido.length} chars, confiança: ${confianca}%)`);
     
-    // OTIMIZAÇÃO v3.2: Tenta rotações se:
-    // 1. Confiança baixa (< 50%) OU
-    // 2. Não encontrou palavras-chave (qualidade ruim)
-    // A imagem pode estar rotacionada 90° (comum em fotos de celular)
-    const qualidadeRuim = !verificarQualidadeOCR(textoExtraido);
-    const precisaRotacao = confianca < 50 || qualidadeRuim;
+    // OTIMIZAÇÃO v3.3: Tenta rotações APENAS se:
+    // 1. NÃO encontrou palavras-chave suficientes (< 3)
+    // 2. E confiança baixa (< 40%)
+    // IMPORTANTE: Se encontrou 5+ palavras-chave, a imagem está LEGÍVEL e não precisa rotacionar!
+    // Rotação = 15-60 segundos extras de processamento
+    const textoLower = textoExtraido.toLowerCase();
+    const palavrasEncontradas = PALAVRAS_CHAVE_NFE.filter(p => textoLower.includes(p));
+    const qualidadeBoaOuAceitavel = palavrasEncontradas.length >= 5;
+    const qualidadeRuim = palavrasEncontradas.length < 3;
     
-    if (precisaRotacao) {
-      console.log(`[OCR] Qualidade insuficiente (conf=${confianca}%, palavrasChave=${!qualidadeRuim}), tentando rotações...`);
+    // NÃO rotaciona se já tem boa qualidade (5+ palavras-chave)
+    const precisaRotacao = !qualidadeBoaOuAceitavel && (confianca < 40 || qualidadeRuim);
+    
+    console.log(`[OCR] Qualidade: ${palavrasEncontradas.length} palavras-chave (${palavrasEncontradas.slice(0,5).join(', ')}${palavrasEncontradas.length > 5 ? '...' : ''})`);
+    
+    if (qualidadeBoaOuAceitavel) {
+      console.log(`[OCR] ✓ Boa qualidade detectada (${palavrasEncontradas.length} keywords) - SEM rotação`);
+    } else if (precisaRotacao) {
+      console.log(`[OCR] Qualidade insuficiente (conf=${confianca}%, keywords=${palavrasEncontradas.length}), tentando rotações...`);
       
       // Tentar 90°, 180° e 270° (imagem pode estar em qualquer orientação)
       const rotacoes = [90, 180, 270];
