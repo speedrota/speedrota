@@ -2097,25 +2097,43 @@ function extrairEnderecoComFornecedor(texto: string): EnderecoExtraido {
       endereco.cep ? `CEP: ${endereco.cep}` : null
     ].filter(Boolean);
     
+    // Incluir dados de caixa se disponíveis (etiqueta Natura / DANFE Natura)
+    let caixaDados: OcrResult['caixa'] | undefined;
+    if (dadosUniversal.pedido || dadosUniversal.remessa || dadosUniversal.caixaNumero) {
+      caixaDados = {
+        numero: dadosUniversal.caixaNumero,
+        total: dadosUniversal.caixaTotal,
+        itens: dadosUniversal.itens,
+        pesoKg: dadosUniversal.pesoKg,
+        pedido: dadosUniversal.pedido,
+        remessa: dadosUniversal.remessa,
+        subRota: dadosUniversal.subRota,
+      };
+      console.log(`[OCR] Dados de caixa extraídos: PED=${dadosUniversal.pedido}, REM=${dadosUniversal.remessa}, CX=${dadosUniversal.caixaNumero}/${dadosUniversal.caixaTotal}`);
+    }
+    
+    // Se tem endereço completo (>= 2 partes), montar e retornar
     if (partes.length >= 2) {
       endereco.enderecoCompleto = partes.join(', ');
       console.log(`[OCR] Endereço montado via ${dadosUniversal.fornecedor}: ${endereco.enderecoCompleto}`);
       
-      // Incluir dados de caixa se disponíveis (etiqueta Natura)
-      let caixaDados: OcrResult['caixa'] | undefined;
-      if (dadosUniversal.pedido || dadosUniversal.remessa || dadosUniversal.caixaNumero) {
-        caixaDados = {
-          numero: dadosUniversal.caixaNumero,
-          total: dadosUniversal.caixaTotal,
-          itens: dadosUniversal.itens,
-          pesoKg: dadosUniversal.pesoKg,
-          pedido: dadosUniversal.pedido,
-          remessa: dadosUniversal.remessa,
-          subRota: dadosUniversal.subRota,
-        };
-        console.log(`[OCR] Dados de caixa extraídos: PED=${dadosUniversal.pedido}, REM=${dadosUniversal.remessa}, CX=${dadosUniversal.caixaNumero}/${dadosUniversal.caixaTotal}`);
+      return { 
+        endereco, 
+        fornecedor: fornecedorDetectado,
+        caixa: caixaDados,
+        destinatarioNome: dadosUniversal.nome
+      };
+    }
+    
+    // Se tem dados de caixa MAS sem endereço completo, ainda retornar 
+    // para manter matchKey (agrupamento por REM) - NÃO usar extração genérica
+    if (caixaDados && (caixaDados.pedido || caixaDados.remessa)) {
+      console.log(`[OCR] Sem endereço completo, mas mantendo dados de caixa para matchKey`);
+      // Se tiver pelo menos 1 parte, usar como endereço parcial
+      if (partes.length >= 1) {
+        endereco.enderecoCompleto = partes.join(', ');
+        console.log(`[OCR] Endereço parcial via ${dadosUniversal.fornecedor}: ${endereco.enderecoCompleto}`);
       }
-      
       return { 
         endereco, 
         fornecedor: fornecedorDetectado,
