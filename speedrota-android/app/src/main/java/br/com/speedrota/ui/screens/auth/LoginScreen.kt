@@ -1,7 +1,10 @@
 package br.com.speedrota.ui.screens.auth
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.ui.res.painterResource
+import br.com.speedrota.R
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -55,10 +58,11 @@ fun LoginScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        // Logo/Título
-        Text(
-            text = "🚀",
-            fontSize = 64.sp
+        // Logo Oficial SpeedRota
+        Image(
+            painter = painterResource(id = R.drawable.logo_speedrota),
+            contentDescription = "SpeedRota Logo",
+            modifier = Modifier.size(120.dp)
         )
         
         Spacer(modifier = Modifier.height(8.dp))
