@@ -746,8 +746,7 @@ function extrairEtiquetaCaixaNatura(texto: string): DadosEtiquetaCaixa | null {
           console.log(`[Parser Etiqueta] Bairro completado: ${parcial} -> ${completa}`);
         }
       }
-        }
-      }
+      
       dados.bairro = bairroTemp;
       console.log(`[Parser Etiqueta] Bairro: ${dados.bairro}`);
       break;
