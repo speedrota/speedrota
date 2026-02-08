@@ -77,8 +77,9 @@ export function useAnalytics(): UseAnalyticsReturn {
       setOverview(overviewData);
       setDeliveries(deliveriesData);
 
-      // PRO+ - Trends e Suppliers
-      if (plano !== 'FREE') {
+      // PRO+ - Trends e Suppliers (PRO, FULL, ENTERPRISE, FROTA_*)
+      const planosPRO = ['PRO', 'FULL', 'ENTERPRISE', 'FROTA_START', 'FROTA_PRO', 'FROTA_ENTERPRISE'];
+      if (planosPRO.includes(plano)) {
         const [trendsData, suppliersData] = await Promise.all([
           analyticsService.getTrends({ periodo: params.periodo, groupBy: 'day' }),
           analyticsService.getSuppliers(params),
@@ -88,9 +89,9 @@ export function useAnalytics(): UseAnalyticsReturn {
         setSuppliers(suppliersData);
       }
 
-      // FULL+ e FROTA - Heatmap, Performance, Insights
-      const planosCompletos = ['FULL', 'ENTERPRISE', 'FROTA_START', 'FROTA_PRO', 'FROTA_ENTERPRISE'];
-      if (planosCompletos.includes(plano)) {
+      // FULL+ - Heatmap, Performance, Insights (FULL, ENTERPRISE, FROTA_PRO, FROTA_ENTERPRISE)
+      const planosFULL = ['FULL', 'ENTERPRISE', 'FROTA_PRO', 'FROTA_ENTERPRISE'];
+      if (planosFULL.includes(plano)) {
         const [heatmapData, performanceData, insightsData] = await Promise.all([
           analyticsService.getHeatmap(params),
           analyticsService.getPerformance(params),

@@ -24,6 +24,22 @@ import {
 } from '../utils/sanityChecks.js';
 
 // ==========================================
+// PLANOS E PERMISSÕES
+// ==========================================
+
+/**
+ * Mapeamento de planos por nível de acesso
+ * 
+ * HIERARQUIA:
+ * - Nível PRO: PRO (individual) + FROTA_START (empresa)
+ * - Nível FULL: FULL (individual) + FROTA_PRO (empresa)
+ * - Nível ENTERPRISE: ENTERPRISE (individual) + FROTA_ENTERPRISE (empresa)
+ */
+const PLANOS_PRO_PLUS = ['PRO', 'FULL', 'ENTERPRISE', 'FROTA_START', 'FROTA_PRO', 'FROTA_ENTERPRISE'];
+const PLANOS_FULL_PLUS = ['FULL', 'ENTERPRISE', 'FROTA_PRO', 'FROTA_ENTERPRISE'];
+const PLANOS_ENTERPRISE = ['ENTERPRISE', 'FROTA_ENTERPRISE'];
+
+// ==========================================
 // SCHEMAS DE VALIDAÇÃO
 // ==========================================
 
@@ -388,7 +404,7 @@ export async function analyticsRoutes(app: FastifyInstance) {
   app.get(
     '/trends',
     {
-      onRequest: [requirePlano(['PRO', 'FULL', 'ENTERPRISE'])],
+      onRequest: [requirePlano(PLANOS_PRO_PLUS)],
     },
     async (request) => {
       const { userId } = request.user;
@@ -493,7 +509,7 @@ export async function analyticsRoutes(app: FastifyInstance) {
   app.get(
     '/suppliers',
     {
-      onRequest: [requirePlano(['PRO', 'FULL', 'ENTERPRISE'])],
+      onRequest: [requirePlano(PLANOS_PRO_PLUS)],
     },
     async (request) => {
       const { userId } = request.user;
@@ -602,7 +618,7 @@ export async function analyticsRoutes(app: FastifyInstance) {
   app.get(
     '/heatmap',
     {
-      onRequest: [requirePlano(['FULL', 'ENTERPRISE'])],
+      onRequest: [requirePlano(PLANOS_FULL_PLUS)],
     },
     async (request) => {
       const { userId } = request.user;
@@ -675,7 +691,7 @@ export async function analyticsRoutes(app: FastifyInstance) {
   app.get(
     '/performance',
     {
-      onRequest: [requirePlano(['FULL', 'ENTERPRISE'])],
+      onRequest: [requirePlano(PLANOS_FULL_PLUS)],
     },
     async (request) => {
       const { userId } = request.user;
@@ -742,7 +758,7 @@ export async function analyticsRoutes(app: FastifyInstance) {
   app.get(
     '/export/csv',
     {
-      onRequest: [requirePlano(['PRO', 'FULL', 'ENTERPRISE'])],
+      onRequest: [requirePlano(PLANOS_PRO_PLUS)],
     },
     async (request, reply) => {
       const { userId } = request.user;
@@ -801,7 +817,7 @@ export async function analyticsRoutes(app: FastifyInstance) {
   app.get(
     '/insights',
     {
-      onRequest: [requirePlano(['FULL', 'ENTERPRISE'])],
+      onRequest: [requirePlano(PLANOS_FULL_PLUS)],
     },
     async (request) => {
       const { userId } = request.user;

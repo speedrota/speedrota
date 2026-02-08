@@ -88,6 +88,7 @@ export const FATORES_TRAFEGO = {
 // ==========================================
 
 export const LIMITES_PLANOS = {
+  // === PLANOS INDIVIDUAIS (ENTREGADOR) ===
   FREE: {
     rotasPorMes: 5,
     paradasPorRota: 10,
@@ -95,6 +96,9 @@ export const LIMITES_PLANOS = {
     historicosDias: 0,
     pdfUpload: false,
     apiAccess: false,
+    maxMotoristas: 0,
+    geofencing: false,
+    analytics: false,
   },
   PRO: {
     rotasPorMes: Infinity,
@@ -103,6 +107,9 @@ export const LIMITES_PLANOS = {
     historicosDias: 30,
     pdfUpload: true,
     apiAccess: false,
+    maxMotoristas: 0,
+    geofencing: false,
+    analytics: true,
   },
   FULL: {
     rotasPorMes: Infinity,
@@ -111,6 +118,9 @@ export const LIMITES_PLANOS = {
     historicosDias: 365,
     pdfUpload: true,
     apiAccess: true,
+    maxMotoristas: 0,
+    geofencing: false,
+    analytics: true,
   },
   ENTERPRISE: {
     rotasPorMes: Infinity,
@@ -119,6 +129,56 @@ export const LIMITES_PLANOS = {
     historicosDias: Infinity,
     pdfUpload: true,
     apiAccess: true,
+    maxMotoristas: 0,
+    geofencing: true,
+    analytics: true,
+  },
+  // Alias for backwards compatibility
+  STARTER: {
+    rotasPorMes: 5,
+    paradasPorRota: 10,
+    fornecedores: 1,
+    historicosDias: 0,
+    pdfUpload: false,
+    apiAccess: false,
+    maxMotoristas: 0,
+    geofencing: false,
+    analytics: false,
+  },
+  
+  // === PLANOS FROTA (GESTOR_FROTA) ===
+  FROTA_START: {
+    rotasPorMes: Infinity,
+    paradasPorRota: 50,
+    fornecedores: 5,
+    historicosDias: 90,
+    pdfUpload: true,
+    apiAccess: true,
+    maxMotoristas: 10,
+    geofencing: true,
+    analytics: true,
+  },
+  FROTA_PRO: {
+    rotasPorMes: Infinity,
+    paradasPorRota: 100,
+    fornecedores: Infinity,
+    historicosDias: 365,
+    pdfUpload: true,
+    apiAccess: true,
+    maxMotoristas: 50,
+    geofencing: true,
+    analytics: true,
+  },
+  FROTA_ENTERPRISE: {
+    rotasPorMes: Infinity,
+    paradasPorRota: Infinity,
+    fornecedores: Infinity,
+    historicosDias: Infinity,
+    pdfUpload: true,
+    apiAccess: true,
+    maxMotoristas: Infinity,
+    geofencing: true,
+    analytics: true,
   },
 } as const;
 
@@ -128,7 +188,11 @@ export const LIMITES_PLANOS = {
 
 export const PRECOS_PLANOS = {
   FREE: 0,
-  PRO: 2990,      // R$ 29,90
-  FULL: 5990,     // R$ 59,90
-  ENTERPRISE: 0,  // Sob consulta
+  PRO: 2990,              // R$ 29,90
+  FULL: 5990,             // R$ 59,90
+  ENTERPRISE: 0,          // Sob consulta
+  STARTER: 0,             // Alias FREE
+  FROTA_START: 14990,     // R$ 149,90/mês
+  FROTA_PRO: 29990,       // R$ 299,90/mês
+  FROTA_ENTERPRISE: 0,    // Sob consulta
 } as const;

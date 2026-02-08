@@ -98,8 +98,8 @@ class MenuFrotaViewModel @Inject constructor(
     private val apiUrl: String
         get() = context.getString(br.com.speedrota.R.string.api_base_url)
     
-    private suspend fun getToken(): String? = preferencesManager.getToken().first()
-    
+    private suspend fun getToken(): String? = preferencesManager.token.first()
+
     fun carregarEmpresas() {
         viewModelScope.launch {
             _state.value = _state.value.copy(carregando = true, erro = null)
