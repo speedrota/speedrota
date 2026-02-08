@@ -585,16 +585,24 @@ function extrairEtiquetaCaixaNatura(texto: string): DadosEtiquetaCaixa | null {
   
   // Fallback 2: DX: m- ou CX: 01- (só tem um número, OCR cortou o resto)
   if (!dados.caixaNumero) {
-    // DX: m- onde m = 0 (OCR confunde)
-    const cxSingleMatch = texto.match(/\b[CDO0]X[:\s]+([mM0Oo]|\d)[-–]?\s*$/im) ||
-                          texto.match(/\b[CDO0]X[:\s]+([mM0Oo]|\d)\s*[-–]/i);
+    // DX: m- onde m = 0 (OCR confunde) - MAS não aceitar 0 (caixa começa em 1)
+    const cxSingleMatch = texto.match(/\b[CDO0]X[:\s]+(\d)[-–]\s*(\d)/i) ||   // DX: 1-3
+                          texto.match(/\b[CDO0]X[:\s]+(\d)[\s\-–]+(\d)/i);  // DX: 1 3
     if (cxSingleMatch) {
-      let num = cxSingleMatch[1].replace(/[mMOo]/gi, '0');
-      if (/^\d$/.test(num)) {
-        dados.caixaNumero = parseInt(num, 10);
-        console.log(`[Parser Etiqueta] Caixa (single DX/CX): ${dados.caixaNumero}`);
+      const num1 = parseInt(cxSingleMatch[1], 10);
+      const num2 = parseInt(cxSingleMatch[2], 10);
+      if (num1 >= 1 && num2 >= 1) {
+        dados.caixaNumero = num1;
+        dados.caixaTotal = num2;
+        console.log(`[Parser Etiqueta] Caixa (DX/CX): ${dados.caixaNumero}/${dados.caixaTotal}`);
       }
     }
+  }
+  
+  // Não aceitar caixaNumero = 0 (inválido, caixa começa em 1)
+  if (dados.caixaNumero === 0) {
+    console.log('[Parser Etiqueta] Caixa 0 rejeitada (inválido)');
+    dados.caixaNumero = undefined;
   }
   
   // === ITENS ===
@@ -845,6 +853,18 @@ function extrairEtiquetaCaixaNatura(texto: string): DadosEtiquetaCaixa | null {
           break;
         }
       }
+    }
+  }
+  
+  // LIMPEZA FINAL DO NOME: remover lixo OCR no início (ex: "SS\nTHAIS..." -> "THAIS...")
+  if (dados.nome) {
+    // Remover prefixos curtos (1-3 chars) seguidos de quebra de linha ou espaço
+    dados.nome = dados.nome.replace(/^[A-Z]{1,3}[\n\r]+/gi, '').trim();
+    // Remover espaços múltiplos
+    dados.nome = dados.nome.replace(/\s+/g, ' ').trim();
+    // Se nome ficou muito curto, descartar
+    if (dados.nome.length < 5) {
+      dados.nome = undefined;
     }
   }
   
@@ -1585,17 +1605,43 @@ function extrairDadosUniversal(texto: string): DadosExtraidosFornecedor | null {
       console.log(`[Parser DANFE Natura] Sequencial: ${seqMatch[1]}`);
     }
     
-    // Extrair nome do destinatário - buscar após "THAIS", "MARIA", etc.
-    const nomeMatch = texto.match(/(?:NOME|RAZÃO\s+SOCIAL)[:\s]+([A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]{5,40})/i) ||
-                      texto.match(/\b(THAIS\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]{3,35})/i) ||
-                      texto.match(/\b(MARIA\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]{3,35})/i);
-    if (nomeMatch) {
-      let nome = nomeMatch[1].trim();
-      // Limpar sufixos como números de CPF/CNPJ
-      nome = nome.replace(/\s+\d{3}\..*$/, '').trim();
-      if (nome.length > 5) {
-        dadosDANFENatura.nome = nome;
-        console.log(`[Parser DANFE Natura] Nome: ${dadosDANFENatura.nome}`);
+    // Extrair nome do destinatário - múltiplos padrões
+    // 1. Campo explícito NOME ou RAZÃO SOCIAL
+    // 2. Nomes brasileiros comuns seguidos de sobrenome
+    // 3. Linha com nome válido após campos de cabeçalho
+    const nomePatterns = [
+      /(?:NOME|RAZÃO\s+SOCIAL)[:\s]+([A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]{5,40})/i,
+      /\b(THAIS\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]{3,35})/i,
+      /\b(MARIA\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]{3,35})/i,
+      /\b(ANA\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]{3,35})/i,
+      /\b(JOSE\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]{3,35})/i,
+      /\b(JOAO\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]{3,35})/i,
+      /\b(ANTONIO\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]{3,35})/i,
+      /\b(CARLOS\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]{3,35})/i,
+      /\b(FERNANDA\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]{3,35})/i,
+      /\b(LUCAS\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]{3,35})/i,
+    ];
+    
+    for (const p of nomePatterns) {
+      const m = texto.match(p);
+      if (m) {
+        let nome = m[1].trim();
+        // Limpar sufixos como números de CPF/CNPJ
+        nome = nome.replace(/\s+\d{3}\..*$/, '').trim();
+        if (nome.length > 5) {
+          dadosDANFENatura.nome = nome;
+          console.log(`[Parser DANFE Natura] Nome: ${dadosDANFENatura.nome}`);
+          break;
+        }
+      }
+    }
+    
+    // APLICAR LIMPEZA AO NOME (remover lixo OCR)
+    if (dadosDANFENatura.nome) {
+      dadosDANFENatura.nome = dadosDANFENatura.nome.replace(/^[A-Z]{1,3}[\n\r]+/gi, '').trim();
+      dadosDANFENatura.nome = dadosDANFENatura.nome.replace(/\s+/g, ' ').trim();
+      if (dadosDANFENatura.nome.length < 5) {
+        dadosDANFENatura.nome = undefined;
       }
     }
     
