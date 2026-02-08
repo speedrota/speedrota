@@ -579,7 +579,21 @@ function extrairEtiquetaCaixaNatura(texto: string): DadosEtiquetaCaixa | null {
     const caixaFallback = texto.match(/CAIXA\s*:?\s*(\d{1,3})/i);
     if (caixaFallback) {
       dados.caixaNumero = parseInt(caixaFallback[1], 10);
-      console.log(`[Parser Etiqueta] Caixa (fallback): ${dados.caixaNumero}`);
+      console.log(`[Parser Etiqueta] Caixa (fallback CAIXA): ${dados.caixaNumero}`);
+    }
+  }
+  
+  // Fallback 2: DX: m- ou CX: 01- (só tem um número, OCR cortou o resto)
+  if (!dados.caixaNumero) {
+    // DX: m- onde m = 0 (OCR confunde)
+    const cxSingleMatch = texto.match(/\b[CDO0]X[:\s]+([mM0Oo]|\d)[-–]?\s*$/im) ||
+                          texto.match(/\b[CDO0]X[:\s]+([mM0Oo]|\d)\s*[-–]/i);
+    if (cxSingleMatch) {
+      let num = cxSingleMatch[1].replace(/[mMOo]/gi, '0');
+      if (/^\d$/.test(num)) {
+        dados.caixaNumero = parseInt(num, 10);
+        console.log(`[Parser Etiqueta] Caixa (single DX/CX): ${dados.caixaNumero}`);
+      }
     }
   }
   
@@ -784,10 +798,14 @@ function extrairEtiquetaCaixaNatura(texto: string): DadosEtiquetaCaixa | null {
   ];
   
   const nomePatterns = [
-    // Nome seguido de R/RUA (próxima linha é endereço)
-    /\b([A-ZÁÉÍÓÚÂÊÎÔÛÃÕ]{2,}(?:\s+(?:DOS?|DAS?|DE|DA)?\s*[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ]{2,}){1,4})\s*\n?\s*R(?:UA)?\.?\s/i,
-    // Nome com 2-5 palavras capitalizadas
-    /\b([A-Z][a-záéíóúâêîôûãõ]+(?:\s+(?:dos?|das?|de|da)?\s*[A-Z][a-záéíóúâêîôûãõ]+){1,4})\s/,
+    // Nome seguido de R/RUA (próxima linha é endereço) - aceita traço/espaços antes
+    /\b([A-ZÁÉÍÓÚÂÊÎÔÛÃÕ]{2,}(?:\s+(?:DOS?|DAS?|DE|DA)?\s*[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ]{2,}){1,4})\s*[-–]?\s*\n?\s*R(?:UA)?\.?\s/i,
+    // Nome com 2-5 palavras capitalizadas seguido de qualquer coisa
+    /\b([A-Z][a-záéíóúâêîôûãõ]+(?:\s+(?:dos?|das?|de|da)?\s*[A-Z][a-záéíóúâêîôûãõ]+){1,4})\s*[-–]?\s/,
+    // Nome em MAIÚSCULAS entre REM e R (padrão específico Natura)
+    /REM\s+\d+[^\n]*\n[^\n]*\n?\s*([A-ZÁÉÍÓÚÂÊÎÔÛÃÕ]{2,}(?:\s+(?:DOS?|DAS?|DE|DA)?\s*[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ]{2,}){1,4})\s*[-–]?\s*\n?\s*R/i,
+    // Nome após CO) SS ou similar (lixo OCR antes do nome)
+    /(?:CO\)?|SS)\s*\n?\s*([A-ZÁÉÍÓÚÂÊÎÔÛÃÕ]{2,}(?:\s+(?:DOS?|DAS?|DE|DA)?\s*[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ]{2,}){1,4})\s*[-–]?\s/i,
   ];
   
   for (const p of nomePatterns) {
@@ -802,6 +820,30 @@ function extrairEtiquetaCaixaNatura(texto: string): DadosEtiquetaCaixa | null {
         break;
       } else if (contemPalavraProibida) {
         console.log(`[Parser Etiqueta] Nome rejeitado (palavra proibida): ${nomeCandidate}`);
+      }
+    }
+  }
+  
+  // Se ainda não encontrou nome, tentar busca mais agressiva
+  if (!dados.nome) {
+    // Procurar linha com nome típico brasileiro (2+ palavras, pode ter DOS/DAS)
+    const linhas = texto.split(/\n/);
+    for (const linha of linhas) {
+      const linhaLimpa = linha.trim();
+      // Ignorar linhas com números de documentos ou campos conhecidos
+      if (/\d{6,}/.test(linhaLimpa)) continue;
+      if (/^(PED|REM|CEP|DT|SR|WARECLOUDS|RESIDENCIAL|R\s|RUA|AV)/i.test(linhaLimpa)) continue;
+      
+      // Procurar nome: 2-5 palavras, pode ter preposições
+      const nomeMatch = linhaLimpa.match(/^([A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ]*(?:\s+(?:dos?|das?|de|da)?\s*[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ]*){1,4})\s*[-–]?\s*$/i);
+      if (nomeMatch) {
+        const nomeCandidate = nomeMatch[1].trim().toUpperCase();
+        const contemPalavraProibida = PALAVRAS_NAO_NOME.some(p => nomeCandidate.includes(p));
+        if (nomeCandidate.length > 8 && !contemPalavraProibida) {
+          dados.nome = nomeCandidate;
+          console.log(`[Parser Etiqueta] Nome (busca linha): ${dados.nome}`);
+          break;
+        }
       }
     }
   }
