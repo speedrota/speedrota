@@ -1556,13 +1556,6 @@ export async function processarImagemNFe(
     throw error;
   }
 }
-    
-    return dados;
-  } catch (error) {
-    console.error('[OCR] Erro:', error);
-    throw error;
-  }
-}
 
 export function validarDadosExtraidos(dados: DadosNFe): {
   valido: boolean;
