@@ -576,7 +576,10 @@ export async function sefazRoutes(fastify: FastifyInstance) {
         });
       }
 
-      console.log(`[SEFAZ OCR] SUCESSO: confiança=${resultado.confianca?.toFixed(1)}%, tipo=${resultado.tipoDocumento}`);
+      console.log(`[SEFAZ OCR] SUCESSO: confiança=${resultado.confianca?.toFixed(1)}%, tipo=${resultado.tipoDocumento}, fornecedor=${resultado.fornecedor}`);
+      if (resultado.caixa) {
+        console.log(`[SEFAZ OCR] Dados caixa: PED=${resultado.caixa.pedido}, REM=${resultado.caixa.remessa}, CX=${resultado.caixa.numero}/${resultado.caixa.total}`);
+      }
       console.log('='.repeat(60));
       
       return {
@@ -585,10 +588,13 @@ export async function sefazRoutes(fastify: FastifyInstance) {
           chaveAcesso: resultado.chaveAcesso,
           tipoDocumento: resultado.tipoDocumento,
           confianca: resultado.confianca,
+          fornecedor: resultado.fornecedor,  // Fornecedor detectado
           destinatario: resultado.destinatario,
           endereco: resultado.endereco,
           notaFiscal: resultado.notaFiscal,
-          dadosAdicionais: resultado.dadosAdicionais
+          dadosAdicionais: resultado.dadosAdicionais,
+          caixa: resultado.caixa,  // Dados de etiqueta de caixa
+          textoExtraido: resultado.textoExtraido  // Texto OCR para debug
         }
       };
     } catch (error) {

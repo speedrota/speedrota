@@ -123,7 +123,7 @@ export interface OcrResult {
   confianca?: number;
   chaveAcesso?: string;
   tipoDocumento?: string;
-  fornecedor?: string;  // Fornecedor detectado: MERCADOLIVRE_AMAZON, SHOPEE, TIKTOK_KWAI, NATURA_AVON
+  fornecedor?: string;  // Fornecedor detectado: MERCADOLIVRE_AMAZON, SHOPEE, TIKTOK_KWAI, NATURA_AVON, NATURA_AVON_CAIXA
   destinatario?: {
     nome?: string;
   };
@@ -149,6 +149,16 @@ export interface OcrResult {
     enderecoDestinatario?: string;
     valorTotal?: number;
     dataEmissao?: string;
+  };
+  // Campos específicos de etiqueta de caixa Natura/Avon
+  caixa?: {
+    numero?: number;         // CX 002/003 -> 2
+    total?: number;          // CX 002/003 -> 3
+    itens?: number;          // 2 ITENS -> 2
+    pesoKg?: number;         // 0,784 KG -> 0.784
+    pedido?: string;         // PED 842707084
+    remessa?: string;        // REM 246998110
+    subRota?: string;        // SR ou subrota
   };
   erro?: string;
 }
@@ -408,6 +418,282 @@ function normalizarTexto(texto: string): string {
 }
 
 // ==========================================
+// EXTRAÇÃO ETIQUETA DE CAIXA NATURA/AVON
+// Formato específico de etiquetas coladas nas caixas
+// ==========================================
+
+interface DadosEtiquetaCaixa {
+  // Identificação da caixa
+  caixaNumero?: number;      // CX 002/003 -> 2
+  caixaTotal?: number;       // CX 002/003 -> 3
+  itens?: number;            // 2 ITENS -> 2
+  pesoKg?: number;           // 0,784 KG -> 0.784
+  codigoCd?: string;         // MIK
+  
+  // Datas e tipo
+  dataPlanejada?: string;    // DT.PLANO: 06/02/26
+  dataPrevista?: string;     // DT.PREV: 10/02/26
+  tipoEntrega?: string;      // ENTREGA PADRAO
+  
+  // Identificadores principais
+  pedido?: string;           // PED 842707084
+  remessa?: string;          // REM 246998110
+  subRota?: string;          // SR ou subrota
+  
+  // Destinatário
+  nome?: string;             // THAIS GALDEANO DOS SANTOS
+  endereco?: string;         // R DAS JABUTICABEIRAS
+  numero?: string;           // 240
+  bairro?: string;           // RESIDENCIAL VALE DAS NOGUEIRAS
+  cidade?: string;           // AMERICANA
+  uf?: string;               // SP
+  cep?: string;              // 13474-378
+  
+  // Operacional
+  regiao?: string;           // CN
+  centroDistribuicao?: string; // WARECLOUDS AMERICANA
+}
+
+/**
+ * Parser especializado para ETIQUETAS DE CAIXA Natura/Avon
+ * 
+ * Formato típico:
+ * CX 002 / 003
+ * 2 ITENS
+ * 0,784 KG     [MIK]
+ * DT.PLANO: 06/02/26
+ * DT.PREV: 10/02/26    ENTREGA PADRAO
+ * PED 842707084
+ * REM 246998110
+ * THAIS GALDEANO DOS SANTOS
+ * R DAS JABUTICABEIRAS 240
+ * RESIDENCIAL VALE DAS NOGUEIRAS
+ * SP SP AMERICANA
+ * CEP 13474-378    [CN]
+ * 
+ * @pre texto OCR de etiqueta de caixa
+ * @post dados estruturados da etiqueta
+ */
+function extrairEtiquetaCaixaNatura(texto: string): DadosEtiquetaCaixa | null {
+  console.log('[Parser] Tentando extração Etiqueta Caixa Natura...');
+  
+  const textoNorm = texto.toUpperCase();
+  
+  // Detectar se é etiqueta de caixa (tem PED e REM)
+  const temPED = /\bPED\s*[:\s]*\d{6,12}/i.test(texto);
+  const temREM = /\bREM\s*[:\s]*\d{6,12}/i.test(texto);
+  const temCX = /\bCX\s*\d{1,3}\s*[\/\\]\s*\d{1,3}/i.test(texto);
+  
+  if (!temPED && !temREM) {
+    console.log('[Parser Etiqueta] Não parece ser etiqueta de caixa (sem PED/REM)');
+    return null;
+  }
+  
+  console.log('[Parser Etiqueta] Detectado formato etiqueta de caixa Natura');
+  
+  const dados: DadosEtiquetaCaixa = {};
+  
+  // === CX 002 / 003 (número da caixa / total) ===
+  const cxMatch = texto.match(/\bCX\s*(\d{1,3})\s*[\/\\]\s*(\d{1,3})/i);
+  if (cxMatch) {
+    dados.caixaNumero = parseInt(cxMatch[1], 10);
+    dados.caixaTotal = parseInt(cxMatch[2], 10);
+    console.log(`[Parser Etiqueta] Caixa: ${dados.caixaNumero}/${dados.caixaTotal}`);
+  }
+  
+  // === ITENS ===
+  const itensMatch = texto.match(/\b(\d{1,3})\s*ITEN[S]?\b/i);
+  if (itensMatch) {
+    dados.itens = parseInt(itensMatch[1], 10);
+    console.log(`[Parser Etiqueta] Itens: ${dados.itens}`);
+  }
+  
+  // === PESO (0,784 KG) ===
+  const pesoMatch = texto.match(/\b(\d{1,3})[,.](\d{1,3})\s*KG\b/i);
+  if (pesoMatch) {
+    dados.pesoKg = parseFloat(`${pesoMatch[1]}.${pesoMatch[2]}`);
+    console.log(`[Parser Etiqueta] Peso: ${dados.pesoKg} kg`);
+  }
+  
+  // === CÓDIGO CD (MIK, etc) ===
+  const cdMatch = texto.match(/\b(MIK|WAR|CD[A-Z0-9]{1,5})\b/i);
+  if (cdMatch) {
+    dados.codigoCd = cdMatch[1].toUpperCase();
+    console.log(`[Parser Etiqueta] CD: ${dados.codigoCd}`);
+  }
+  
+  // === PED (pedido) ===
+  const pedMatch = texto.match(/\bPED\s*[:\s]*(\d{6,12})/i);
+  if (pedMatch) {
+    dados.pedido = pedMatch[1];
+    console.log(`[Parser Etiqueta] PED: ${dados.pedido}`);
+  }
+  
+  // === REM (remessa) ===
+  const remMatch = texto.match(/\bREM\s*[:\s]*(\d{6,12})/i);
+  if (remMatch) {
+    dados.remessa = remMatch[1];
+    console.log(`[Parser Etiqueta] REM: ${dados.remessa}`);
+  }
+  
+  // === SubRota (SR) ===
+  const srMatch = texto.match(/\bSR\s*[:\s]*(\d{1,6})/i);
+  if (srMatch) {
+    dados.subRota = srMatch[1];
+    console.log(`[Parser Etiqueta] SR: ${dados.subRota}`);
+  }
+  
+  // === DT.PLANO ===
+  const dtPlanoMatch = texto.match(/DT\.?\s*PLANO\s*[:\s]*(\d{2}\/\d{2}\/\d{2,4})/i);
+  if (dtPlanoMatch) {
+    dados.dataPlanejada = dtPlanoMatch[1];
+    console.log(`[Parser Etiqueta] DT.PLANO: ${dados.dataPlanejada}`);
+  }
+  
+  // === DT.PREV ===
+  const dtPrevMatch = texto.match(/DT\.?\s*PREV\s*[:\s]*(\d{2}\/\d{2}\/\d{2,4})/i);
+  if (dtPrevMatch) {
+    dados.dataPrevista = dtPrevMatch[1];
+    console.log(`[Parser Etiqueta] DT.PREV: ${dados.dataPrevista}`);
+  }
+  
+  // === TIPO ENTREGA ===
+  const entregaMatch = texto.match(/ENTREGA\s+(PADRAO|NORMAL|EXPRESSA|URGENTE|PRIORITARIA)/i);
+  if (entregaMatch) {
+    dados.tipoEntrega = entregaMatch[1].toUpperCase();
+    console.log(`[Parser Etiqueta] Tipo Entrega: ${dados.tipoEntrega}`);
+  }
+  
+  // === CEP (primeiro, para ajudar validação de cidade) ===
+  const cepMatch = texto.match(/CEP\s*[:\s]*(\d{5})-?(\d{3})/i) ||
+                   texto.match(/\b(\d{5})-(\d{3})\b/);
+  if (cepMatch) {
+    dados.cep = `${cepMatch[1]}-${cepMatch[2]}`;
+    console.log(`[Parser Etiqueta] CEP: ${dados.cep}`);
+  }
+  
+  // === CIDADE e UF ===
+  // Formato: "SP SP AMERICANA" ou "SP AMERICANA" ou "AMERICANA SP"
+  const cidadePatterns = [
+    /\b([A-Z]{2})\s+\1?\s*(AMERICANA|CAMPINAS|SUMARE|LIMEIRA|PIRACICABA|SANTA BARBARA|NOVA ODESSA|HORTOLANDIA|PAULINIA|INDAIATUBA|RIO CLARO|JUNDIAI|VALINHOS|VINHEDO|ITATIBA)\b/i,
+    /\b(AMERICANA|CAMPINAS|SUMARE|LIMEIRA|PIRACICABA|SANTA BARBARA|NOVA ODESSA|HORTOLANDIA|PAULINIA|INDAIATUBA|RIO CLARO|JUNDIAI|VALINHOS|VINHEDO|ITATIBA)\s*[-\/]?\s*([A-Z]{2})\b/i,
+    /\b([A-Z]{2})\s+(AMERICANA|CAMPINAS|SUMARE|LIMEIRA|PIRACICABA|SANTA BARBARA|NOVA ODESSA|HORTOLANDIA|PAULINIA|INDAIATUBA|RIO CLARO|JUNDIAI|VALINHOS|VINHEDO|ITATIBA)\b/i,
+  ];
+  
+  for (const p of cidadePatterns) {
+    const m = texto.match(p);
+    if (m) {
+      // Determinar qual grupo é UF e qual é cidade
+      if (m[1].length === 2 && /^[A-Z]{2}$/.test(m[1])) {
+        dados.uf = m[1].toUpperCase();
+        dados.cidade = m[2].toUpperCase();
+      } else {
+        dados.cidade = m[1].toUpperCase();
+        dados.uf = m[2]?.toUpperCase() || 'SP';
+      }
+      console.log(`[Parser Etiqueta] Cidade: ${dados.cidade}, UF: ${dados.uf}`);
+      break;
+    }
+  }
+  
+  // Se não encontrou cidade pelo padrão, tentar AMERICANA direto
+  if (!dados.cidade && textoNorm.includes('AMERICANA')) {
+    dados.cidade = 'AMERICANA';
+    dados.uf = 'SP';
+    console.log('[Parser Etiqueta] Cidade AMERICANA detectada diretamente');
+  }
+  
+  // === BAIRRO/RESIDENCIAL ===
+  const bairroPatterns = [
+    /\b(RESIDENCIAL\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ\s]{3,30})/i,
+    /\b(JD\.?\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ\s]{3,20})/i,
+    /\b(JARDIM\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ\s]{3,20})/i,
+    /\b(VILA\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ\s]{3,20})/i,
+    /\b(PARQUE\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ\s]{3,20})/i,
+    /\b(CHACARA\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ\s]{3,20})/i,
+  ];
+  
+  for (const p of bairroPatterns) {
+    const m = texto.match(p);
+    if (m) {
+      dados.bairro = m[1].trim().toUpperCase();
+      console.log(`[Parser Etiqueta] Bairro: ${dados.bairro}`);
+      break;
+    }
+  }
+  
+  // === ENDEREÇO (R/RUA/AV + nome + número) ===
+  const enderecoPatterns = [
+    /\b(R(?:UA)?\.?\s+(?:DAS?\s+)?[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕA-Za-záéíóúâêîôûãõ\s]{2,30})\s+(\d{1,5})\b/i,
+    /\b(AV(?:ENIDA)?\.?\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕA-Za-záéíóúâêîôûãõ\s]{2,30})\s+(\d{1,5})\b/i,
+  ];
+  
+  for (const p of enderecoPatterns) {
+    const m = texto.match(p);
+    if (m) {
+      dados.endereco = m[1].trim().toUpperCase();
+      dados.numero = m[2];
+      console.log(`[Parser Etiqueta] Endereço: ${dados.endereco}, ${dados.numero}`);
+      break;
+    }
+  }
+  
+  // === NOME DO DESTINATÁRIO ===
+  // Procurar nome que vem ANTES do endereço (padrão Natura)
+  // Nome = sequência de 2+ palavras maiúsculas sem números
+  const nomePatterns = [
+    // Nome seguido de R/RUA (próxima linha é endereço)
+    /\b([A-ZÁÉÍÓÚÂÊÎÔÛÃÕ]{2,}(?:\s+(?:DOS?|DAS?|DE|DA)?\s*[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ]{2,}){1,4})\s*\n?\s*R(?:UA)?\.?\s/i,
+    // Nome com 2-5 palavras capitalizadas
+    /\b([A-Z][a-záéíóúâêîôûãõ]+(?:\s+(?:dos?|das?|de|da)?\s*[A-Z][a-záéíóúâêîôûãõ]+){1,4})\s/,
+  ];
+  
+  for (const p of nomePatterns) {
+    const m = texto.match(p);
+    if (m) {
+      const nomeCandidate = m[1].trim();
+      // Validar que não é parte do endereço ou outros campos
+      if (nomeCandidate.length > 5 && 
+          !nomeCandidate.includes('ENTREGA') &&
+          !nomeCandidate.includes('PADRAO') &&
+          !nomeCandidate.includes('RESIDENCIAL') &&
+          !nomeCandidate.includes('WARECLOUDS')) {
+        dados.nome = nomeCandidate.toUpperCase();
+        console.log(`[Parser Etiqueta] Nome: ${dados.nome}`);
+        break;
+      }
+    }
+  }
+  
+  // === REGIÃO (CN, SUL, NORTE, etc) ===
+  const regiaoMatch = texto.match(/\b(CN|CS|SU|NO|NE|SE|CO)\b/);
+  if (regiaoMatch) {
+    dados.regiao = regiaoMatch[1].toUpperCase();
+    console.log(`[Parser Etiqueta] Região: ${dados.regiao}`);
+  }
+  
+  // === CENTRO DE DISTRIBUIÇÃO ===
+  const cdDistMatch = texto.match(/WARECLOUDS?\s+([A-ZÁÉÍÓÚÂÊÎÔÛÃÕ]+)/i);
+  if (cdDistMatch) {
+    dados.centroDistribuicao = `WARECLOUDS ${cdDistMatch[1]}`;
+    console.log(`[Parser Etiqueta] Centro Distribuição: ${dados.centroDistribuicao}`);
+  }
+  
+  // Verificar se extraiu dados mínimos
+  const temDadosMinimos = dados.pedido || dados.remessa || 
+                          (dados.endereco && dados.cidade) ||
+                          (dados.cep && dados.nome);
+  
+  if (!temDadosMinimos) {
+    console.log('[Parser Etiqueta] Dados insuficientes extraídos');
+    return null;
+  }
+  
+  console.log('[Parser Etiqueta] Dados extraídos:', JSON.stringify(dados, null, 2));
+  return dados;
+}
+
+// ==========================================
 // EXTRAÇÃO ESPECÍFICA NATURA/AVON (PORTADA DO WEB)
 // ==========================================
 
@@ -641,6 +927,15 @@ interface DadosExtraidosFornecedor {
   uf?: string;
   cep?: string;
   enderecoCompleto?: string;
+  
+  // Campos específicos de etiqueta de caixa Natura/Avon
+  pedido?: string;           // PED 842707084
+  remessa?: string;          // REM 246998110
+  subRota?: string;          // SR ou subrota
+  caixaNumero?: number;      // CX 002/003 -> 2
+  caixaTotal?: number;       // CX 002/003 -> 3
+  itens?: number;            // 2 ITENS -> 2
+  pesoKg?: number;           // 0,784 KG -> 0.784
 }
 
 /**
@@ -924,16 +1219,41 @@ function extrairTikTokKwai(texto: string): DadosExtraidosFornecedor | null {
  * Parser Universal - Tenta todos os fornecedores em ordem de especificidade
  * 
  * Ordem:
+ * 0. Etiqueta Caixa Natura (formato PED/REM específico)
  * 1. TikTok/Kwai (formato mais específico com campos rotulados)
  * 2. Shopee (tem identificador SPX/SHOPEE)
  * 3. Mercado Livre/Amazon (DANFE padrão)
- * 4. Natura/Avon (Destino cidade)
+ * 4. Natura/Avon DANFE (Destino cidade)
  * 
  * @pre texto OCR de qualquer nota
  * @post dados extraídos do melhor parser que funcionou
  */
 function extrairDadosUniversal(texto: string): DadosExtraidosFornecedor | null {
   console.log('[Parser Universal] Iniciando tentativa de todos os parsers...');
+  
+  // 0. Etiqueta de Caixa Natura (mais específico - tem PED/REM)
+  const dadosEtiqueta = extrairEtiquetaCaixaNatura(texto);
+  if (dadosEtiqueta && (dadosEtiqueta.pedido || dadosEtiqueta.remessa || dadosEtiqueta.endereco)) {
+    console.log('[Parser Universal] Sucesso com parser Etiqueta Caixa Natura');
+    return {
+      fornecedor: 'NATURA_AVON_CAIXA',
+      nome: dadosEtiqueta.nome,
+      endereco: dadosEtiqueta.endereco,
+      numero: dadosEtiqueta.numero,
+      bairro: dadosEtiqueta.bairro,
+      cidade: dadosEtiqueta.cidade,
+      uf: dadosEtiqueta.uf,
+      cep: dadosEtiqueta.cep,
+      // Campos extras específicos de caixa
+      pedido: dadosEtiqueta.pedido,
+      remessa: dadosEtiqueta.remessa,
+      subRota: dadosEtiqueta.subRota,
+      caixaNumero: dadosEtiqueta.caixaNumero,
+      caixaTotal: dadosEtiqueta.caixaTotal,
+      itens: dadosEtiqueta.itens,
+      pesoKg: dadosEtiqueta.pesoKg,
+    };
+  }
   
   // 1. TikTok/Kwai (mais específico)
   const dadosTikTok = extrairTikTokKwai(texto);
@@ -1218,11 +1538,13 @@ function extrairCEPTexto(texto: string): string {
 }
 
 /**
- * Resultado da extração de endereço incluindo fornecedor detectado
+ * Resultado da extração de endereço incluindo fornecedor detectado e dados de caixa
  */
 interface EnderecoExtraido {
   endereco?: OcrResult['endereco'];
   fornecedor?: string;
+  caixa?: OcrResult['caixa'];
+  destinatarioNome?: string;
 }
 
 /**
@@ -1285,7 +1607,28 @@ function extrairEnderecoComFornecedor(texto: string): EnderecoExtraido {
     if (partes.length >= 2) {
       endereco.enderecoCompleto = partes.join(', ');
       console.log(`[OCR] Endereço montado via ${dadosUniversal.fornecedor}: ${endereco.enderecoCompleto}`);
-      return { endereco, fornecedor: fornecedorDetectado };
+      
+      // Incluir dados de caixa se disponíveis (etiqueta Natura)
+      let caixaDados: OcrResult['caixa'] | undefined;
+      if (dadosUniversal.pedido || dadosUniversal.remessa || dadosUniversal.caixaNumero) {
+        caixaDados = {
+          numero: dadosUniversal.caixaNumero,
+          total: dadosUniversal.caixaTotal,
+          itens: dadosUniversal.itens,
+          pesoKg: dadosUniversal.pesoKg,
+          pedido: dadosUniversal.pedido,
+          remessa: dadosUniversal.remessa,
+          subRota: dadosUniversal.subRota,
+        };
+        console.log(`[OCR] Dados de caixa extraídos: PED=${dadosUniversal.pedido}, REM=${dadosUniversal.remessa}, CX=${dadosUniversal.caixaNumero}/${dadosUniversal.caixaTotal}`);
+      }
+      
+      return { 
+        endereco, 
+        fornecedor: fornecedorDetectado,
+        caixa: caixaDados,
+        destinatarioNome: dadosUniversal.nome
+      };
     }
   }
   
@@ -1564,19 +1907,26 @@ export async function analisarImagemNota(imagemBase64: string): Promise<OcrResul
     // Extrai chave de acesso
     const chaveAcesso = extrairChave44Digitos(textoExtraido);
     
-    // Extrai endereço com fornecedor detectado e valida
-    const { endereco: enderecoExtraido, fornecedor } = extrairEnderecoComFornecedor(textoExtraido);
+    // Extrai endereço com fornecedor detectado, dados de caixa e nome
+    const { 
+      endereco: enderecoExtraido, 
+      fornecedor, 
+      caixa, 
+      destinatarioNome 
+    } = extrairEnderecoComFornecedor(textoExtraido);
     const endereco = validarEnderecoExtraido(enderecoExtraido) ? enderecoExtraido : undefined;
     
-    // Extrai destinatário
-    const nomeDestinatario = extrairDestinatario(textoExtraido);
+    // Extrai destinatário (usa nome do parser se disponível)
+    const nomeDestinatario = destinatarioNome || extrairDestinatario(textoExtraido);
     
     // Extrai dados da nota
     const dadosNota = extrairDadosNota(textoExtraido);
     
     // Detecta tipo de documento
     let tipoDocumento = 'DESCONHECIDO';
-    if (textoExtraido.includes('NFC-E') || textoExtraido.includes('NFCE')) {
+    if (caixa?.pedido || caixa?.remessa) {
+      tipoDocumento = 'ETIQUETA_CAIXA'; // Novo tipo para etiquetas
+    } else if (textoExtraido.includes('NFC-E') || textoExtraido.includes('NFCE')) {
       tipoDocumento = 'NFC-e';
     } else if (textoExtraido.includes('NF-E') || textoExtraido.includes('NFE')) {
       tipoDocumento = 'NF-e';
@@ -1584,7 +1934,7 @@ export async function analisarImagemNota(imagemBase64: string): Promise<OcrResul
       tipoDocumento = 'DANFE';
     }
     
-    console.log(`[OCR] Resultados - Tipo: ${tipoDocumento}, Fornecedor: ${fornecedor || 'genérico'}, Chave: ${chaveAcesso ? 'encontrada' : 'não encontrada'}, Endereço: ${endereco ? 'encontrado' : 'não encontrado'}`);
+    console.log(`[OCR] Resultados - Tipo: ${tipoDocumento}, Fornecedor: ${fornecedor || 'genérico'}, Chave: ${chaveAcesso ? 'encontrada' : 'não encontrada'}, Endereço: ${endereco ? 'encontrado' : 'não encontrado'}, Caixa: ${caixa ? `PED=${caixa.pedido} REM=${caixa.remessa}` : 'N/A'}`);
     
     return {
       sucesso: true,
@@ -1595,6 +1945,7 @@ export async function analisarImagemNota(imagemBase64: string): Promise<OcrResul
       fornecedor, // Fornecedor detectado pelo parser
       destinatario: nomeDestinatario ? { nome: nomeDestinatario } : undefined,
       endereco,
+      caixa, // Dados de etiqueta de caixa (se disponíveis)
       notaFiscal: {
         ...dadosNota,
         chaveAcesso: chaveAcesso || undefined

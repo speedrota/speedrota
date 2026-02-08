@@ -112,21 +112,29 @@ class SeparacaoViewModel @Inject constructor(
                 if (response.isSuccessful && response.body()?.success == true) {
                     val data = response.body()?.data
                     val textoExtraido = data?.textoExtraido ?: ""
+                    val caixaData = data?.caixa // Dados de caixa extraídos pelo parser
                     
                     Log.d("SeparacaoVM", "OCR API retornou ${textoExtraido.length} chars")
+                    Log.d("SeparacaoVM", "Tipo documento: ${data?.tipoDocumento}, Fornecedor: ${data?.fornecedor}")
+                    Log.d("SeparacaoVM", "Dados caixa: PED=${caixaData?.pedido}, REM=${caixaData?.remessa}, CX=${caixaData?.numero}/${caixaData?.total}")
 
-                    // Extrair campos PED/REM/SubRota do texto OCR
+                    // Usar dados do parser de caixa se disponíveis, senão fallback para regex
                     val dadosExtraidos = CaixaDados(
-                        pedido = extrairCampoDoTexto(textoExtraido, "PED"),
-                        remessa = extrairCampoDoTexto(textoExtraido, "REM"),
-                        subRota = extrairCampoDoTexto(textoExtraido, "SR"),
+                        pedido = caixaData?.pedido ?: extrairCampoDoTexto(textoExtraido, "PED"),
+                        remessa = caixaData?.remessa ?: extrairCampoDoTexto(textoExtraido, "REM"),
+                        subRota = caixaData?.subRota ?: extrairCampoDoTexto(textoExtraido, "SR"),
                         cep = data?.endereco?.cep ?: extrairCampoDoTexto(textoExtraido, "CEP"),
                         destinatario = data?.destinatario?.nome 
                             ?: data?.dadosAdicionais?.nomeDestinatario
-                            ?: extrairCampoDoTexto(textoExtraido, "DEST")
+                            ?: extrairCampoDoTexto(textoExtraido, "DEST"),
+                        // Campos extras de caixa
+                        caixaNumero = caixaData?.numero,
+                        caixaTotal = caixaData?.total,
+                        itens = caixaData?.itens,
+                        pesoKg = caixaData?.pesoKg
                     )
                     
-                    Log.d("SeparacaoVM", "OCR completo para caixa $id: PED=${dadosExtraidos.pedido}, REM=${dadosExtraidos.remessa}")
+                    Log.d("SeparacaoVM", "OCR completo para caixa $id: PED=${dadosExtraidos.pedido}, REM=${dadosExtraidos.remessa}, CX=${dadosExtraidos.caixaNumero}/${dadosExtraidos.caixaTotal}")
 
                     _uiState.update { state ->
                         state.copy(
@@ -584,7 +592,10 @@ data class CaixaDados(
     val destinatario: String? = null,
     val cep: String? = null,
     val itens: Int? = null,
-    val pesoKg: Float? = null
+    val pesoKg: Double? = null,
+    // Campos de identificação da caixa
+    val caixaNumero: Int? = null,  // CX 002/003 -> 2
+    val caixaTotal: Int? = null    // CX 002/003 -> 3
 )
 
 data class NotaDados(

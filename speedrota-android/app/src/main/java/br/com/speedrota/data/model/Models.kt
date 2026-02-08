@@ -1971,12 +1971,28 @@ data class OcrAnaliseData(
     val textoExtraido: String? = null,
     val confianca: Double? = null,
     val tipoDocumento: String? = null,
-    val fornecedor: String? = null,  // Fornecedor detectado: MERCADOLIVRE_AMAZON, SHOPEE, TIKTOK_KWAI, NATURA_AVON
+    val fornecedor: String? = null,  // Fornecedor detectado: MERCADOLIVRE_AMAZON, SHOPEE, TIKTOK_KWAI, NATURA_AVON, NATURA_AVON_CAIXA
     val dadosAdicionais: OcrDadosAdicionais? = null,
     // Campos adicionais para endereço parseado diretamente
     val endereco: OcrEndereco? = null,
     val destinatario: OcrDestinatario? = null,
-    val notaFiscal: OcrNotaFiscal? = null
+    val notaFiscal: OcrNotaFiscal? = null,
+    // Campos específicos de etiqueta de caixa Natura/Avon
+    val caixa: OcrDadosCaixa? = null
+)
+
+/**
+ * Dados específicos de etiqueta de caixa Natura/Avon
+ */
+@Serializable
+data class OcrDadosCaixa(
+    val numero: Int? = null,         // CX 002/003 -> 2
+    val total: Int? = null,          // CX 002/003 -> 3
+    val itens: Int? = null,          // 2 ITENS -> 2
+    val pesoKg: Double? = null,      // 0,784 KG -> 0.784
+    val pedido: String? = null,      // PED 842707084
+    val remessa: String? = null,     // REM 246998110
+    val subRota: String? = null      // SR ou subrota
 )
 
 @Serializable

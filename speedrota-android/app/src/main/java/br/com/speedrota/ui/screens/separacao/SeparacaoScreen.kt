@@ -3,12 +3,15 @@ package br.com.speedrota.ui.screens.separacao
 import android.Manifest
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.net.Uri
 import android.util.Base64
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -33,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import java.io.ByteArrayOutputStream
+import java.io.File
 
 /**
  * Tela de Separação de Carga
@@ -67,6 +71,24 @@ fun SeparacaoScreen(
         )
     }
     
+    // URIs temporárias para fotos
+    var caixaPhotoUri by remember { mutableStateOf<Uri?>(null) }
+    var notaPhotoUri by remember { mutableStateOf<Uri?>(null) }
+
+    // Função para criar URI temporária
+    fun createTempPhotoUri(prefix: String): Uri {
+        val tempFile = File.createTempFile(
+            "${prefix}_${System.currentTimeMillis()}",
+            ".jpg",
+            context.cacheDir
+        )
+        return FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.fileprovider",
+            tempFile
+        )
+    }
+
     // Launcher para solicitar permissão
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -74,37 +96,70 @@ fun SeparacaoScreen(
         hasCameraPermission = isGranted
     }
     
-    // Launcher para câmera
+    // Launcher para câmera - CAIXA (usa TakePicture para maior confiabilidade)
     val cameraLauncherCaixa = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicturePreview()
-    ) { bitmap ->
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
         android.util.Log.d("SeparacaoScreen", "=====================================")
-        android.util.Log.d("SeparacaoScreen", "cameraLauncherCaixa callback")
-        android.util.Log.d("SeparacaoScreen", "bitmap is null: ${bitmap == null}")
-        bitmap?.let {
-            android.util.Log.d("SeparacaoScreen", "Bitmap recebido: ${it.width}x${it.height}")
-            val base64 = bitmapToBase64(it)
-            android.util.Log.d("SeparacaoScreen", "Base64 gerado: ${base64.length} chars")
-            android.util.Log.d("SeparacaoScreen", "Chamando viewModel.adicionarCaixa()...")
-            viewModel.adicionarCaixa(base64)
-            android.util.Log.d("SeparacaoScreen", "viewModel.adicionarCaixa() chamado!")
+        android.util.Log.d("SeparacaoScreen", "cameraLauncherCaixa callback - success: $success")
+        android.util.Log.d("SeparacaoScreen", "caixaPhotoUri: $caixaPhotoUri")
+
+        if (success && caixaPhotoUri != null) {
+            try {
+                android.util.Log.d("SeparacaoScreen", "Abrindo InputStream para URI...")
+                val inputStream = context.contentResolver.openInputStream(caixaPhotoUri!!)
+                val bitmap = BitmapFactory.decodeStream(inputStream)
+                inputStream?.close()
+
+                if (bitmap != null) {
+                    android.util.Log.d("SeparacaoScreen", "Bitmap carregado: ${bitmap.width}x${bitmap.height}")
+                    val base64 = bitmapToBase64(bitmap)
+                    android.util.Log.d("SeparacaoScreen", "Base64 gerado: ${base64.length} chars")
+                    android.util.Log.d("SeparacaoScreen", "Chamando viewModel.adicionarCaixa()...")
+                    viewModel.adicionarCaixa(base64)
+                    android.util.Log.d("SeparacaoScreen", "viewModel.adicionarCaixa() CHAMADO!")
+                } else {
+                    android.util.Log.e("SeparacaoScreen", "ERRO: Bitmap é null após decode!")
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("SeparacaoScreen", "ERRO ao processar foto caixa: ${e.message}", e)
+            }
+        } else {
+            android.util.Log.w("SeparacaoScreen", "Foto cancelada ou URI null")
         }
         android.util.Log.d("SeparacaoScreen", "=====================================")
     }
     
+    // Launcher para câmera - NOTA (usa TakePicture para maior confiabilidade)
     val cameraLauncherNota = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicturePreview()
-    ) { bitmap ->
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
         android.util.Log.d("SeparacaoScreen", "=====================================")
-        android.util.Log.d("SeparacaoScreen", "cameraLauncherNota callback")
-        android.util.Log.d("SeparacaoScreen", "bitmap is null: ${bitmap == null}")
-        bitmap?.let {
-            android.util.Log.d("SeparacaoScreen", "Bitmap recebido: ${it.width}x${it.height}")
-            val base64 = bitmapToBase64(it)
-            android.util.Log.d("SeparacaoScreen", "Base64 gerado: ${base64.length} chars")
-            android.util.Log.d("SeparacaoScreen", "Chamando viewModel.adicionarNota()...")
-            viewModel.adicionarNota(base64)
-            android.util.Log.d("SeparacaoScreen", "viewModel.adicionarNota() chamado!")
+        android.util.Log.d("SeparacaoScreen", "cameraLauncherNota callback - success: $success")
+        android.util.Log.d("SeparacaoScreen", "notaPhotoUri: $notaPhotoUri")
+
+        if (success && notaPhotoUri != null) {
+            try {
+                android.util.Log.d("SeparacaoScreen", "Abrindo InputStream para URI...")
+                val inputStream = context.contentResolver.openInputStream(notaPhotoUri!!)
+                val bitmap = BitmapFactory.decodeStream(inputStream)
+                inputStream?.close()
+
+                if (bitmap != null) {
+                    android.util.Log.d("SeparacaoScreen", "Bitmap carregado: ${bitmap.width}x${bitmap.height}")
+                    val base64 = bitmapToBase64(bitmap)
+                    android.util.Log.d("SeparacaoScreen", "Base64 gerado: ${base64.length} chars")
+                    android.util.Log.d("SeparacaoScreen", "Chamando viewModel.adicionarNota()...")
+                    viewModel.adicionarNota(base64)
+                    android.util.Log.d("SeparacaoScreen", "viewModel.adicionarNota() CHAMADO!")
+                } else {
+                    android.util.Log.e("SeparacaoScreen", "ERRO: Bitmap é null após decode!")
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("SeparacaoScreen", "ERRO ao processar foto nota: ${e.message}", e)
+            }
+        } else {
+            android.util.Log.w("SeparacaoScreen", "Foto cancelada ou URI null")
         }
         android.util.Log.d("SeparacaoScreen", "=====================================")
     }
@@ -221,7 +276,10 @@ fun SeparacaoScreen(
                     caixas = uiState.caixas,
                     onFotografar = { 
                         if (hasCameraPermission) {
-                            cameraLauncherCaixa.launch(null)
+                            val uri = createTempPhotoUri("caixa")
+                            caixaPhotoUri = uri
+                            android.util.Log.d("SeparacaoScreen", "Iniciando câmera para CAIXA, URI: $uri")
+                            cameraLauncherCaixa.launch(uri)
                         } else {
                             permissionLauncher.launch(Manifest.permission.CAMERA)
                         }
@@ -235,7 +293,10 @@ fun SeparacaoScreen(
                     caixasCount = uiState.caixas.filter { it.status == ItemStatus.READY }.size,
                     onFotografar = { 
                         if (hasCameraPermission) {
-                            cameraLauncherNota.launch(null)
+                            val uri = createTempPhotoUri("nota")
+                            notaPhotoUri = uri
+                            android.util.Log.d("SeparacaoScreen", "Iniciando câmera para NOTA, URI: $uri")
+                            cameraLauncherNota.launch(uri)
                         } else {
                             permissionLauncher.launch(Manifest.permission.CAMERA)
                         }

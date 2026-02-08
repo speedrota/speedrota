@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Diretório cache raiz para fotos temporárias -->
+    <cache-path name="cache" path="." />
     <!-- Diretório para fotos capturadas pela câmera -->
     <cache-path name="camera_photos" path="photos/" />
 </paths>
