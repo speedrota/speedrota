@@ -543,25 +543,32 @@ function extrairEtiquetaCaixaNatura(texto: string): DadosEtiquetaCaixa | null {
   const dados: DadosEtiquetaCaixa = {};
   
   // === CX 002 / 003 (número da caixa / total) ===
-  // OCR costuma confundir: CX -> OX, 0 -> O, etc
+  // OCR costuma confundir: CX -> OX, DX, 0X, etc; números: 0 -> O
   const cxPatterns = [
-    /\bCX\s*(\d{1,3})\s*[\/\\]\s*(\d{1,3})/i,           // Normal: CX 002/003
-    /\bCX\.?\s*(\d{1,3})\s*[\/\\]\s*(\d{1,3})/i,        // CX. 002/003
-    /\b[O0C]X\s*(\d{1,3})\s*[\/\\]\s*(\d{1,3})/i,       // OX ou 0X
-    /\bCX\s*([O0]\d{1,2})\s*[\/\\]\s*([O0]\d{1,2})/i,  // CX O02/O03
-    /\b(\d{1,3})\s*[\/\\]\s*(\d{1,3})\s*CX/i,           // 002/003 CX (invertido)
-    /\b(\d{1,3})\s*DE\s*(\d{1,3})\b/i,                   // 02 DE 03
+    /\bCX\s*(\d{1,3})\s*[\/\\]\s*(\d{1,3})/i,            // Normal: CX 002/003
+    /\bCX\.?\s*(\d{1,3})\s*[\/\\]\s*(\d{1,3})/i,         // CX. 002/003
+    /\b[O0CD]X\s*(\d{1,3})\s*[\/\\]\s*(\d{1,3})/i,        // OX, 0X, DX (OCR confunde C com D)
+    /\b[O0CD]X[:\s]+(\d{1,3})\s*[-\/\\]\s*(\d{1,3})/i,    // DX: 02-03 ou DX: 02/03
+    /\bCX\s*([O0]\d{1,2})\s*[\/\\]\s*([O0]\d{1,2})/i,   // CX O02/O03
+    /\b(\d{1,3})\s*[\/\\]\s*(\d{1,3})\s*CX/i,            // 002/003 CX (invertido)
+    /\b(\d{1,3})\s*DE\s*(\d{1,3})\b/i,                    // 02 DE 03
+    /\bCX\s*(\d{1,3})\s*[-]\s*(\d{1,3})/i,                // CX 02-03 (traço)
+    /\b[CD]X[:\s]+([mM]|\d)[-\s]*(\d{1,3})/i,             // DX: m-03 (OCR lê 0 como m)
   ];
   
   for (const p of cxPatterns) {
     const m = texto.match(p);
     if (m) {
-      // Converter O para 0 se OCR leu errado
-      const num1 = m[1].replace(/O/gi, '0');
-      const num2 = m[2].replace(/O/gi, '0');
+      // Converter O/m para 0 se OCR leu errado
+      let num1 = m[1].replace(/[Om]/gi, '0');
+      let num2 = m[2].replace(/[Om]/gi, '0');
+      
+      // Se ainda não é número válido, pular
+      if (!/^\d+$/.test(num1) || !/^\d+$/.test(num2)) continue;
+      
       dados.caixaNumero = parseInt(num1, 10);
       dados.caixaTotal = parseInt(num2, 10);
-      console.log(`[Parser Etiqueta] Caixa: ${dados.caixaNumero}/${dados.caixaTotal} (padrão: ${p.source.substring(0,20)}...)`);
+      console.log(`[Parser Etiqueta] Caixa: ${dados.caixaNumero}/${dados.caixaTotal} (padrão: ${p.source.substring(0,25)}...)`);
       break;
     }
   }
@@ -699,7 +706,17 @@ function extrairEtiquetaCaixaNatura(texto: string): DadosEtiquetaCaixa | null {
     'SANTA BARBARA', 'NOVA ODESSA', 'HORTOLANDIA', 'PAULINIA', 'INDAIATUBA', 
     'RIO CLARO', 'JUNDIAI', 'VALINHOS', 'VINHEDO', 'ITATIBA', 'SAO PAULO'];
   
+  // BAIRROS conhecidos (para completar palavras cortadas pelo OCR)
+  const BAIRROS_CONHECIDOS: Record<string, string> = {
+    'NOGUEI': 'NOGUEIRAS',
+    'JABUTICA': 'JABUTICABEIRAS',
+    'PRIMAV': 'PRIMAVERA',
+    'FLOREN': 'FLORENCA',
+    'AMERIC': 'AMERICANA',
+  };
+  
   const bairroPatterns = [
+    /\b(RESIDENCIAL\s+VALE\s+DAS\s+NOGUEIRAS?)\b/i,  // Específico NOGUEIRAS
     /\b(RESIDENCIAL\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ\s]{3,30})/i,
     /\b(JD\.?\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ\s]{3,20})/i,
     /\b(JARDIM\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ\s]{3,20})/i,
@@ -712,12 +729,23 @@ function extrairEtiquetaCaixaNatura(texto: string): DadosEtiquetaCaixa | null {
     const m = texto.match(p);
     if (m) {
       let bairroTemp = m[1].trim().toUpperCase();
-      // Remover cidade se pegou junto
+      // Remover cidade se pegou junto (detectar por substrings conhecidas)
       for (const cidade of CIDADES_CONHECIDAS) {
-        const idx = bairroTemp.indexOf(cidade);
-        if (idx > 0) {
-          bairroTemp = bairroTemp.substring(0, idx).trim();
+        // Procurar cidade colada ou com espaços
+        const idxCidade = bairroTemp.indexOf(cidade);
+        if (idxCidade > 0) {
+          bairroTemp = bairroTemp.substring(0, idxCidade).trim();
           console.log(`[Parser Etiqueta] Bairro cortado antes de ${cidade}`);
+        }
+      }
+      
+      // Tentar completar palavras cortadas pelo OCR
+      for (const [parcial, completa] of Object.entries(BAIRROS_CONHECIDOS)) {
+        if (bairroTemp.endsWith(parcial)) {
+          bairroTemp = bairroTemp.replace(new RegExp(parcial + '$'), completa);
+          console.log(`[Parser Etiqueta] Bairro completado: ${parcial} -> ${completa}`);
+        }
+      }
         }
       }
       dados.bairro = bairroTemp;
@@ -1467,22 +1495,27 @@ function extrairDadosUniversal(texto: string): DadosExtraidosFornecedor | null {
     // ========================================
     // EXTRAIR NÚMERO DA CAIXA (CX 02/03 ou Volumes)
     // ========================================
-    // OCR costuma confundir: CX -> OX, 0 -> O, etc
+    // OCR costuma confundir: CX -> OX, DX, 0X; números: 0 -> O, m
     const cxPatternsDANFE = [
-      /\bCX\s*(\d{1,3})\s*[\/\\]\s*(\d{1,3})/i,           // Normal: CX 002/003
-      /\bCX\.?\s*(\d{1,3})\s*[\/\\]\s*(\d{1,3})/i,        // CX. 002/003
-      /\b[O0C]X\s*(\d{1,3})\s*[\/\\]\s*(\d{1,3})/i,       // OX ou 0X
-      /\bCX\s*([O0]\d{1,2})\s*[\/\\]\s*([O0]\d{1,2})/i,  // CX O02/O03
-      /\b(\d{1,3})\s*[\/\\]\s*(\d{1,3})\s*CX/i,           // 002/003 CX (invertido)
-      /\b(\d{1,3})\s*DE\s*(\d{1,3})\b/i,                   // 02 DE 03
+      /\bCX\s*(\d{1,3})\s*[\/\\]\s*(\d{1,3})/i,            // Normal: CX 002/003
+      /\bCX\.?\s*(\d{1,3})\s*[\/\\]\s*(\d{1,3})/i,         // CX. 002/003
+      /\b[O0CD]X\s*(\d{1,3})\s*[\/\\]\s*(\d{1,3})/i,        // OX, 0X, DX (OCR confunde C com D)
+      /\b[O0CD]X[:\s]+(\\d{1,3})\s*[-\/\\]\s*(\d{1,3})/i,   // DX: 02-03 ou DX: 02/03
+      /\bCX\s*([O0]\d{1,2})\s*[\/\\]\s*([O0]\d{1,2})/i,   // CX O02/O03
+      /\b(\d{1,3})\s*[\/\\]\s*(\d{1,3})\s*CX/i,            // 002/003 CX (invertido)
+      /\b(\d{1,3})\s*DE\s*(\d{1,3})\b/i,                    // 02 DE 03
+      /\bCX\s*(\d{1,3})\s*[-]\s*(\d{1,3})/i,                // CX 02-03 (traço)
     ];
     
     for (const p of cxPatternsDANFE) {
       const m = texto.match(p);
       if (m) {
-        // Converter O para 0 se OCR leu errado
-        const num1 = m[1].replace(/O/gi, '0');
-        const num2 = m[2].replace(/O/gi, '0');
+        // Converter O/m para 0 se OCR leu errado
+        let num1 = m[1].replace(/[Om]/gi, '0');
+        let num2 = m[2].replace(/[Om]/gi, '0');
+        
+        if (!/^\d+$/.test(num1) || !/^\d+$/.test(num2)) continue;
+        
         dadosDANFENatura.caixaNumero = parseInt(num1, 10);
         dadosDANFENatura.caixaTotal = parseInt(num2, 10);
         console.log(`[Parser DANFE Natura] Caixa: ${dadosDANFENatura.caixaNumero}/${dadosDANFENatura.caixaTotal}`);
