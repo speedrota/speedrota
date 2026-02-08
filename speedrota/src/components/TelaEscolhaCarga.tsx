@@ -98,7 +98,15 @@ const CORES_TAG: Record<number, string> = {
 };
 
 export function TelaEscolhaCarga() {
-  const { irPara, carregarRota, definirOrigem, adicionarDestino, limparDestinos } = useRouteStore();
+  const { 
+    irPara, 
+    carregarRota, 
+    definirOrigem, 
+    adicionarDestino, 
+    limparDestinos,
+    setMotoristaSelecionado: setMotoristaStore,
+    setEmpresaSelecionada: setEmpresaStore
+  } = useRouteStore();
   const [rotasDisponiveis, setRotasDisponiveis] = useState<RotaPreparada[]>([]);
   const [carregando, setCarregando] = useState(false);
   const [baixando, setBaixando] = useState<string | null>(null);
@@ -183,12 +191,16 @@ export function TelaEscolhaCarga() {
     setMotoristaSelecionado(m);
     setEmpresaSelecionada(null);
     setTipoDestinoSelecionado('motorista');
+    // Salvar na store global para TelaSeparacao
+    setMotoristaStore({ id: m.id, nome: m.nome });
   }
   
   function selecionarEmpresa(e: EmpresaFrota) {
     setEmpresaSelecionada(e);
     setMotoristaSelecionado(null);
     setTipoDestinoSelecionado('empresa');
+    // Salvar na store global para TelaSeparacao
+    setEmpresaStore({ id: e.id, nome: e.nome });
   }
   
   async function buscarRotasPreparadas() {
@@ -245,10 +257,10 @@ export function TelaEscolhaCarga() {
   }
   
   function fazerSeparacaoManual() {
-    // GESTOR_FROTA: Vai para tela de Matching (Caixas / NF-e / Resultado)
+    // GESTOR_FROTA: Vai para tela de Separação (Caixas → Notas → Matching → Resultado)
     // ENTREGADOR: Vai para tela de Destinos (simples - só NF-e)
     if (isGestorFrota) {
-      irPara('matching');
+      irPara('separacao');
     } else {
       irPara('destinos');
     }

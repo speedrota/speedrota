@@ -21,6 +21,7 @@ import { TelaGamificacao } from './components/Gamificacao';
 import TelaEcommerce from './components/Ecommerce';
 import { TelaQrCodeScanner } from './components/QrCodeScanner';
 import TelaMatching from './components/TelaMatching';
+import TelaSeparacao from './components/TelaSeparacao';
 import { TelaEscolhaCarga } from './components/TelaEscolhaCarga';
 import './styles/global.css';
 import './styles/frota.css';
@@ -40,6 +41,7 @@ const TITULOS: Record<string, string> = {
   ecommerce: 'Integrações E-commerce',
   qrcode: 'Scanner QR Code',
   matching: 'Match Caixa ↔ NF-e',
+  separacao: 'Separação de Carga',
 };
 
 // Verificar se é página de retorno do pagamento
@@ -184,6 +186,7 @@ export default function App() {
         {etapaAtual === 'ecommerce' && <TelaEcommerce />}
         {etapaAtual === 'qrcode' && <TelaQrCodeScanner />}
         {etapaAtual === 'matching' && <TelaMatching />}
+        {etapaAtual === 'separacao' && <TelaSeparacao />}
       </main>
       
       {/* Footer com info da origem (se definida e não na home) */}

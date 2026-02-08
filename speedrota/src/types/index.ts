@@ -275,6 +275,10 @@ export interface Destino {
   janelaFim?: string;
   /** Prioridade da entrega */
   prioridade?: 'ALTA' | 'MEDIA' | 'BAIXA';
+  /** Tag visual para identificação no matching (ex: ABC-123-02) */
+  tagVisual?: string;
+  /** Cor da tag (1-8) */
+  tagCor?: number;
 }
 
 // ==========================================
@@ -399,6 +403,14 @@ export interface DadosNFe {
   dataEmissao?: string;
   /** Fornecedor detectado automaticamente */
   fornecedor: Fornecedor;
+  /** Fornecedor detectado (alias) */
+  fornecedorDetectado?: Fornecedor;
+  /** Número do pedido */
+  pedido?: string;
+  /** Número da remessa */
+  remessa?: string;
+  /** Sub-rota */
+  subRota?: string;
   /** Dados do destinatário (USAR COMO DESTINO) */
   destinatario: {
     nome: string;
@@ -451,7 +463,7 @@ export interface GeocodingResult {
 /**
  * Etapas do fluxo
  */
-export type EtapaFluxo = 'home' | 'origem' | 'escolha-carga' | 'destinos' | 'rota' | 'navegacao' | 'dashboard' | 'menu-frota' | 'frota' | 'previsao' | 'gamificacao' | 'ecommerce' | 'qrcode' | 'matching';
+export type EtapaFluxo = 'home' | 'origem' | 'escolha-carga' | 'destinos' | 'rota' | 'navegacao' | 'dashboard' | 'menu-frota' | 'frota' | 'previsao' | 'gamificacao' | 'ecommerce' | 'qrcode' | 'matching' | 'separacao';
 
 /**
  * Estado global da aplicação

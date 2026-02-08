@@ -307,6 +307,7 @@ fun TelaMenuFrota(
     onNavigateBack: () -> Unit,
     onNavigateToFrotaGestor: (empresaId: String) -> Unit,
     onNavigateToMotorista: (motoristaId: String) -> Unit,
+    onNavigateToSeparacao: (motoristaId: String?, motoristaNome: String?, empresaId: String?, empresaNome: String?) -> Unit = { _, _, _, _ -> },
     viewModel: MenuFrotaViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -416,6 +417,33 @@ fun TelaMenuFrota(
                                 viewModel.carregarMotoristas()
                                 showAcessarMotorista = true
                             }
+                        )
+                    }
+                    
+                    // Row 3 - Nova Rota
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        // Card: Nova Rota / Separação de Carga
+                        MenuCard(
+                            modifier = Modifier.weight(1f),
+                            emoji = "📦",
+                            title = "Nova Rota",
+                            subtitle = "Separar caixas e notas",
+                            onClick = {
+                                // Navegar para Separação (pode selecionar motorista/empresa depois)
+                                onNavigateToSeparacao(null, null, null, null)
+                            }
+                        )
+                        
+                        // Card: Placeholder para futuro
+                        MenuCard(
+                            modifier = Modifier.weight(1f),
+                            emoji = "📊",
+                            title = "Relatórios",
+                            subtitle = "Em breve",
+                            onClick = { }
                         )
                     }
                 }

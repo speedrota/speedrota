@@ -27,6 +27,7 @@ import br.com.speedrota.ui.screens.previsao.PrevisaoScreen
 import br.com.speedrota.ui.screens.gamificacao.GamificacaoScreen
 import br.com.speedrota.ui.screens.ecommerce.EcommerceScreen
 import br.com.speedrota.ui.screens.qrcode.QrCodeScannerScreen
+import br.com.speedrota.ui.screens.separacao.SeparacaoScreen
 
 /**
  * NavHost principal do SpeedRota
@@ -147,6 +148,9 @@ fun SpeedRotaNavHost() {
                 onNavigateToMotorista = { motoristaId ->
                     // Por enquanto vai para Dashboard
                     navController.navigate(Screen.Dashboard.route)
+                },
+                onNavigateToSeparacao = { motoristaId, motoristaNome, empresaId, empresaNome ->
+                    navController.navigate(Screen.Separacao.createRoute(motoristaId, motoristaNome, empresaId, empresaNome))
                 }
             )
         }
@@ -234,6 +238,37 @@ fun SpeedRotaNavHost() {
                     // Apenas navegar para a tela de destinos
                     android.util.Log.d("NavHost", "Importadas ${chaves.size} NF-e, navegando para Destinos")
                     navController.navigate(Screen.Destinos.route)
+                }
+            )
+        }
+        
+        // Separação de Carga (Caixas → Notas → Matching → Resultado)
+        composable(
+            route = Screen.Separacao.route,
+            arguments = listOf(
+                navArgument("motoristaId") { type = NavType.StringType; nullable = true; defaultValue = null },
+                navArgument("motoristaNome") { type = NavType.StringType; nullable = true; defaultValue = null },
+                navArgument("empresaId") { type = NavType.StringType; nullable = true; defaultValue = null },
+                navArgument("empresaNome") { type = NavType.StringType; nullable = true; defaultValue = null }
+            )
+        ) { backStackEntry ->
+            val motoristaId = backStackEntry.arguments?.getString("motoristaId")
+            val motoristaNome = backStackEntry.arguments?.getString("motoristaNome")
+            val empresaId = backStackEntry.arguments?.getString("empresaId")
+            val empresaNome = backStackEntry.arguments?.getString("empresaNome")
+            
+            SeparacaoScreen(
+                motoristaId = motoristaId,
+                motoristaNome = motoristaNome,
+                empresaId = empresaId,
+                empresaNome = empresaNome,
+                onConcluir = {
+                    navController.navigate(Screen.Rota.createRoute()) {
+                        popUpTo(Screen.MenuFrota.route)
+                    }
+                },
+                onBack = {
+                    navController.popBackStack()
                 }
             )
         }

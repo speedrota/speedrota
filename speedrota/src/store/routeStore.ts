@@ -51,6 +51,9 @@ interface SyncState {
   sincronizando: boolean;          // Se está salvando no backend
   ultimaSincronizacao: Date | null;
   rotasHistorico: RotaAPI[];       // Histórico de rotas do usuário
+  // Separação de carga
+  motoristaSelecionado: { id: string; nome: string; email?: string } | null;
+  empresaSelecionada: { id: string; nome: string } | null;
 }
 
 // ==========================================
@@ -90,6 +93,10 @@ interface RouteStore extends AppState, SyncState {
   setCarregando: (carregando: boolean) => void;
   setErro: (erro: string | null) => void;
   
+  // Separação de carga
+  setMotoristaSelecionado: (motorista: { id: string; nome: string; email?: string } | null) => void;
+  setEmpresaSelecionada: (empresa: { id: string; nome: string } | null) => void;
+  
   // Reset
   novaRota: () => void;
 }
@@ -112,6 +119,8 @@ export const useRouteStore = create<RouteStore>((set, get) => ({
   sincronizando: false,
   ultimaSincronizacao: null,
   rotasHistorico: [],
+  motoristaSelecionado: null,
+  empresaSelecionada: null,
   
   // ----------------------------------------
   // NAVEGAÇÃO
@@ -335,6 +344,14 @@ export const useRouteStore = create<RouteStore>((set, get) => ({
   
   setErro: (erro) => {
     set({ erro });
+  },
+  
+  setMotoristaSelecionado: (motorista) => {
+    set({ motoristaSelecionado: motorista, empresaSelecionada: null });
+  },
+  
+  setEmpresaSelecionada: (empresa) => {
+    set({ empresaSelecionada: empresa, motoristaSelecionado: null });
   },
   
   // ----------------------------------------

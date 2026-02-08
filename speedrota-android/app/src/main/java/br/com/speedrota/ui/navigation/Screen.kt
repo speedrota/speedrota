@@ -36,6 +36,23 @@ sealed class Screen(val route: String) {
     // QR Code Scanner
     data object QrCodeScanner : Screen("qrcode-scanner")
     
+    // Separação de Carga (Caixas → Notas → Matching → Resultado)
+    data object Separacao : Screen("separacao?motoristaId={motoristaId}&motoristaNome={motoristaNome}&empresaId={empresaId}&empresaNome={empresaNome}") {
+        fun createRoute(
+            motoristaId: String? = null,
+            motoristaNome: String? = null,
+            empresaId: String? = null,
+            empresaNome: String? = null
+        ): String {
+            val params = mutableListOf<String>()
+            motoristaId?.let { params.add("motoristaId=$it") }
+            motoristaNome?.let { params.add("motoristaNome=$it") }
+            empresaId?.let { params.add("empresaId=$it") }
+            empresaNome?.let { params.add("empresaNome=$it") }
+            return if (params.isNotEmpty()) "separacao?${params.joinToString("&")}" else "separacao"
+        }
+    }
+    
     // Outros
     data object Planos : Screen("planos")
     data object Pagamento : Screen("pagamento/{plano}") {
