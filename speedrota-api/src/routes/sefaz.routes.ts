@@ -544,27 +544,41 @@ export async function sefazRoutes(fastify: FastifyInstance) {
   fastify.post<{
     Body: { imagem: string }
   }>('/ocr/analisar', async (request, reply) => {
+    // Log detalhado para debug Android
+    console.log('='.repeat(60));
+    console.log('[SEFAZ OCR] =============== REQUEST RECEBIDO ===============');
+    console.log(`[SEFAZ OCR] Timestamp: ${new Date().toISOString()}`);
+    console.log(`[SEFAZ OCR] IP: ${request.ip}`);
+    console.log(`[SEFAZ OCR] User-Agent: ${request.headers['user-agent'] || 'N/A'}`);
+    console.log(`[SEFAZ OCR] Content-Type: ${request.headers['content-type'] || 'N/A'}`);
+    console.log('='.repeat(60));
+    
     try {
       const { imagem } = request.body;
 
       if (!imagem) {
+        console.log('[SEFAZ OCR] ERRO: Imagem não fornecida no body');
         return reply.status(400).send({
           success: false,
           error: 'Imagem base64 é obrigatória'
         });
       }
 
-      console.log('[SEFAZ OCR] Recebida requisição de análise de imagem');
+      console.log(`[SEFAZ OCR] Imagem recebida: ${imagem.length} caracteres`);
 
       const resultado = await analisarImagemNota(imagem);
 
       if (!resultado.sucesso) {
+        console.log(`[SEFAZ OCR] Falha: ${resultado.erro}`);
         return reply.status(400).send({
           success: false,
           error: resultado.erro || 'Falha na análise OCR'
         });
       }
 
+      console.log(`[SEFAZ OCR] SUCESSO: confiança=${resultado.confianca?.toFixed(1)}%, tipo=${resultado.tipoDocumento}`);
+      console.log('='.repeat(60));
+      
       return {
         success: true,
         data: {

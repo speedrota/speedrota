@@ -37,12 +37,12 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideLoggingInterceptor(): HttpLoggingInterceptor {
-        return HttpLoggingInterceptor().apply {
-            level = if (BuildConfig.DEBUG) {
-                HttpLoggingInterceptor.Level.BODY
-            } else {
-                HttpLoggingInterceptor.Level.NONE
-            }
+        return HttpLoggingInterceptor { message ->
+            // Log sempre para debug (temporário)
+            android.util.Log.d("OkHttp", message)
+        }.apply {
+            // Sempre usar BODY para debug (temporário - voltar para NONE em produção)
+            level = HttpLoggingInterceptor.Level.BASIC
         }
     }
 
