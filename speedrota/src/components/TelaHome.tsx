@@ -126,7 +126,20 @@ export function TelaHome({ onAbrirHistorico }: TelaHomeProps) {
         {/* Botões para GESTOR_FROTA */}
         {isGestorFrota && (
           <>
-            <button className="btn btn-primary btn-lg" onClick={handleFrota}>
+            {/* Nova Rota - também disponível para gestores */}
+            <button className="btn btn-primary btn-lg" onClick={handleNovaRota}>
+              ➕ Nova Rota
+            </button>
+
+            <button 
+              className="btn btn-secondary"
+              onClick={handleFrota}
+              style={{
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                color: 'white',
+                border: 'none'
+              }}
+            >
               🚚 Gestão de Frota
             </button>
 
@@ -182,6 +195,7 @@ export function TelaHome({ onAbrirHistorico }: TelaHomeProps) {
           </>
         ) : (
           <>
+            <p>✓ Tire foto das notas → OCR extrai endereços</p>
             <p>✓ Gerencie motoristas e veículos</p>
             <p>✓ Distribua entregas automaticamente</p>
             <p>✓ Acompanhe métricas em tempo real</p>

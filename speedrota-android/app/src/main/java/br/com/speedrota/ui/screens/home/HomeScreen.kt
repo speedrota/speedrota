@@ -263,32 +263,33 @@ fun HomeScreen(
             if (isGestorFrota) {
                 // ========== GESTOR DE FROTA ==========
                 
-                // Botão Principal - Gestão de Frota
+                // Botão Principal - Nova Rota (também para gestor criar rotas)
                 Button(
-                    onClick = onFrotaGestor,
+                    onClick = onNovaRota,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(120.dp),
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = androidx.compose.ui.graphics.Color(0xFF10B981)
+                        containerColor = Primary
                     )
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text(
-                            text = "🚚",
-                            fontSize = 40.sp
+                        Icon(
+                            Icons.Default.AddLocation,
+                            contentDescription = null,
+                            modifier = Modifier.size(40.dp)
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Gestão de Frota",
+                            text = "Nova Rota",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "Gerencie motoristas e veículos",
+                            text = "Capturar NF-e via OCR",
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
@@ -296,7 +297,29 @@ fun HomeScreen(
                 
                 Spacer(modifier = Modifier.height(12.dp))
                 
-                // Botão Dashboard Analytics
+                // Botão Gestão de Frota
+                OutlinedButton(
+                    onClick = onFrotaGestor,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = androidx.compose.ui.graphics.Color(0xFF10B981)
+                    )
+                ) {
+                    Text(
+                        text = "🚚",
+                        fontSize = 20.sp
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Gestão de Frota",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(12.dp))
                 OutlinedButton(
                     onClick = onDashboard,
                     modifier = Modifier
@@ -410,8 +433,8 @@ fun HomeScreen(
                 )
             } else {
                 listOf(
+                    Triple(Icons.Default.CameraAlt, "Nova Rota", "Tire foto das NF-e → OCR extrai endereços"),
                     Triple(Icons.Default.People, "Motoristas", "Gerencie sua equipe de entregadores"),
-                    Triple(Icons.Default.DirectionsCar, "Veículos", "Controle sua frota"),
                     Triple(Icons.Default.Analytics, "Métricas", "Acompanhe performance em tempo real")
                 )
             }
