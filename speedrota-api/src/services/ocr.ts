@@ -479,6 +479,45 @@ function extrairEtiquetaCaixaNatura(texto: string): DadosEtiquetaCaixa | null {
   
   const textoNorm = texto.toUpperCase();
   
+  // =============================
+  // VERIFICAR SE É DANFE (NÃO ETIQUETA)
+  // =============================
+  // Se o texto contém indicadores de NOTA FISCAL/DANFE, NÃO é etiqueta de caixa
+  const indicadoresDANFE = [
+    'DATA DO RECEBIMENTO',
+    'ASSINATURA DO RECEBEDOR',
+    'IDENTIFICAÇÃO E ASSINATURA',
+    'SÉRIE:',
+    'SERIE:',
+    'N.S. ENTREGA',
+    'NS ENTREGA',
+    'TOTALDEITENS',
+    'TOTAL DE ITENS',
+    'SEQUENCIAL:',
+    'DANFE',
+    'DOCUMENTO AUXILIAR',
+    'DESTINATÁRIO/REMETENTE',
+    'NATUREZA DA OPERAÇÃO',
+    'PROTOCOLO DE AUTORIZAÇÃO',
+    'INSCRIÇÃO ESTADUAL',
+    'CNPJ',
+    'FATURA',
+    'DUPLICATA',
+    'CÁLCULO DO IMPOSTO',
+    'BASE DE CÁLCULO',
+    'VALOR DO ICMS',
+    'TRANSPORTADOR',
+    'DADOS DO PRODUTO',
+  ];
+  
+  const textoUpper = texto.toUpperCase();
+  const encontrouIndicadorDANFE = indicadoresDANFE.filter(ind => textoUpper.includes(ind));
+  
+  if (encontrouIndicadorDANFE.length >= 2) {
+    console.log(`[Parser Etiqueta] REJEITADO: É DANFE não etiqueta (${encontrouIndicadorDANFE.length} indicadores: ${encontrouIndicadorDANFE.slice(0,3).join(', ')}...)`);
+    return null;
+  }
+  
   // Detectar se é etiqueta de caixa: PED ou REM explícitos, ou padrões numéricos típicos
   const temPED = /\bPED\s*[:\s]*\d{6,12}/i.test(texto);
   const temREM = /\bREM\s*[:\s]*\d{6,12}/i.test(texto);
@@ -490,12 +529,12 @@ function extrairEtiquetaCaixaNatura(texto: string): DadosEtiquetaCaixa | null {
   const temPadraoPED = /\b8[24]\d{7,10}\b/.test(texto); // Começa com 82 ou 84 (padrão PED Natura)
   const temCEPAmericana = /13\d{3}[-\s]?\d{3}/.test(texto); // CEPs da região 13xxx
   
-  // É etiqueta se tem PED/REM OU padrões numéricos + outros indicadores
-  const pareceEtiqueta = temPED || temREM || temCX || 
-                         ((temPadraoREM || temPadraoPED) && temCEPAmericana);
+  // É etiqueta se tem PED/REM EXPLÍCITO ou CX (mais confiável)
+  // Padrões numéricos sozinhos não são suficientes para classificar como etiqueta
+  const pareceEtiqueta = temPED || temREM || temCX;
   
   if (!pareceEtiqueta) {
-    console.log('[Parser Etiqueta] Não parece ser etiqueta de caixa (sem PED/REM/padrões)');
+    console.log('[Parser Etiqueta] Não parece ser etiqueta de caixa (sem PED/REM/CX explícito)');
     return null;
   }
   
@@ -1309,6 +1348,75 @@ function extrairDadosUniversal(texto: string): DadosExtraidosFornecedor | null {
   if (dadosML && (dadosML.endereco || dadosML.cidade)) {
     console.log('[Parser Universal] Sucesso com parser Mercado Livre/Amazon');
     return dadosML;
+  }
+  
+  // 3.5. DANFE Natura - Formato com "Pedido:" e "N.S. Entrega:"
+  // Detectar campos específicos de DANFE Natura
+  const temPedidoLabel = /Pedido:\s*(\d{6,12})/i.test(texto);
+  const temNSEntrega = /N\.?S\.?\s*Entrega:\s*(\d{6,12})/i.test(texto);
+  const temSerieDANFE = /S[ée]rie:\s*\d{1,3}/i.test(texto);
+  
+  if ((temPedidoLabel || temNSEntrega) && temSerieDANFE) {
+    console.log('[Parser DANFE Natura] Detectado formato DANFE Natura com Pedido/N.S. Entrega');
+    
+    const dadosDANFENatura: DadosExtraidosFornecedor = { fornecedor: 'NATURA_AVON_DANFE' };
+    
+    // Extrair Pedido
+    const pedidoMatch = texto.match(/Pedido:\s*(\d{6,12})/i);
+    if (pedidoMatch) {
+      dadosDANFENatura.pedido = pedidoMatch[1];
+      console.log(`[Parser DANFE Natura] Pedido: ${dadosDANFENatura.pedido}`);
+    }
+    
+    // Extrair N.S. Entrega (remessa)
+    const nsEntregaMatch = texto.match(/N\.?S\.?\s*Entrega:\s*0?(\d{6,12})/i);
+    if (nsEntregaMatch) {
+      dadosDANFENatura.remessa = nsEntregaMatch[1];
+      console.log(`[Parser DANFE Natura] Remessa: ${dadosDANFENatura.remessa}`);
+    }
+    
+    // Extrair CEP
+    const cepMatch = texto.match(/(\d{5})-(\d{3})/);
+    if (cepMatch) {
+      dadosDANFENatura.cep = `${cepMatch[1]}-${cepMatch[2]}`;
+      console.log(`[Parser DANFE Natura] CEP: ${dadosDANFENatura.cep}`);
+    }
+    
+    // Extrair cidade (AMERICANA, etc.)
+    const cidadesConhecidas = ['AMERICANA', 'CAMPINAS', 'LIMEIRA', 'PIRACICABA', 'SUMARE', 'NOVA ODESSA', 'HORTOLANDIA', 'PAULINIA', 'SANTA BARBARA', 'INDAIATUBA', 'JUNDIAI', 'VALINHOS'];
+    for (const cidade of cidadesConhecidas) {
+      if (texto.toUpperCase().includes(cidade)) {
+        dadosDANFENatura.cidade = cidade;
+        dadosDANFENatura.uf = 'SP';
+        console.log(`[Parser DANFE Natura] Cidade: ${cidade}`);
+        break;
+      }
+    }
+    
+    // Extrair bairro
+    const bairroPatterns = [
+      /\b(RESIDENCIAL\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ\s]{3,30})/i,
+      /\b(JD\.?\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ\s]{3,20})/i,
+      /\b(JARDIM\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ\s]{3,20})/i,
+      /\b(VILA\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ\s]{3,20})/i,
+      /\b(PARQUE\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ\s]{3,20})/i,
+      /\b(CHACARA\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ\s]{3,20})/i,
+    ];
+    
+    for (const p of bairroPatterns) {
+      const m = texto.match(p);
+      if (m) {
+        dadosDANFENatura.bairro = m[1].trim().toUpperCase();
+        console.log(`[Parser DANFE Natura] Bairro: ${dadosDANFENatura.bairro}`);
+        break;
+      }
+    }
+    
+    // Se encontrou pedido ou remessa, retorna os dados
+    if (dadosDANFENatura.pedido || dadosDANFENatura.remessa) {
+      console.log('[Parser Universal] Sucesso com parser DANFE Natura');
+      return dadosDANFENatura;
+    }
   }
   
   // 4. Natura/Avon (fallback para notas de cosméticos)
