@@ -7,8 +7,8 @@
  * @invariant Hot reload não cria conexões duplicadas
  * 
  * CONFIGURAÇÃO:
- * - connection_limit: 10 (Render free tier)
- * - Retry: 3 tentativas com backoff exponencial
+ * - connection_limit: 5 (Neon free tier = 5 concurrent connections)
+ * - Retry: 5 tentativas com backoff exponencial
  * - Neon cold start: ~5s para acordar
  */
 
@@ -18,25 +18,40 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-// Configuração otimizada para produção (Render/Railway + Neon)
-export const prisma = globalForPrisma.prisma ?? new PrismaClient({
-  log: process.env.NODE_ENV === 'production' 
-    ? ['error', 'warn'] 
-    : ['query', 'error', 'warn'],
-});
+// Configuração otimizada para Neon serverless
+// Adicionar ?connection_limit=5&pool_timeout=30&connect_timeout=30 na DATABASE_URL
 
-// Cache global para evitar conexões órfãs
-globalForPrisma.prisma = prisma;
+// Criar nova instância apenas se não existir no cache global
+function createPrismaClient() {
+  return new PrismaClient({
+    log: process.env.NODE_ENV === 'production' 
+      ? ['error', 'warn'] 
+      : ['query', 'error', 'warn'],
+    // Configuração de datasources para otimizar conexões
+    datasources: {
+      db: {
+        url: process.env.DATABASE_URL,
+      },
+    },
+  });
+}
+
+export const prisma = globalForPrisma.prisma ?? createPrismaClient();
+
+// Cache global para evitar conexões órfãs em dev (hot reload)
+if (process.env.NODE_ENV !== 'production') {
+  globalForPrisma.prisma = prisma;
+}
 
 /**
  * Wrapper para queries com retry (Neon cold start handling)
  * @param fn - Função async que executa query Prisma
- * @param maxRetries - Número máximo de tentativas (default: 3)
+ * @param maxRetries - Número máximo de tentativas (default: 5)
  * @returns Resultado da query ou erro após todas tentativas
  */
 export async function withRetry<T>(
   fn: () => Promise<T>,
-  maxRetries = 3
+  maxRetries = 5
 ): Promise<T> {
   let lastError: Error | null = null;
   
@@ -82,13 +97,24 @@ export async function withRetry<T>(
 
 /**
  * Teste de conexão com o banco (útil para warmup)
+ * Tenta reconectar automaticamente se falhar
  */
 export async function testConnection(): Promise<boolean> {
   try {
     await prisma.$queryRaw`SELECT 1`;
     return true;
-  } catch {
-    return false;
+  } catch (e) {
+    console.log('[Prisma] Conexão perdida, tentando reconectar...');
+    try {
+      await prisma.$disconnect();
+      await prisma.$connect();
+      await prisma.$queryRaw`SELECT 1`;
+      console.log('[Prisma] Reconexão bem sucedida');
+      return true;
+    } catch {
+      console.error('[Prisma] Falha na reconexão');
+      return false;
+    }
   }
 }
 

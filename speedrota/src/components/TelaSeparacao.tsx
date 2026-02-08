@@ -14,7 +14,7 @@
 
 import { useState, useRef } from 'react';
 import { useRouteStore } from '../store/routeStore';
-import { processarImagemNFe, extrairTexto } from '../services/ocr';
+import { processarImagemNFe, extrairTexto, extrairTextoRapido } from '../services/ocr';
 import { geocodificarEndereco } from '../services/geolocalizacao';
 import { isPDF, pdfPrimeiraPaginaParaImagem } from '../services/pdf';
 import type { Destino, DadosNFe } from '../types';
@@ -141,8 +141,8 @@ export default function TelaSeparacao() {
     setCaixas(prev => [...prev, item]);
     
     try {
-      // OCR para extrair dados da etiqueta
-      const texto = await extrairTexto(thumb);
+      // OCR RÁPIDO para extrair dados da etiqueta (mais veloz que extrairTexto)
+      const texto = await extrairTextoRapido(thumb, 8000);
       
       // Extrair campos relevantes (PED, REM, SUB_ROTA)
       const pedido = extrairCampo(texto, /(?:PED|PEDIDO)[:\s]*(\d+)/i);

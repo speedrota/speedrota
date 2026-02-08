@@ -93,6 +93,44 @@ fun SeparacaoScreen(
         }
     }
     
+    // Launcher para selecionar múltiplas imagens (lote) - Caixas
+    val imageLauncherCaixas = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetMultipleContents()
+    ) { uris ->
+        uris.forEach { uri ->
+            try {
+                val inputStream = context.contentResolver.openInputStream(uri)
+                val bitmap = android.graphics.BitmapFactory.decodeStream(inputStream)
+                inputStream?.close()
+                bitmap?.let {
+                    val base64 = bitmapToBase64(it)
+                    viewModel.adicionarCaixa(base64)
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("Separacao", "Erro ao processar imagem: ${e.message}")
+            }
+        }
+    }
+    
+    // Launcher para selecionar múltiplas imagens (lote) - Notas
+    val imageLauncherNotas = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetMultipleContents()
+    ) { uris ->
+        uris.forEach { uri ->
+            try {
+                val inputStream = context.contentResolver.openInputStream(uri)
+                val bitmap = android.graphics.BitmapFactory.decodeStream(inputStream)
+                inputStream?.close()
+                bitmap?.let {
+                    val base64 = bitmapToBase64(it)
+                    viewModel.adicionarNota(base64)
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("Separacao", "Erro ao processar imagem: ${e.message}")
+            }
+        }
+    }
+    
     // Inicializar com dados do destino
     LaunchedEffect(Unit) {
         viewModel.setDestinoInfo(motoristaId, motoristaNome, empresaId, empresaNome)
@@ -162,6 +200,7 @@ fun SeparacaoScreen(
                             permissionLauncher.launch(Manifest.permission.CAMERA)
                         }
                     },
+                    onSelecionar = { imageLauncherCaixas.launch("image/*") },
                     onRemover = { viewModel.removerCaixa(it) },
                     onAvancar = { viewModel.avancarParaNotas() }
                 )
@@ -175,6 +214,7 @@ fun SeparacaoScreen(
                             permissionLauncher.launch(Manifest.permission.CAMERA)
                         }
                     },
+                    onSelecionar = { imageLauncherNotas.launch("image/*") },
                     onRemover = { viewModel.removerNota(it) },
                     onVoltar = { viewModel.voltarParaCaixas() },
                     onMatching = { viewModel.executarMatching() }
@@ -285,6 +325,7 @@ data class StepInfo(val label: String, val step: SeparacaoStep, val isDone: Bool
 private fun CaixasStep(
     caixas: List<CaixaItem>,
     onFotografar: () -> Unit,
+    onSelecionar: () -> Unit,
     onRemover: (String) -> Unit,
     onAvancar: () -> Unit
 ) {
@@ -326,15 +367,38 @@ private fun CaixasStep(
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     
-                    Button(
-                        onClick = onFotografar,
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3b82f6))
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(Icons.Default.CameraAlt, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("📷 Tirar Foto da Caixa")
+                        Button(
+                            onClick = onFotografar,
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3b82f6))
+                        ) {
+                            Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("📷 Foto", fontSize = 14.sp)
+                        }
+                        
+                        OutlinedButton(
+                            onClick = onSelecionar,
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
+                        ) {
+                            Icon(Icons.Default.Folder, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("📂 + Lote", fontSize = 14.sp)
+                        }
                     }
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "💡 Tire foto OU selecione várias caixas de uma vez",
+                        color = Color.White.copy(alpha = 0.5f),
+                        fontSize = 12.sp,
+                        textAlign = TextAlign.Center
+                    )
                 }
             }
         }
@@ -457,6 +521,7 @@ private fun NotasStep(
     notas: List<NotaItem>,
     caixasCount: Int,
     onFotografar: () -> Unit,
+    onSelecionar: () -> Unit,
     onRemover: (String) -> Unit,
     onVoltar: () -> Unit,
     onMatching: () -> Unit
@@ -499,15 +564,38 @@ private fun NotasStep(
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     
-                    Button(
-                        onClick = onFotografar,
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3b82f6))
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(Icons.Default.CameraAlt, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("📷 Tirar Foto da Nota")
+                        Button(
+                            onClick = onFotografar,
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3b82f6))
+                        ) {
+                            Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("📷 Foto", fontSize = 14.sp)
+                        }
+                        
+                        OutlinedButton(
+                            onClick = onSelecionar,
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
+                        ) {
+                            Icon(Icons.Default.Folder, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("📂 + Lote", fontSize = 14.sp)
+                        }
                     }
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "💡 Tire foto OU selecione várias notas de uma vez",
+                        color = Color.White.copy(alpha = 0.5f),
+                        fontSize = 12.sp,
+                        textAlign = TextAlign.Center
+                    )
                 }
             }
         }

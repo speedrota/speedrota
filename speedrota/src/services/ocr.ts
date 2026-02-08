@@ -324,6 +324,40 @@ async function preprocessarComRotacao(imagem: File | Blob | string, graus: numbe
   });
 }
 
+/**
+ * Extrai texto de imagem de forma RÁPIDA (uma única tentativa)
+ * Ideal para etiquetas de caixa que precisam ser processadas em lote
+ * @param imagem - Imagem de origem
+ * @param timeoutMs - Timeout em ms (default: 10s)
+ */
+export async function extrairTextoRapido(
+  imagem: File | Blob | string,
+  timeoutMs: number = 10000
+): Promise<string> {
+  console.log('[OCR] Modo rápido - processamento único...');
+  
+  const worker = await getWorker();
+  
+  // Timeout para evitar travamento
+  const timeoutPromise = new Promise<string>((_, reject) => {
+    setTimeout(() => reject(new Error('OCR timeout')), timeoutMs);
+  });
+  
+  try {
+    // Apenas uma tentativa com binarização simples
+    const imagemProcessada = await preprocessarImagem(imagem);
+    
+    const resultPromise = worker.recognize(imagemProcessada).then(r => r.data.text);
+    
+    const texto = await Promise.race([resultPromise, timeoutPromise]);
+    console.log('[OCR Rápido] Tamanho resultado:', texto.length);
+    return texto;
+  } catch (error) {
+    console.warn('[OCR Rápido] Erro ou timeout:', error);
+    return '';
+  }
+}
+
 export async function extrairTexto(
   imagem: File | Blob | string,
   _onProgress?: (progress: OCRProgress) => void

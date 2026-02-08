@@ -156,7 +156,8 @@ fun EscolhaCargaScreen(
                                             Column {
                                                 Text(
                                                     text = motorista.nome,
-                                                    fontWeight = FontWeight.Bold
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = Color.Black
                                                 )
                                                 Text(
                                                     text = if (motorista.tipoMotorista == "VINCULADO") 
