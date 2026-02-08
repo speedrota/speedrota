@@ -76,13 +76,134 @@ fun EscolhaCargaScreen(
             // Título
             item {
                 Text(
-                    text = "📦 A carga já foi separada?",
+                    text = if (uiState.isGestorFrota) "📦 Selecione o motorista e prepare a carga" else "📦 A carga já foi separada?",
                     style = MaterialTheme.typography.headlineSmall,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
             
+            // GESTOR_FROTA: Seleção de Motorista
+            if (uiState.isGestorFrota) {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFeff6ff)),
+                        shape = RoundedCornerShape(16.dp),
+                        border = androidx.compose.foundation.BorderStroke(2.dp, Primary)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("🚗", fontSize = 24.sp)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Para qual motorista?",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = Primary
+                                )
+                            }
+                            
+                            Spacer(modifier = Modifier.height(12.dp))
+                            
+                            if (uiState.carregandoMotoristas) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(80.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    CircularProgressIndicator(color = Primary)
+                                }
+                            } else if (uiState.motoristas.isEmpty()) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(Color(0xFFf9fafb), shape = RoundedCornerShape(8.dp))
+                                        .padding(24.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text("Nenhum motorista cadastrado", color = Color.Gray)
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        OutlinedButton(onClick = { /* navegar para menu-frota */ }) {
+                                            Text("+ Cadastrar Motorista")
+                                        }
+                                    }
+                                }
+                            } else {
+                                uiState.motoristas.forEach { motorista ->
+                                    val isSelected = uiState.motoristaSelecionado?.id == motorista.id
+                                    OutlinedCard(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 4.dp),
+                                        onClick = { viewModel.selecionarMotorista(motorista) },
+                                        border = if (isSelected) 
+                                            androidx.compose.foundation.BorderStroke(2.dp, Primary) 
+                                        else 
+                                            androidx.compose.foundation.BorderStroke(1.dp, Color.LightGray),
+                                        colors = CardDefaults.outlinedCardColors(
+                                            containerColor = if (isSelected) Color(0xFFdbeafe) else Color.White
+                                        )
+                                    ) {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(12.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Column {
+                                                Text(
+                                                    text = motorista.nome,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                                Text(
+                                                    text = if (motorista.tipoMotorista == "VINCULADO") 
+                                                        "📦 ${motorista.empresaNome ?: "Empresa"}" 
+                                                    else 
+                                                        "🚗 Autônomo",
+                                                    fontSize = 12.sp,
+                                                    color = Color.Gray
+                                                )
+                                            }
+                                            Text(
+                                                text = when (motorista.status) {
+                                                    "DISPONIVEL" -> "🟢"
+                                                    "EM_ROTA" -> "🔵"
+                                                    else -> "⚪"
+                                                },
+                                                fontSize = 20.sp
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            // Motorista selecionado
+                            uiState.motoristaSelecionado?.let { motorista ->
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(Success, shape = RoundedCornerShape(8.dp))
+                                        .padding(12.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "✅ Preparando carga para: ${motorista.nome}",
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Só mostra opções de rota se não é gestor OU se já selecionou motorista
+            if (!uiState.isGestorFrota || uiState.motoristaSelecionado != null) {
             // Seção: Rotas Prontas
             item {
                 Card(
@@ -204,6 +325,7 @@ fun EscolhaCargaScreen(
                     }
                 }
             }
+            } // Fecha o if (!uiState.isGestorFrota || uiState.motoristaSelecionado != null)
             
             // Espaço extra
             item {

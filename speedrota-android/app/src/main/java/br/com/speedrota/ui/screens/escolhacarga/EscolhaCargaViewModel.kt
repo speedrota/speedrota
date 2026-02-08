@@ -1,26 +1,39 @@
 package br.com.speedrota.ui.screens.escolhacarga
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import br.com.speedrota.data.api.SpeedRotaApi
+import br.com.speedrota.R
+import br.com.speedrota.data.local.PreferencesManager
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import org.json.JSONObject
 import javax.inject.Inject
 
 /**
  * ViewModel para tela de Escolha de Carga
  * 
+ * Para GESTOR_FROTA: Inclui seleção de motorista destino
  * Decide entre:
  * - Baixar rota já preparada pelo armazenista
  * - Fazer separação manual (fotografar caixas e notas)
  */
 @HiltViewModel
 class EscolhaCargaViewModel @Inject constructor(
-    private val api: SpeedRotaApi
+    @ApplicationContext private val context: Context,
+    private val preferencesManager: PreferencesManager
 ) : ViewModel() {
+    
+    private val client = OkHttpClient()
+    private val apiUrl: String
+        get() = context.getString(R.string.api_base_url)
     
     data class RotaPreparada(
         val id: String,
@@ -37,18 +50,104 @@ class EscolhaCargaViewModel @Inject constructor(
         val destinatario: String?
     )
     
+    data class MotoristaFrota(
+        val id: String,
+        val nome: String,
+        val telefone: String?,
+        val status: String,
+        val tipoMotorista: String,
+        val empresaNome: String?
+    )
+    
     data class EscolhaCargaUiState(
         val isLoading: Boolean = false,
         val rotasDisponiveis: List<RotaPreparada> = emptyList(),
         val baixando: Boolean = false,
         val rotaBaixada: String? = null,
-        val erro: String? = null
+        val erro: String? = null,
+        // GESTOR_FROTA
+        val isGestorFrota: Boolean = false,
+        val carregandoMotoristas: Boolean = false,
+        val motoristas: List<MotoristaFrota> = emptyList(),
+        val motoristaSelecionado: MotoristaFrota? = null
     )
     
     private val _uiState = MutableStateFlow(EscolhaCargaUiState())
     val uiState: StateFlow<EscolhaCargaUiState> = _uiState.asStateFlow()
     
     init {
+        verificarTipoUsuario()
+    }
+    
+    private fun verificarTipoUsuario() {
+        viewModelScope.launch {
+            val tipoUsuario = preferencesManager.userTipoUsuario.first() ?: "ENTREGADOR"
+            val isGestor = tipoUsuario == "GESTOR_FROTA"
+            
+            _uiState.value = _uiState.value.copy(isGestorFrota = isGestor)
+            
+            if (isGestor) {
+                buscarMotoristas()
+            } else {
+                buscarRotasPreparadas()
+            }
+        }
+    }
+    
+    fun buscarMotoristas() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(carregandoMotoristas = true, erro = null)
+            
+            try {
+                val token = preferencesManager.token.first()
+                val request = Request.Builder()
+                    .url("$apiUrl/frota/motoristas/todos")
+                    .addHeader("Authorization", "Bearer $token")
+                    .get()
+                    .build()
+                
+                val response = client.newCall(request).execute()
+                
+                if (response.isSuccessful) {
+                    val json = JSONObject(response.body?.string() ?: "{}")
+                    val motoristasArray = json.optJSONArray("motoristas")
+                    val lista = mutableListOf<MotoristaFrota>()
+                    
+                    if (motoristasArray != null) {
+                        for (i in 0 until motoristasArray.length()) {
+                            val m = motoristasArray.getJSONObject(i)
+                            lista.add(MotoristaFrota(
+                                id = m.getString("id"),
+                                nome = m.getString("nome"),
+                                telefone = m.optString("telefone", null),
+                                status = m.optString("status", "DISPONIVEL"),
+                                tipoMotorista = m.optString("tipoMotorista", "AUTONOMO"),
+                                empresaNome = m.optJSONObject("empresa")?.optString("nome")
+                            ))
+                        }
+                    }
+                    
+                    _uiState.value = _uiState.value.copy(
+                        carregandoMotoristas = false,
+                        motoristas = lista
+                    )
+                } else {
+                    _uiState.value = _uiState.value.copy(
+                        carregandoMotoristas = false,
+                        erro = "Erro ao buscar motoristas"
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    carregandoMotoristas = false,
+                    erro = e.message
+                )
+            }
+        }
+    }
+    
+    fun selecionarMotorista(motorista: MotoristaFrota) {
+        _uiState.value = _uiState.value.copy(motoristaSelecionado = motorista)
         buscarRotasPreparadas()
     }
     
@@ -57,29 +156,52 @@ class EscolhaCargaViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(isLoading = true, erro = null)
             
             try {
-                val response = api.buscarRotasPreparadas()
+                val token = preferencesManager.token.first()
+                val request = Request.Builder()
+                    .url("$apiUrl/rotas/preparadas")
+                    .addHeader("Authorization", "Bearer $token")
+                    .get()
+                    .build()
+                
+                val response = client.newCall(request).execute()
                 
                 if (response.isSuccessful) {
-                    val rotas = response.body()?.rotas?.map { r ->
-                        RotaPreparada(
-                            id = r.id,
-                            preparadaEm = r.preparadaEm ?: "",
-                            totalParadas = r.paradas?.size ?: 0,
-                            totalCaixas = r.caixas?.size ?: 0,
-                            caixasPreview = r.caixas?.take(6)?.map { c ->
-                                CaixaPreview(
-                                    id = c.id,
-                                    tagVisual = c.tagVisual,
-                                    tagCor = c.tagCor,
-                                    destinatario = c.destinatario
-                                )
-                            } ?: emptyList()
-                        )
-                    } ?: emptyList()
+                    val json = JSONObject(response.body?.string() ?: "{}")
+                    val rotasArray = json.optJSONArray("rotas")
+                    val lista = mutableListOf<RotaPreparada>()
+                    
+                    if (rotasArray != null) {
+                        for (i in 0 until rotasArray.length()) {
+                            val r = rotasArray.getJSONObject(i)
+                            val paradasArray = r.optJSONArray("paradas")
+                            val caixasArray = r.optJSONArray("caixas")
+                            
+                            val caixasPreview = mutableListOf<CaixaPreview>()
+                            if (caixasArray != null) {
+                                for (j in 0 until minOf(6, caixasArray.length())) {
+                                    val c = caixasArray.getJSONObject(j)
+                                    caixasPreview.add(CaixaPreview(
+                                        id = c.getString("id"),
+                                        tagVisual = c.optString("tagVisual", null),
+                                        tagCor = if (c.has("tagCor")) c.getInt("tagCor") else null,
+                                        destinatario = c.optString("destinatario", null)
+                                    ))
+                                }
+                            }
+                            
+                            lista.add(RotaPreparada(
+                                id = r.getString("id"),
+                                preparadaEm = r.optString("preparadaEm", ""),
+                                totalParadas = paradasArray?.length() ?: 0,
+                                totalCaixas = caixasArray?.length() ?: 0,
+                                caixasPreview = caixasPreview
+                            ))
+                        }
+                    }
                     
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        rotasDisponiveis = rotas
+                        rotasDisponiveis = lista
                     )
                 } else {
                     _uiState.value = _uiState.value.copy(
@@ -101,7 +223,14 @@ class EscolhaCargaViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(baixando = true, erro = null)
             
             try {
-                val response = api.baixarRota(rotaId)
+                val token = preferencesManager.token.first()
+                val request = Request.Builder()
+                    .url("$apiUrl/rotas/$rotaId/baixar")
+                    .addHeader("Authorization", "Bearer $token")
+                    .post(okhttp3.RequestBody.create(null, ByteArray(0)))
+                    .build()
+                
+                val response = client.newCall(request).execute()
                 
                 if (response.isSuccessful) {
                     _uiState.value = _uiState.value.copy(
@@ -109,7 +238,7 @@ class EscolhaCargaViewModel @Inject constructor(
                         rotaBaixada = rotaId
                     )
                 } else {
-                    val erro = response.errorBody()?.string() ?: "Erro ao baixar rota"
+                    val erro = response.body?.string() ?: "Erro ao baixar rota"
                     _uiState.value = _uiState.value.copy(
                         baixando = false,
                         erro = erro

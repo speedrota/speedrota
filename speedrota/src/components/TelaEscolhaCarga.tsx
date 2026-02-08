@@ -1,6 +1,6 @@
 /**
  * @description Tela de escolha: Carga já separada ou fazer separação
- * Aparece após o motorista definir endereço de origem
+ * Para GESTOR_FROTA: Inclui seleção de motorista destino
  * 
  * @pre Endereço de origem já definido
  * @post Navega para download de rotas prontas OU para tela de matching
@@ -8,7 +8,21 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouteStore } from '../store/routeStore';
+import { API_URL } from '../config';
 import './EscolhaCarga.css';
+
+// Tipo do motorista para seleção
+interface MotoristaFrota {
+  id: string;
+  nome: string;
+  telefone?: string;
+  status: string;
+  tipoMotorista: 'AUTONOMO' | 'AUTONOMO_PARCEIRO' | 'VINCULADO';
+  empresa?: {
+    id: string;
+    nome: string;
+  };
+}
 
 // Tipo do arquivo de rota exportada (.speedrota)
 interface ArquivoRota {
@@ -81,10 +95,53 @@ export function TelaEscolhaCarga() {
   const [importando, setImportando] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // Buscar rotas preparadas ao carregar
+  // Estados para GESTOR_FROTA - seleção de motorista
+  const [isGestorFrota, setIsGestorFrota] = useState(false);
+  const [motoristas, setMotoristas] = useState<MotoristaFrota[]>([]);
+  const [motoristaSelecionado, setMotoristaSelecionado] = useState<MotoristaFrota | null>(null);
+  const [carregandoMotoristas, setCarregandoMotoristas] = useState(false);
+  
+  // Verificar se é GESTOR_FROTA e buscar motoristas
   useEffect(() => {
-    buscarRotasPreparadas();
+    const token = localStorage.getItem('speedrota_token');
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        if (payload.tipoUsuario === 'GESTOR_FROTA') {
+          setIsGestorFrota(true);
+          buscarMotoristas();
+        }
+      } catch (e) {
+        console.error('Erro ao parsear token:', e);
+      }
+    }
   }, []);
+  
+  // Buscar rotas preparadas ao carregar (ou quando seleciona motorista)
+  useEffect(() => {
+    if (!isGestorFrota || motoristaSelecionado) {
+      buscarRotasPreparadas();
+    }
+  }, [motoristaSelecionado, isGestorFrota]);
+  
+  async function buscarMotoristas() {
+    setCarregandoMotoristas(true);
+    try {
+      const token = localStorage.getItem('speedrota_token');
+      const res = await fetch(`${API_URL}/frota/motoristas/todos`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        setMotoristas(data.motoristas || []);
+      }
+    } catch (error) {
+      console.error('Erro ao buscar motoristas:', error);
+    } finally {
+      setCarregandoMotoristas(false);
+    }
+  }
   
   async function buscarRotasPreparadas() {
     setCarregando(true);
@@ -212,8 +269,67 @@ export function TelaEscolhaCarga() {
   return (
     <div className="escolha-carga-container">
       <h2>📦 Preparação da Carga</h2>
-      <p className="subtitulo">A carga já foi separada pelo armazenista?</p>
+      <p className="subtitulo">
+        {isGestorFrota 
+          ? 'Selecione o motorista e prepare a carga'
+          : 'A carga já foi separada pelo armazenista?'}
+      </p>
       
+      {/* GESTOR_FROTA: Seleção de motorista */}
+      {isGestorFrota && (
+        <section className="secao-selecao-motorista">
+          <h3>🚗 Para qual motorista?</h3>
+          
+          {carregandoMotoristas ? (
+            <div className="carregando">
+              <span className="spinner"></span>
+              Buscando motoristas...
+            </div>
+          ) : motoristas.length === 0 ? (
+            <div className="sem-motoristas">
+              <p>Nenhum motorista cadastrado</p>
+              <button 
+                className="btn-cadastrar-motorista"
+                onClick={() => irPara('menu-frota')}
+              >
+                + Cadastrar Motorista
+              </button>
+            </div>
+          ) : (
+            <div className="lista-motoristas">
+              {motoristas.map(m => (
+                <button
+                  key={m.id}
+                  className={`card-motorista ${motoristaSelecionado?.id === m.id ? 'selecionado' : ''}`}
+                  onClick={() => setMotoristaSelecionado(m)}
+                >
+                  <div className="motorista-info">
+                    <span className="motorista-nome">{m.nome}</span>
+                    <span className="motorista-tipo">
+                      {m.tipoMotorista === 'VINCULADO' 
+                        ? `📦 ${m.empresa?.nome || 'Empresa'}`
+                        : '🚗 Autônomo'}
+                    </span>
+                  </div>
+                  <span className={`motorista-status status-${m.status.toLowerCase()}`}>
+                    {m.status === 'DISPONIVEL' ? '🟢' : m.status === 'EM_ROTA' ? '🔵' : '⚪'}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+          
+          {motoristaSelecionado && (
+            <div className="motorista-selecionado-info">
+              ✅ Preparando carga para: <strong>{motoristaSelecionado.nome}</strong>
+            </div>
+          )}
+        </section>
+      )}
+      
+      {/* Bloquear opções até selecionar motorista (se GESTOR_FROTA) */}
+      {(!isGestorFrota || motoristaSelecionado) && (
+        <>
       {/* Opção 1: Rotas já preparadas */}
       <section className="secao-rotas-prontas">
         <h3>✅ Rotas Prontas para Carregar</h3>
@@ -330,6 +446,8 @@ export function TelaEscolhaCarga() {
           📷 Escanear Notas e Caixas
         </button>
       </section>
+        </>
+      )}
       
       {/* Botão voltar */}
       <button 

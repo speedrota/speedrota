@@ -280,3 +280,113 @@
   background: #f9fafb;
   border-color: #9ca3af;
 }
+
+/* ========== GESTOR_FROTA: Seleção de Motorista ========== */
+.secao-selecao-motorista {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border: 2px solid #3b82f6;
+  border-radius: 16px;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.secao-selecao-motorista h3 {
+  color: #1d4ed8;
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.lista-motoristas {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.card-motorista {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.875rem 1rem;
+  background: white;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+  text-align: left;
+}
+
+.card-motorista:hover {
+  background: #f0f9ff;
+  border-color: #93c5fd;
+}
+
+.card-motorista.selecionado {
+  background: #dbeafe;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+.motorista-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.motorista-nome {
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 1rem;
+}
+
+.motorista-tipo {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.motorista-status {
+  font-size: 1.25rem;
+}
+
+.motorista-selecionado-info {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  background: #22c55e;
+  color: white;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 0.95rem;
+}
+
+.motorista-selecionado-info strong {
+  font-weight: 700;
+}
+
+.sem-motoristas {
+  padding: 1.5rem;
+  text-align: center;
+  background: #f9fafb;
+  border-radius: 8px;
+}
+
+.sem-motoristas p {
+  color: #6b7280;
+  margin-bottom: 0.75rem;
+}
+
+.btn-cadastrar-motorista {
+  padding: 0.75rem 1.5rem;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-cadastrar-motorista:hover {
+  background: #2563eb;
+}
