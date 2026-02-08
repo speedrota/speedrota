@@ -238,17 +238,29 @@ function corrigirCEP(texto: string): string {
 // ==========================================
 
 const PALAVRAS_CHAVE_NFE = [
+  // Nota Fiscal / DANFE
   'destinatario',
+  'danfe',
+  'nota fiscal',
+  'chave de acesso',
+  'valor total',
+  // Endereço
   'rua',
   'avenida',
   'bairro',
   'cidade',
   'cep',
-  'danfe',
-  'nota fiscal',
   'endereco',
-  'valor total',
-  'chave de acesso'
+  // Etiquetas de caixa (Natura/Avon/MercadoLivre)
+  'ped',
+  'rem',
+  'sr',
+  'pedido',
+  'remessa',
+  'subrota',
+  'nome:',
+  'dest:',
+  'destinatário'
 ];
 
 /**
@@ -1501,20 +1513,28 @@ export async function analisarImagemNota(imagemBase64: string): Promise<OcrResul
     
     console.log(`[OCR] Texto extraído (${textoExtraido.length} chars, confiança: ${confianca}%)`);
     
-    // Se não encontrou palavras-chave, tentar rotações
-    if (!verificarQualidadeOCR(textoExtraido)) {
-      console.log('[OCR] Qualidade ruim, tentando rotações...');
+    // OTIMIZAÇÃO v3.1: Só tenta rotações se:
+    // 1. Confiança baixa (< 30%) OU
+    // 2. Não encontrou palavras-chave E texto muito curto
+    const qualidadeRuim = !verificarQualidadeOCR(textoExtraido);
+    const precisaRotacao = confianca < 30 || (qualidadeRuim && textoExtraido.length < 100);
+    
+    if (precisaRotacao) {
+      console.log(`[OCR] Qualidade ruim (conf=${confianca}%, len=${textoExtraido.length}), tentando rotações...`);
       
-      const rotacoes = [90, 270, 180];
+      // Apenas 90° e 180° (mais comuns em fotos)
+      const rotacoes = [90, 180];
       for (const graus of rotacoes) {
         console.log(`[OCR] Tentando rotação de ${graus}°...`);
         try {
           const bufferRotacionado = await rotacionarImagem(bufferOriginal, graus);
           const resultRot = await executarOCR(bufferRotacionado);
           const textoRot = resultRot.data.text;
+          const confRot = resultRot.data.confidence;
           
-          if (verificarQualidadeOCR(textoRot)) {
-            console.log(`[OCR] Rotação ${graus}° encontrou texto válido!`);
+          // Aceita se melhorou confiança OU encontrou palavras-chave
+          if (confRot > confianca || verificarQualidadeOCR(textoRot)) {
+            console.log(`[OCR] Rotação ${graus}° melhorou! (conf: ${confianca}% -> ${confRot}%)`);
             textoExtraido = textoRot;
             confianca = resultRot.data.confidence;
             break;
