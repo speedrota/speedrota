@@ -479,17 +479,27 @@ function extrairEtiquetaCaixaNatura(texto: string): DadosEtiquetaCaixa | null {
   
   const textoNorm = texto.toUpperCase();
   
-  // Detectar se é etiqueta de caixa (tem PED e REM)
+  // Detectar se é etiqueta de caixa: PED ou REM explícitos, ou padrões numéricos típicos
   const temPED = /\bPED\s*[:\s]*\d{6,12}/i.test(texto);
   const temREM = /\bREM\s*[:\s]*\d{6,12}/i.test(texto);
   const temCX = /\bCX\s*\d{1,3}\s*[\/\\]\s*\d{1,3}/i.test(texto);
   
-  if (!temPED && !temREM) {
-    console.log('[Parser Etiqueta] Não parece ser etiqueta de caixa (sem PED/REM)');
+  // Padrões numéricos típicos de etiqueta Natura (mesmo sem PED/REM explícito)
+  // Código de barras pode conter: 0246998110002 (REM dentro do código)
+  const temPadraoREM = /\b0?24\d{7,10}\b/.test(texto); // Começa com 24 (padrão REM Natura)
+  const temPadraoPED = /\b8[24]\d{7,10}\b/.test(texto); // Começa com 82 ou 84 (padrão PED Natura)
+  const temCEPAmericana = /13\d{3}[-\s]?\d{3}/.test(texto); // CEPs da região 13xxx
+  
+  // É etiqueta se tem PED/REM OU padrões numéricos + outros indicadores
+  const pareceEtiqueta = temPED || temREM || temCX || 
+                         ((temPadraoREM || temPadraoPED) && temCEPAmericana);
+  
+  if (!pareceEtiqueta) {
+    console.log('[Parser Etiqueta] Não parece ser etiqueta de caixa (sem PED/REM/padrões)');
     return null;
   }
   
-  console.log('[Parser Etiqueta] Detectado formato etiqueta de caixa Natura');
+  console.log(`[Parser Etiqueta] Detectado formato etiqueta de caixa Natura (PED=${temPED}, REM=${temREM}, CX=${temCX}, padrãoREM=${temPadraoREM}, padrãoPED=${temPadraoPED})`);
   
   const dados: DadosEtiquetaCaixa = {};
   
@@ -527,6 +537,13 @@ function extrairEtiquetaCaixaNatura(texto: string): DadosEtiquetaCaixa | null {
   if (pedMatch) {
     dados.pedido = pedMatch[1];
     console.log(`[Parser Etiqueta] PED: ${dados.pedido}`);
+  } else {
+    // Fallback: procurar número de 9 dígitos começando com 82 ou 84 (padrão PED Natura)
+    const pedFallback = texto.match(/\b(8[24]\d{7})\b/);
+    if (pedFallback) {
+      dados.pedido = pedFallback[1];
+      console.log(`[Parser Etiqueta] PED (fallback): ${dados.pedido}`);
+    }
   }
   
   // === REM (remessa) ===
@@ -534,6 +551,14 @@ function extrairEtiquetaCaixaNatura(texto: string): DadosEtiquetaCaixa | null {
   if (remMatch) {
     dados.remessa = remMatch[1];
     console.log(`[Parser Etiqueta] REM: ${dados.remessa}`);
+  } else {
+    // Fallback: procurar número de 9 dígitos começando com 24 (padrão REM Natura)
+    // Código de barras: 0246998110002 -> extrai 246998110
+    const remFallback = texto.match(/\b0?(24\d{7})\d*\b/);
+    if (remFallback) {
+      dados.remessa = remFallback[1];
+      console.log(`[Parser Etiqueta] REM (fallback): ${dados.remessa}`);
+    }
   }
   
   // === SubRota (SR) ===
@@ -1819,21 +1844,18 @@ export async function analisarImagemNota(imagemBase64: string): Promise<OcrResul
     
     console.log('[OCR] Pré-processando imagem com Sharp (EXIF + otimização)...');
     
-    // PRÉ-PROCESSAMENTO COM SHARP v3.0 (Anti-Moiré):
+    // PRÉ-PROCESSAMENTO COM SHARP v3.2 (OTIMIZADO PARA FOTOS DE CELULAR):
     // 1. rotate() sem argumentos = aplica correção EXIF automaticamente
-    // 2. blur(0.5) = remove moiré de fotos de tela/celular
-    // 3. grayscale() = melhor para OCR
-    // 4. normalize() = melhora contraste
-    // 5. threshold(128) = binarização para texto mais nítido
-    // 6. sharpen() = melhora nitidez do texto
+    // 2. grayscale() = melhor para OCR
+    // 3. normalize() = melhora contraste
+    // 4. sharpen() = melhora nitidez (SEM threshold - destrói detalhes em fotos)
+    // NOTA: removido blur() e threshold() que destruíam texto em fotos de celular
     try {
       imageBuffer = await sharp(imageBuffer)
         .rotate() // Aplica orientação EXIF (crítico para fotos de iPhone/Android)
-        .blur(0.5) // Anti-moiré: blur leve para remover padrões de interferência
         .grayscale() // Converte para escala de cinza
         .normalize() // Melhora contraste automaticamente
-        .threshold(128) // Binarização: texto preto em fundo branco
-        .sharpen({ sigma: 1.0 }) // Melhora nitidez do texto (menos agressivo com threshold)
+        .sharpen({ sigma: 1.5 }) // Melhora nitidez do texto
         .png() // Formato sem perdas para OCR
         .toBuffer();
       
@@ -1856,17 +1878,22 @@ export async function analisarImagemNota(imagemBase64: string): Promise<OcrResul
     
     console.log(`[OCR] Texto extraído (${textoExtraido.length} chars, confiança: ${confianca}%)`);
     
-    // OTIMIZAÇÃO v3.1: Só tenta rotações se:
-    // 1. Confiança baixa (< 30%) OU
-    // 2. Não encontrou palavras-chave E texto muito curto
+    // OTIMIZAÇÃO v3.2: Tenta rotações se:
+    // 1. Confiança baixa (< 50%) OU
+    // 2. Não encontrou palavras-chave (qualidade ruim)
+    // A imagem pode estar rotacionada 90° (comum em fotos de celular)
     const qualidadeRuim = !verificarQualidadeOCR(textoExtraido);
-    const precisaRotacao = confianca < 30 || (qualidadeRuim && textoExtraido.length < 100);
+    const precisaRotacao = confianca < 50 || qualidadeRuim;
     
     if (precisaRotacao) {
-      console.log(`[OCR] Qualidade ruim (conf=${confianca}%, len=${textoExtraido.length}), tentando rotações...`);
+      console.log(`[OCR] Qualidade insuficiente (conf=${confianca}%, palavrasChave=${!qualidadeRuim}), tentando rotações...`);
       
-      // Apenas 90° e 180° (mais comuns em fotos)
-      const rotacoes = [90, 180];
+      // Tentar 90°, 180° e 270° (imagem pode estar em qualquer orientação)
+      const rotacoes = [90, 180, 270];
+      let melhorTexto = textoExtraido;
+      let melhorConfianca = confianca;
+      let melhorRotacao = 0;
+      
       for (const graus of rotacoes) {
         console.log(`[OCR] Tentando rotação de ${graus}°...`);
         try {
@@ -1874,17 +1901,34 @@ export async function analisarImagemNota(imagemBase64: string): Promise<OcrResul
           const resultRot = await executarOCR(bufferRotacionado);
           const textoRot = resultRot.data.text;
           const confRot = resultRot.data.confidence;
+          const temPalavrasChave = verificarQualidadeOCR(textoRot);
           
-          // Aceita se melhorou confiança OU encontrou palavras-chave
-          if (confRot > confianca || verificarQualidadeOCR(textoRot)) {
-            console.log(`[OCR] Rotação ${graus}° melhorou! (conf: ${confianca}% -> ${confRot}%)`);
-            textoExtraido = textoRot;
-            confianca = resultRot.data.confidence;
-            break;
+          console.log(`[OCR] Rotação ${graus}°: conf=${confRot}%, palavrasChave=${temPalavrasChave}, len=${textoRot.length}`);
+          
+          // Aceita se tem palavras-chave OU melhor confiança
+          if (temPalavrasChave && !verificarQualidadeOCR(melhorTexto)) {
+            // Prioridade: primeira rotação com palavras-chave
+            console.log(`[OCR] ✓ Rotação ${graus}° encontrou palavras-chave!`);
+            melhorTexto = textoRot;
+            melhorConfianca = confRot;
+            melhorRotacao = graus;
+            break; // Encontrou boa qualidade, parar
+          } else if (confRot > melhorConfianca) {
+            console.log(`[OCR] ✓ Rotação ${graus}° melhorou confiança: ${melhorConfianca}% -> ${confRot}%`);
+            melhorTexto = textoRot;
+            melhorConfianca = confRot;
+            melhorRotacao = graus;
           }
         } catch (err) {
           console.warn(`[OCR] Erro na rotação ${graus}°:`, err);
         }
+      }
+      
+      // Usar a melhor rotação encontrada
+      if (melhorRotacao !== 0 || melhorConfianca > confianca) {
+        console.log(`[OCR] Melhor resultado: rotação ${melhorRotacao}° (conf: ${confianca}% -> ${melhorConfianca}%)`);
+        textoExtraido = melhorTexto;
+        confianca = melhorConfianca;
       }
     }
     
@@ -1897,7 +1941,7 @@ export async function analisarImagemNota(imagemBase64: string): Promise<OcrResul
       };
     }
     
-    // LIMPEZA DE TEXTO OCR (v3.0 - Anti-Moiré)
+    // LIMPEZA DE TEXTO OCR (v3.2)
     console.log('[OCR] Aplicando limpeza de texto OCR...');
     const textoOriginal = textoExtraido;
     textoExtraido = limparTextoOCR(textoExtraido);
