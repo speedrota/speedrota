@@ -318,7 +318,9 @@ fun SeparacaoScreen(
                         val arquivo = viewModel.gerarArquivoSeparacao()
                         // TODO: Salvar arquivo
                     },
-                    onGerarRota = onConcluir
+                    onGerarRota = onConcluir,
+                    onAdicionarCaixa = { viewModel.voltarParaAdicionarCaixas() },
+                    onAdicionarNota = { viewModel.voltarParaAdicionarNotas() }
                 )
             }
             
@@ -885,8 +887,15 @@ private fun ResultadoStep(
     caixasNaoPareadas: List<CaixaItem>,
     notasNaoPareadas: List<NotaItem>,
     onBaixarArquivo: () -> Unit,
-    onGerarRota: () -> Unit
+    onGerarRota: () -> Unit,
+    onAdicionarCaixa: () -> Unit,
+    onAdicionarNota: () -> Unit
 ) {
+    // Calcular caixas faltantes
+    val totalCaixasFaltantes = pares.sumOf { it.caixasFaltando }
+    val totalCaixas = pares.sumOf { it.caixas.size }
+    val totalVolumes = pares.sumOf { it.totalVolumes }
+    
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -964,9 +973,77 @@ private fun ResultadoStep(
             }
         }
         
-        // Botões de ação
+        // Alerta de caixas faltantes
+        if (totalCaixasFaltantes > 0) {
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF3b82f6).copy(alpha = 0.2f)),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("📦", fontSize = 24.sp)
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    "Faltam $totalCaixasFaltantes caixa${if (totalCaixasFaltantes > 1) "s" else ""}",
+                                    color = Color(0xFF3b82f6),
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 16.sp
+                                )
+                                Text(
+                                    "Escaneadas: $totalCaixas / $totalVolumes volumes",
+                                    color = Color.White.copy(alpha = 0.7f),
+                                    fontSize = 12.sp
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Button(
+                            onClick = onAdicionarCaixa,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3b82f6))
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Escanear Caixas Faltantes")
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Botões de adicionar mais
         item {
-            Spacer(modifier = Modifier.height(16.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                OutlinedButton(
+                    onClick = onAdicionarCaixa,
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF3b82f6))
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("+ Caixa", fontSize = 12.sp)
+                }
+                OutlinedButton(
+                    onClick = onAdicionarNota,
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFa855f7))
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("+ Remetente", fontSize = 12.sp)
+                }
+            }
+        }
+        
+        // Botões de ação principal
+        item {
+            Spacer(modifier = Modifier.height(8.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)

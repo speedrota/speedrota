@@ -607,3 +607,94 @@
     padding-right: 0;
   }
 }
+
+/* ALERTA CAIXAS FALTANTES */
+.alerta-caixas-faltantes {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 12px;
+  margin: 1rem;
+}
+
+.alerta-icone {
+  font-size: 2rem;
+}
+
+.alerta-texto {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.alerta-texto strong {
+  color: #3b82f6;
+  font-size: 1rem;
+}
+
+.alerta-texto span {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.75rem;
+}
+
+.btn-escanear-faltantes {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+}
+
+/* INDICADOR CAIXAS NO PAR */
+.par-caixas {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
+.par-caixas .faltando {
+  color: #f97316;
+  font-weight: 600;
+}
+
+/* STAT CAIXAS FALTANDO */
+.stat.caixas-faltando {
+  background: rgba(59, 130, 246, 0.2);
+  color: #3b82f6;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+}
+
+/* BOTÕES ADICIONAR MAIS */
+.separacao-adicionar-mais {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.btn-adicionar {
+  flex: 1;
+  background: transparent;
+  border: 1px solid rgba(59, 130, 246, 0.5);
+  color: #3b82f6;
+  padding: 0.75rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.btn-adicionar.nota {
+  border-color: rgba(168, 85, 247, 0.5);
+  color: #a855f7;
+}

@@ -356,7 +356,7 @@ class SeparacaoViewModel @Inject constructor(
                     if (notasUsadas.contains(nota.id)) continue
                     
                     if (!nota.dados?.pedido.isNullOrEmpty() && caixa.dados?.pedido == nota.dados?.pedido) {
-                        val par = criarPar(caixa, nota, 50, listOf("PED"), colorIndex++)
+                        val par = criarPar(listOf(caixa), nota, 50, listOf("PED"), colorIndex++)
                         pares.add(par)
                         caixasUsadas.add(caixa.id)
                         notasUsadas.add(nota.id)
@@ -366,22 +366,28 @@ class SeparacaoViewModel @Inject constructor(
             }
             _uiState.update { it.copy(progresso = 0.25f) }
             
-            // PASS 2: REM exato
+            // PASS 2: REM exato (AGRUPA múltiplas caixas da mesma remessa)
             _uiState.update { it.copy(progressoTexto = "Matching por REMESSA...") }
             delay(300)
-            for (caixa in caixasReady) {
-                if (caixa.dados?.remessa.isNullOrEmpty() || caixasUsadas.contains(caixa.id)) continue
+            
+            // Agrupar caixas por REM
+            val caixasPorRem = caixasReady
+                .filter { !caixasUsadas.contains(it.id) && !it.dados?.remessa.isNullOrEmpty() }
+                .groupBy { it.dados?.remessa }
+            
+            for ((rem, caixasDoGrupo) in caixasPorRem) {
+                if (rem.isNullOrEmpty()) continue
                 
-                for (nota in notasReady) {
-                    if (notasUsadas.contains(nota.id)) continue
-                    
-                    if (!nota.dados?.remessa.isNullOrEmpty() && caixa.dados?.remessa == nota.dados?.remessa) {
-                        val par = criarPar(caixa, nota, 50, listOf("REM"), colorIndex++)
-                        pares.add(par)
-                        caixasUsadas.add(caixa.id)
-                        notasUsadas.add(nota.id)
-                        break
-                    }
+                // Encontrar nota com mesma REM
+                val notaMatch = notasReady.find { 
+                    !notasUsadas.contains(it.id) && it.dados?.remessa == rem 
+                }
+                
+                if (notaMatch != null) {
+                    val par = criarPar(caixasDoGrupo, notaMatch, 50, listOf("REM"), colorIndex++)
+                    pares.add(par)
+                    caixasDoGrupo.forEach { caixasUsadas.add(it.id) }
+                    notasUsadas.add(notaMatch.id)
                 }
             }
             _uiState.update { it.copy(progresso = 0.5f) }
@@ -397,7 +403,7 @@ class SeparacaoViewModel @Inject constructor(
                     
                     if (!nota.dados?.subRota.isNullOrEmpty() && 
                         caixa.dados?.subRota?.uppercase() == nota.dados?.subRota?.uppercase()) {
-                        val par = criarPar(caixa, nota, 40, listOf("SUB_ROTA"), colorIndex++)
+                        val par = criarPar(listOf(caixa), nota, 40, listOf("SUB_ROTA"), colorIndex++)
                         pares.add(par)
                         caixasUsadas.add(caixa.id)
                         notasUsadas.add(nota.id)
@@ -420,7 +426,7 @@ class SeparacaoViewModel @Inject constructor(
                     val cepNota = nota.dados?.cep?.replace(Regex("\\D"), "") ?: ""
                     
                     if (cepCaixa.isNotEmpty() && cepNota.isNotEmpty() && cepCaixa == cepNota) {
-                        val par = criarPar(caixa, nota, 30, listOf("CEP"), colorIndex++)
+                        val par = criarPar(listOf(caixa), nota, 30, listOf("CEP"), colorIndex++)
                         pares.add(par)
                         caixasUsadas.add(caixa.id)
                         notasUsadas.add(nota.id)
@@ -449,22 +455,58 @@ class SeparacaoViewModel @Inject constructor(
             )}
         }
     }
+    
+    // ============================================================
+    // NAVEGAÇÃO ENTRE ETAPAS (para adicionar mais caixas/notas)
+    // ============================================================
+    
+    /**
+     * Volta para etapa de caixas para escanear mais
+     * @post step = CAIXAS, mantém caixas/notas existentes
+     */
+    fun voltarParaAdicionarCaixas() {
+        _uiState.update { it.copy(step = SeparacaoStep.CAIXAS) }
+    }
+    
+    /**
+     * Volta para etapa de notas para escanear mais
+     * @post step = NOTAS, mantém caixas/notas existentes
+     */
+    fun voltarParaAdicionarNotas() {
+        _uiState.update { it.copy(step = SeparacaoStep.NOTAS) }
+    }
+    
+    /**
+     * Calcula total de caixas faltantes em todos os pares
+     * @return Número de caixas que ainda precisam ser escaneadas
+     */
+    fun calcularTotalCaixasFaltantes(): Int {
+        return _uiState.value.pares.sumOf { it.caixasFaltando }
+    }
 
-    private fun criarPar(caixa: CaixaItem, nota: NotaItem, score: Int, by: List<String>, colorIndex: Int): ParMatch {
+    private fun criarPar(caixas: List<CaixaItem>, nota: NotaItem, score: Int, by: List<String>, colorIndex: Int): ParMatch {
+        val primeiraCaixa = caixas.firstOrNull()
         val tagVisual = gerarTagVisual(
-            nota.dados?.destinatario ?: caixa.dados?.destinatario ?: "XXX",
-            nota.dados?.cep ?: caixa.dados?.cep ?: "00000",
-            1
+            nota.dados?.destinatario ?: primeiraCaixa?.dados?.destinatario ?: "XXX",
+            nota.dados?.cep ?: primeiraCaixa?.dados?.cep ?: "00000",
+            caixas.size
         )
         
+        // Determinar total de volumes esperado
+        val totalVolumes = primeiraCaixa?.dados?.caixaTotal 
+            ?: caixas.size.coerceAtLeast(1)
+        val caixasFaltando = (totalVolumes - caixas.size).coerceAtLeast(0)
+        
         return ParMatch(
-            id = "par-${caixa.id}-${nota.id}",
+            id = "par-${primeiraCaixa?.id ?: "unknown"}-${nota.id}",
             tagVisual = tagVisual,
             tagCor = coresTags[colorIndex % 8],
             matchScore = score,
-            caixa = caixa,
+            caixas = caixas,
             nota = nota,
-            matchedBy = by
+            matchedBy = by,
+            totalVolumes = totalVolumes,
+            caixasFaltando = caixasFaltando
         )
     }
 
@@ -635,10 +677,15 @@ data class ParMatch(
     val tagVisual: String,
     val tagCor: Long,
     val matchScore: Int,
-    val caixa: CaixaItem,
+    val caixas: List<CaixaItem>,  // Múltiplas caixas por remessa
     val nota: NotaItem,
-    val matchedBy: List<String>
-)
+    val matchedBy: List<String>,
+    val totalVolumes: Int = 1,  // Total de volumes esperado (da nota ou caixa)
+    val caixasFaltando: Int = 0  // Quantas caixas faltam escanear
+) {
+    // Compat: primeira caixa para código legado
+    val caixa: CaixaItem get() = caixas.firstOrNull() ?: CaixaItem("empty", "", ItemStatus.ERROR)
+}
 
 data class SeparacaoUiState(
     val step: SeparacaoStep = SeparacaoStep.CAIXAS,

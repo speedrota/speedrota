@@ -38,6 +38,7 @@ interface CaixaItem {
     cep?: string;
     itens?: number;
     pesoKg?: number;
+    caixaTotal?: number; // Total de caixas na remessa (ex: 3 de 3)
   };
   textoOCR?: string;
 }
@@ -55,10 +56,12 @@ interface ParMatch {
   tagVisual: string;
   tagCor: number;
   matchScore: number;
-  caixa: CaixaItem;
+  caixas: CaixaItem[];  // Suporta múltiplas caixas por remessa
   nota: NotaItem;
   destino?: Destino;
   matchedBy: string[]; // 'PED', 'REM', 'SUB_ROTA', 'CEP', 'NOME'
+  totalVolumes: number;
+  caixasFaltando: number;
 }
 
 // Cores para tags visuais
@@ -153,7 +156,7 @@ export default function TelaSeparacao() {
       const caixaData = data.caixa;
       const texto = data.textoExtraido || '';
       
-      console.log('[Separacao] Caixa OCR via API: PED=' + caixaData?.pedido + ', REM=' + caixaData?.remessa);
+      console.log('[Separacao] Caixa OCR via API: PED=' + caixaData?.pedido + ', REM=' + caixaData?.remessa + ', TOTAL=' + caixaData?.total);
       
       return {
         ...item,
@@ -166,7 +169,8 @@ export default function TelaSeparacao() {
           cep: data.endereco?.cep,
           destinatario: data.destinatario?.nome || data.dadosAdicionais?.nomeDestinatario,
           itens: caixaData?.itens,
-          pesoKg: caixaData?.pesoKg
+          pesoKg: caixaData?.pesoKg,
+          caixaTotal: caixaData?.total
         }
       };
     } catch (error) {
@@ -312,7 +316,7 @@ export default function TelaSeparacao() {
         if (notasUsadas.has(nota.id)) continue;
         
         if (nota.data?.pedido && caixa.data.pedido === nota.data.pedido) {
-          const par = criarPar(caixa, nota, 50, ['PED'], colorIndex++);
+          const par = criarPar([caixa], nota, 50, ['PED'], colorIndex++);
           paresEncontrados.push(par);
           caixasUsadas.add(caixa.id);
           notasUsadas.add(nota.id);
@@ -321,20 +325,31 @@ export default function TelaSeparacao() {
       }
     }
     
-    // MATCHING PASS 2: REM exato (50 pts)
+    // MATCHING PASS 2: REM exato - AGRUPA múltiplas caixas por remessa (50 pts)
     setProgressoTexto('Matching por REMESSA...');
     setProgresso(30);
     await delay(200);
+    
+    // Agrupar caixas não usadas por REM
+    const caixasPorRem = new Map<string, CaixaItem[]>();
     for (const caixa of caixasReady) {
-      if (!caixa.data?.remessa || caixasUsadas.has(caixa.id)) continue;
-      
+      if (caixasUsadas.has(caixa.id) || !caixa.data?.remessa) continue;
+      const rem = caixa.data.remessa;
+      if (!caixasPorRem.has(rem)) {
+        caixasPorRem.set(rem, []);
+      }
+      caixasPorRem.get(rem)!.push(caixa);
+    }
+    
+    // Para cada grupo de caixas com mesmo REM, buscar nota correspondente
+    for (const [rem, caixasDoRem] of caixasPorRem) {
       for (const nota of notasReady) {
         if (notasUsadas.has(nota.id)) continue;
         
-        if (nota.data?.remessa && caixa.data.remessa === nota.data.remessa) {
-          const par = criarPar(caixa, nota, 50, ['REM'], colorIndex++);
+        if (nota.data?.remessa === rem) {
+          const par = criarPar(caixasDoRem, nota, 50, ['REM'], colorIndex++);
           paresEncontrados.push(par);
-          caixasUsadas.add(caixa.id);
+          caixasDoRem.forEach(c => caixasUsadas.add(c.id));
           notasUsadas.add(nota.id);
           break;
         }
@@ -353,7 +368,7 @@ export default function TelaSeparacao() {
         
         const notaSubRota = nota.data?.subRota;
         if (notaSubRota && caixa.data.subRota.toUpperCase() === notaSubRota.toUpperCase()) {
-          const par = criarPar(caixa, nota, 40, ['SUB_ROTA'], colorIndex++);
+          const par = criarPar([caixa], nota, 40, ['SUB_ROTA'], colorIndex++);
           paresEncontrados.push(par);
           caixasUsadas.add(caixa.id);
           notasUsadas.add(nota.id);
@@ -402,7 +417,7 @@ export default function TelaSeparacao() {
       }
       
       if (melhorMatch) {
-        const par = criarPar(caixa, melhorMatch.nota, melhorMatch.score, melhorMatch.by, colorIndex++);
+        const par = criarPar([caixa], melhorMatch.nota, melhorMatch.score, melhorMatch.by, colorIndex++);
         paresEncontrados.push(par);
         caixasUsadas.add(caixa.id);
         notasUsadas.add(melhorMatch.nota.id);
@@ -460,21 +475,26 @@ export default function TelaSeparacao() {
     setStep('resultado');
   };
   
-  function criarPar(caixa: CaixaItem, nota: NotaItem, score: number, by: string[], colorIndex: number): ParMatch {
+  function criarPar(caixas: CaixaItem[], nota: NotaItem, score: number, by: string[], colorIndex: number): ParMatch {
+    const primeiraCaixa = caixas[0];
     const tagVisual = gerarTagVisual(
-      nota.data?.destinatario?.nome || caixa.data?.destinatario || 'XXX',
-      nota.data?.destinatario?.cep || caixa.data?.cep || '00000',
-      caixa.data?.itens || 1
+      nota.data?.destinatario?.nome || primeiraCaixa.data?.destinatario || 'XXX',
+      nota.data?.destinatario?.cep || primeiraCaixa.data?.cep || '00000',
+      primeiraCaixa.data?.itens || 1
     );
     
+    const totalVolumes = primeiraCaixa.data?.caixaTotal || 1;
+    
     return {
-      id: `par-${caixa.id}-${nota.id}`,
+      id: `par-${caixas.map(c => c.id).join('-')}-${nota.id}`,
       tagVisual,
       tagCor: (colorIndex % 8) + 1,
       matchScore: score,
-      caixa,
+      caixas,
       nota,
-      matchedBy: by
+      matchedBy: by,
+      totalVolumes,
+      caixasFaltando: Math.max(0, totalVolumes - caixas.length)
     };
   }
   
@@ -831,12 +851,20 @@ export default function TelaSeparacao() {
       )}
       
       {/* STEP 4: RESULTADO */}
-      {step === 'resultado' && (
+      {step === 'resultado' && (() => {
+        const totalCaixasFaltantes = pares.reduce((sum, p) => sum + p.caixasFaltando, 0);
+        const totalCaixas = pares.reduce((sum, p) => sum + p.caixas.length, 0);
+        const totalVolumes = pares.reduce((sum, p) => sum + p.totalVolumes, 0);
+        
+        return (
         <div className="separacao-content">
           <div className="separacao-resultado-header">
             <h2>✅ Matching Concluído!</h2>
             <div className="resultado-stats">
               <span className="stat pareados">✓ {pares.length} pareados</span>
+              {totalCaixasFaltantes > 0 && (
+                <span className="stat caixas-faltando">📦 {totalCaixasFaltantes} caixas faltando</span>
+              )}
               {(naoPareados.caixas.length > 0 || naoPareados.notas.length > 0) && (
                 <span className="stat nao-pareados">
                   ⚠ {naoPareados.caixas.length + naoPareados.notas.length} não pareados
@@ -844,6 +872,20 @@ export default function TelaSeparacao() {
               )}
             </div>
           </div>
+          
+          {/* Alerta de caixas faltantes */}
+          {totalCaixasFaltantes > 0 && (
+            <div className="alerta-caixas-faltantes">
+              <div className="alerta-icone">📦</div>
+              <div className="alerta-texto">
+                <strong>Faltam {totalCaixasFaltantes} caixa{totalCaixasFaltantes > 1 ? 's' : ''}</strong>
+                <span>Escaneadas: {totalCaixas} / {totalVolumes} volumes</span>
+              </div>
+              <button className="btn-escanear-faltantes" onClick={() => setStep('caixas')}>
+                + Escanear Caixas Faltantes
+              </button>
+            </div>
+          )}
           
           {/* Lista de pares */}
           <div className="separacao-pares">
@@ -858,6 +900,10 @@ export default function TelaSeparacao() {
                 </div>
                 <div className="par-info">
                   <div className="par-numero">#{idx + 1}</div>
+                  <div className="par-caixas">
+                    📦 {par.caixas.length}/{par.totalVolumes} caixas
+                    {par.caixasFaltando > 0 && <span className="faltando"> (-{par.caixasFaltando})</span>}
+                  </div>
                   <div className="par-destinatario">
                     {par.nota.data?.destinatario?.nome || 'Destino'}
                   </div>
@@ -902,17 +948,28 @@ export default function TelaSeparacao() {
             </div>
           )}
           
-          {/* Ações */}
+          {/* Botões de adicionar mais */}
+          <div className="separacao-adicionar-mais">
+            <button className="btn-adicionar" onClick={() => setStep('caixas')}>
+              + Caixa
+            </button>
+            <button className="btn-adicionar nota" onClick={() => setStep('notas')}>
+              + Remetente
+            </button>
+          </div>
+          
+          {/* Ações principais */}
           <div className="separacao-footer resultado">
             <button className="btn-download" onClick={gerarArquivoSeparacao}>
-              📥 Baixar Arquivo
+              📥 Baixar
             </button>
             <button className="btn-rota" onClick={gerarRotaParaMotorista}>
               🗺️ Gerar Rota
             </button>
           </div>
         </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
