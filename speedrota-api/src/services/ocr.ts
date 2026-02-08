@@ -1424,24 +1424,88 @@ function extrairDadosUniversal(texto: string): DadosExtraidosFornecedor | null {
       console.log(`[Parser DANFE Natura] Remessa: ${dadosDANFENatura.remessa}`);
     }
     
-    // Extrair nome do destinatário - buscar após "THAIS", "MARIA", etc.
-    const nomeMatch = texto.match(/(?:NOME|RAZÃO\s+SOCIAL)[:\s]+([A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]{5,40})/i) ||
-                      texto.match(/\b(THAIS|MARIA|ANA|ELLEN|JOSÉ|JOÃO|CARLOS)[A-ZÁÉÍÓÚÂÊÎÔÛÃÕA-Za-záéíóúâêîôûãõ\s]{5,35}/i);
-    if (nomeMatch) {
-      dadosDANFENatura.nome = nomeMatch[1].trim();
-      console.log(`[Parser DANFE Natura] Nome: ${dadosDANFENatura.nome}`);
+    // ========================================
+    // EXTRAIR NÚMERO DA CAIXA (CX 02/03 ou Volumes)
+    // ========================================
+    // Padrão 1: "CX 02 / 03" ou "CX 002/003"
+    const cxMatch = texto.match(/\bCX\s*(\d{1,3})\s*[\/\\]\s*(\d{1,3})/i);
+    if (cxMatch) {
+      dadosDANFENatura.caixaNumero = parseInt(cxMatch[1], 10);
+      dadosDANFENatura.caixaTotal = parseInt(cxMatch[2], 10);
+      console.log(`[Parser DANFE Natura] Caixa: ${dadosDANFENatura.caixaNumero}/${dadosDANFENatura.caixaTotal}`);
     }
     
-    // Extrair endereço - buscar R DAS JABUTICABEIRAS, 240 ou similar
-    const enderecoMatch = texto.match(/\b(R(?:UA)?\s*(?:DAS?|DOS?)?\s*[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕA-Za-záéíóúâêîôûãõ\s]{3,30})[,\s]+(\d{1,5})/i) ||
-                          texto.match(/\b(AV(?:ENIDA)?\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕA-Za-záéíóúâêîôûãõ\s]{3,30})[,\s]+(\d{1,5})/i);
-    if (enderecoMatch) {
-      let endereco = enderecoMatch[1].trim();
-      // Corrigir padrões sem espaço: "RDASJABUTICABEIRAS" -> "R DAS JABUTICABEIRAS"
-      endereco = endereco.replace(/^(R)(DAS|DOS)/i, '$1 $2 ');
-      dadosDANFENatura.endereco = endereco;
-      dadosDANFENatura.numero = enderecoMatch[2];
-      console.log(`[Parser DANFE Natura] Endereço: ${endereco}, ${dadosDANFENatura.numero}`);
+    // Padrão 2: "Volumes: - 3" ou "Volumes: 3" (apenas total)
+    if (!dadosDANFENatura.caixaTotal) {
+      const volumesMatch = texto.match(/Volumes?:\s*[-–]?\s*(\d{1,3})/i);
+      if (volumesMatch) {
+        dadosDANFENatura.caixaTotal = parseInt(volumesMatch[1], 10);
+        console.log(`[Parser DANFE Natura] Total de volumes: ${dadosDANFENatura.caixaTotal}`);
+      }
+    }
+    
+    // Padrão 3: "DT: 0009287312" pode indicar número do documento/caixa
+    const dtMatch = texto.match(/\bDT:\s*(\d{6,12})/i);
+    if (dtMatch) {
+      console.log(`[Parser DANFE Natura] DT (documento): ${dtMatch[1]}`);
+    }
+    
+    // Padrão 4: Sequencial (pode indicar ordem)
+    const seqMatch = texto.match(/Seq[uü]?encial:\s*([A-Z0-9]+)/i);
+    if (seqMatch) {
+      console.log(`[Parser DANFE Natura] Sequencial: ${seqMatch[1]}`);
+    }
+    
+    // Extrair nome do destinatário - buscar após "THAIS", "MARIA", etc.
+    const nomeMatch = texto.match(/(?:NOME|RAZÃO\s+SOCIAL)[:\s]+([A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]{5,40})/i) ||
+                      texto.match(/\b(THAIS\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]{3,35})/i) ||
+                      texto.match(/\b(MARIA\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]{3,35})/i);
+    if (nomeMatch) {
+      let nome = nomeMatch[1].trim();
+      // Limpar sufixos como números de CPF/CNPJ
+      nome = nome.replace(/\s+\d{3}\..*$/, '').trim();
+      if (nome.length > 5) {
+        dadosDANFENatura.nome = nome;
+        console.log(`[Parser DANFE Natura] Nome: ${dadosDANFENatura.nome}`);
+      }
+    }
+    
+    // ========================================
+    // EXTRAIR ENDEREÇO - COM VALIDAÇÃO ANTI-LIXO
+    // ========================================
+    // Buscar R DAS JABUTICABEIRAS, 240 ou similar
+    // IMPORTANTE: O endereço deve estar em formato legível, não lixo OCR
+    const enderecoPatterns = [
+      // RUA/R seguido de nome válido (letras maiúsculas contíguas, não letras soltas)
+      /\b(R(?:UA)?\s+(?:DAS?|DOS?)\s+[A-ZÁÉÍÓÚÂÊÎÔÛ]{4,}[A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]{2,25})[,\s]+(\d{1,5})\b/i,
+      /\b(AV(?:ENIDA)?\s+[A-ZÁÉÍÓÚÂÊÎÔÛ]{4,}[A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]{2,25})[,\s]+(\d{1,5})\b/i,
+      // Padrão colado: RDASJABUTICABEIRAS, 240
+      /\b(R(?:DAS?|DOS?)[A-ZÁÉÍÓÚÂÊÎÔÛ]{5,})[,\s]+(\d{1,5})\b/i,
+    ];
+    
+    for (const p of enderecoPatterns) {
+      const m = texto.match(p);
+      if (m) {
+        let endereco = m[1].trim();
+        
+        // VALIDAÇÃO ANTI-LIXO: Rejeitar se parece lixo de OCR
+        const palavras = endereco.split(/\s+/);
+        const letrasSoltas = palavras.filter(p => p.length <= 2 && !/^(R|AV|AL|TV|DA|DE|DO|DAS|DOS)$/i.test(p)).length;
+        const temMuitasLetrasSoltas = letrasSoltas >= 3;
+        const temPadraoLixo = /[a-z]\s+[A-Z]\s+[a-z]/i.test(endereco); // "rá NELE Na"
+        
+        if (temMuitasLetrasSoltas || temPadraoLixo) {
+          console.log(`[Parser DANFE Natura] Endereço rejeitado (lixo OCR): ${endereco.substring(0, 40)}...`);
+          continue;
+        }
+        
+        // Corrigir padrões sem espaço: "RDASJABUTICABEIRAS" -> "R DAS JABUTICABEIRAS"
+        endereco = endereco.replace(/^(R)(DAS|DOS)/i, '$1 $2 ');
+        dadosDANFENatura.endereco = endereco;
+        dadosDANFENatura.numero = m[2];
+        console.log(`[Parser DANFE Natura] Endereço: ${endereco}, ${dadosDANFENatura.numero}`);
+        break;
+      }
     }
     
     // Extrair bairro
