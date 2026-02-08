@@ -643,11 +643,13 @@ class SeparacaoViewModel @Inject constructor(
             DestinoItem(
                 id = par.id,
                 endereco = buildString {
-                    append(dados.endereco)
-                    dados.numero?.let { if (it.isNotEmpty()) append(", $it") }
-                    dados.bairro?.let { if (it.isNotEmpty()) append(" - $it") }
-                    append(", ${dados.cidade}/${dados.uf}")
-                    dados.cep?.let { if (it.isNotEmpty()) append(" - CEP: $it") }
+                    append(dados.endereco ?: "Endereço não informado")
+                    if (!dados.cidade.isNullOrEmpty() || !dados.uf.isNullOrEmpty()) {
+                        append(", ${dados.cidade ?: ""}/${dados.uf ?: ""}")
+                    }
+                    if (!dados.cep.isNullOrEmpty()) {
+                        append(" - CEP: ${dados.cep}")
+                    }
                 },
                 fornecedor = Fornecedor.NATURA, // TODO: detectar do parser
                 coordenadas = null, // Será geocodificado na RotaScreen
