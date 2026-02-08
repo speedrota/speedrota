@@ -100,8 +100,8 @@ export default function TelaMatching() {
               ...c,
               status: 'ready',
               data: {
-                pedido: undefined, // Será extraído via API
-                remessa: undefined,
+                pedido: resultado?.pedido, // Dados do parser especializado (API)
+                remessa: resultado?.remessa,
                 destinatario: resultado?.destinatario?.nome,
                 cep: resultado?.destinatario?.cep,
                 itens: resultado?.volumes,

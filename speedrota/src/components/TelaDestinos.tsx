@@ -11,7 +11,7 @@
 
 import { useState, useRef } from 'react';
 import { useRouteStore, usePodeCalcular, useTotalDestinos } from '../store/routeStore';
-import { processarImagemNFe, extrairTexto } from '../services/ocr';
+import { processarImagemNFe } from '../services/ocr';
 import { geocodificarEndereco } from '../services/geolocalizacao';
 import { isPDF, pdfPrimeiraPaginaParaImagem } from '../services/pdf';
 import type { Destino, Fornecedor, DadosNFe } from '../types';
@@ -138,15 +138,9 @@ export function TelaDestinos() {
       
       setProgressoOCR('Processando OCR...');
       
-      // Extrair texto bruto para exibir
+      // OCR via API backend (produção) - NÃO usar Tesseract local
+      // A API retorna textoExtraido junto com os dados parseados
       let textoOCR = '';
-      try {
-        textoOCR = await extrairTexto(imagemParaOCR, (progress) => {
-          setProgressoOCR(`${progress.status}: ${Math.round(progress.progress * 100)}%`);
-        });
-      } catch (e) {
-        console.warn('[TelaDestinos] Erro ao extrair texto bruto:', e);
-      }
       
       setProgressoOCR('Analisando dados...');
       const dados = await processarImagemNFe(imagemParaOCR, (progress) => {

@@ -238,8 +238,11 @@ class SeparacaoViewModel @Inject constructor(
                 if (response.isSuccessful && response.body()?.success == true) {
                     val data = response.body()?.data
                     val textoExtraido = data?.textoExtraido ?: ""
+                    val caixaData = data?.caixa  // Dados de caixa extraídos pelo parser (DANFE Natura inclui!)
                     
                     Log.d("SeparacaoVM", "OCR API retornou ${textoExtraido.length} chars, confianca: ${data?.confianca}")
+                    Log.d("SeparacaoVM", "Tipo documento: ${data?.tipoDocumento}, Fornecedor: ${data?.fornecedor}")
+                    Log.d("SeparacaoVM", "Dados caixa da API: PED=${caixaData?.pedido}, REM=${caixaData?.remessa}")
 
                     // Montar endereço completo
                     val enderecoCompleto = data?.endereco?.let { end ->
@@ -251,12 +254,16 @@ class SeparacaoViewModel @Inject constructor(
                         ).joinToString("")
                     } ?: data?.dadosAdicionais?.enderecoDestinatario ?: ""
                     
-                    // Extrair campos PED/REM/SubRota do texto OCR
+                    // Extrair campos PED/REM/SubRota - PRIORIZAR dados do parser (caixaData)
+                    // A API retorna caixa.pedido/remessa para etiquetas E DANFEs Natura
                     val dadosExtraidos = NotaDados(
-                        pedido = data?.notaFiscal?.numero 
-                            ?: extrairCampoDoTexto(textoExtraido, "PED"),
-                        remessa = extrairCampoDoTexto(textoExtraido, "REM"),
-                        subRota = extrairCampoDoTexto(textoExtraido, "SR"),
+                        pedido = caixaData?.pedido  // Prioridade 1: Parser especializado
+                            ?: data?.notaFiscal?.numero  // Prioridade 2: Número da NF
+                            ?: extrairCampoDoTexto(textoExtraido, "PED"),  // Fallback: regex
+                        remessa = caixaData?.remessa  // Prioridade 1: Parser especializado
+                            ?: extrairCampoDoTexto(textoExtraido, "REM"),  // Fallback: regex
+                        subRota = caixaData?.subRota 
+                            ?: extrairCampoDoTexto(textoExtraido, "SR"),
                         destinatario = data?.destinatario?.nome 
                             ?: data?.dadosAdicionais?.nomeDestinatario
                             ?: extrairCampoDoTexto(textoExtraido, "DEST")
@@ -264,10 +271,10 @@ class SeparacaoViewModel @Inject constructor(
                         endereco = enderecoCompleto.ifEmpty { null } ?: "Endereço não identificado",
                         cidade = data?.endereco?.cidade ?: "",
                         uf = data?.endereco?.uf ?: "",
-                        cep = data?.endereco?.cep ?: extrairCampoDoTexto(textoExtraido, "CEP") ?: ""
+                        cep = data?.endereco?.cep ?: caixaData?.subRota?.let { null } ?: extrairCampoDoTexto(textoExtraido, "CEP") ?: ""
                     )
                     
-                    Log.d("SeparacaoVM", "OCR completo para nota $id: PED=${dadosExtraidos.pedido}, DEST=${dadosExtraidos.destinatario}")
+                    Log.d("SeparacaoVM", "OCR completo para nota $id: PED=${dadosExtraidos.pedido}, REM=${dadosExtraidos.remessa}, DEST=${dadosExtraidos.destinatario}")
 
                     _uiState.update { state ->
                         state.copy(

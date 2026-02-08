@@ -14,7 +14,7 @@
 
 import { useState, useRef } from 'react';
 import { useRouteStore } from '../store/routeStore';
-import { processarImagemNFe, extrairTexto, extrairTextoRapido } from '../services/ocr';
+import { processarImagemNFe, processarOcrViaApi } from '../services/ocr';
 import { geocodificarEndereco } from '../services/geolocalizacao';
 import { isPDF, pdfPrimeiraPaginaParaImagem } from '../services/pdf';
 import type { Destino, DadosNFe } from '../types';
@@ -141,31 +141,32 @@ export default function TelaSeparacao() {
     setCaixas(prev => [...prev, item]);
     
     try {
-      // OCR RÁPIDO para extrair dados da etiqueta (mais veloz que extrairTexto)
-      const texto = await extrairTextoRapido(thumb, 8000);
+      // OCR via API backend (produção) - NÃO usar Tesseract local
+      const apiResult = await processarOcrViaApi(thumb.replace(/^data:image\/[^;]+;base64,/, ''));
       
-      // Extrair campos relevantes (PED, REM, SUB_ROTA)
-      const pedido = extrairCampo(texto, /(?:PED|PEDIDO)[:\s]*(\d+)/i);
-      const remessa = extrairCampo(texto, /(?:REM|REMESSA|SHIPMENT)[:\s]*(\d+)/i);
-      const subRota = extrairCampo(texto, /(?:SUB[_\-\s]?ROTA|SUBROTA|SR)[:\s]*([A-Z0-9\-]+)/i);
-      const cep = extrairCampo(texto, /CEP[:\s]*(\d{5}[-]?\d{3})/i) || 
-                  extrairCampo(texto, /(\d{5}[-]\d{3})/);
-      const destinatario = extrairCampo(texto, /(?:DEST|DESTINAT[ÁA]RIO)[:\s]*([A-Za-zÀ-ú\s]+)/i);
-      const itens = parseInt(extrairCampo(texto, /(?:QTD|ITENS|VOL)[:\s]*(\d+)/i) || '0');
-      const peso = parseFloat(extrairCampo(texto, /(?:PESO)[:\s]*([\d,\.]+)/i)?.replace(',', '.') || '0');
+      if (!apiResult?.success || !apiResult.data) {
+        console.error('[Separacao] API OCR falhou para caixa');
+        return { ...item, status: 'error' };
+      }
+      
+      const data = apiResult.data;
+      const caixaData = data.caixa;
+      const texto = data.textoExtraido || '';
+      
+      console.log('[Separacao] Caixa OCR via API: PED=' + caixaData?.pedido + ', REM=' + caixaData?.remessa);
       
       return {
         ...item,
         status: 'ready',
         textoOCR: texto,
         data: {
-          pedido,
-          remessa,
-          subRota,
-          cep,
-          destinatario,
-          itens: itens || undefined,
-          pesoKg: peso || undefined
+          pedido: caixaData?.pedido,
+          remessa: caixaData?.remessa,
+          subRota: caixaData?.subRota,
+          cep: data.endereco?.cep,
+          destinatario: data.destinatario?.nome || data.dadosAdicionais?.nomeDestinatario,
+          itens: caixaData?.itens,
+          pesoKg: caixaData?.pesoKg
         }
       };
     } catch (error) {
@@ -236,24 +237,19 @@ export default function TelaSeparacao() {
     setNotas(prev => [...prev, item]);
     
     try {
-      // OCR completo da NF-e
+      // OCR via API backend (produção) - NÃO usar Tesseract local
       const dados = await processarImagemNFe(imagemData);
-      const texto = await extrairTexto(imagemData);
       
-      // Extrair PED/REM/SubRota do texto para matching
-      const pedido = extrairCampo(texto, /(?:PED|PEDIDO)[:\s]*(\d+)/i);
-      const remessa = extrairCampo(texto, /(?:REM|REMESSA)[:\s]*(\d+)/i);
-      const subRota = extrairCampo(texto, /(?:SUB[_\-\s]?ROTA|SUBROTA|SR)[:\s]*([A-Z0-9\-]+)/i);
+      console.log('[Separacao] Nota OCR via API: PED=' + dados?.pedido + ', REM=' + dados?.remessa);
       
+      // A API já retorna pedido/remessa via parsers especializados
+      // NÃO usar regex local - em produção não há Tesseract disponível
       return {
         ...item,
         status: 'ready',
-        textoOCR: texto,
+        textoOCR: '',
         data: dados ? {
-          ...dados,
-          pedido: pedido || dados.pedido,
-          remessa: remessa || dados.remessa,
-          subRota: subRota
+          ...dados
         } : undefined
       };
     } catch (error) {
@@ -559,11 +555,6 @@ export default function TelaSeparacao() {
   // ============================================================
   // HELPERS
   // ============================================================
-  
-  function extrairCampo(texto: string, regex: RegExp): string | undefined {
-    const match = texto.match(regex);
-    return match?.[1]?.trim();
-  }
   
   function fuzzyNameMatch(a: string, b: string): number {
     const wordsA = a.toUpperCase().replace(/[^A-ZÁÉÍÓÚÀÂÊÔÃÕÇ\s]/g, '').split(/\s+/).filter(w => w.length > 2);

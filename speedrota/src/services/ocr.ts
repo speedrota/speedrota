@@ -34,6 +34,7 @@ export interface OcrApiResponse {
     confianca?: number;
     tipoDocumento?: string;
     fornecedor?: string;
+    matchKey?: string;
     endereco?: {
       logradouro?: string;
       numero?: string;
@@ -57,6 +58,16 @@ export interface OcrApiResponse {
       dataEmissao?: string;
       valorTotal?: number;
       chaveAcesso?: string;
+    };
+    // Dados de etiqueta de caixa (Natura/Avon parser)
+    caixa?: {
+      numero?: number;
+      total?: number;
+      itens?: number;
+      pesoKg?: number;
+      pedido?: string;
+      remessa?: string;
+      subRota?: string;
     };
   };
   error?: string;
@@ -1510,6 +1521,9 @@ export async function processarImagemNFe(
     
     onProgress?.({ progress: 0.9, status: 'parsing' });
     
+    // Dados de caixa do parser especializado (etiqueta ou DANFE Natura)
+    const caixaData = apiResult.data.caixa;
+    
     const dados: DadosNFe = {
       numero: apiResult.data.notaFiscal?.numero || apiResult.data.chaveAcesso || '',
       serie: apiResult.data.notaFiscal?.serie,
@@ -1526,7 +1540,13 @@ export async function processarImagemNFe(
       },
       fornecedor: (apiResult.data.fornecedor?.toLowerCase() || 'outro') as Fornecedor,
       confiancaOCR: apiResult.data.confianca || 0.85,
+      // Dados de caixa para matching (prioridade: parser especializado > notaFiscal)
+      pedido: caixaData?.pedido || apiResult.data.notaFiscal?.numero,
+      remessa: caixaData?.remessa,
+      subRota: caixaData?.subRota,
     };
+    
+    console.log('[OCR] Dados caixa da API:', caixaData ? `PED=${caixaData.pedido}, REM=${caixaData.remessa}` : 'N/A');
     
     // Verificar dados mínimos para geocodificação
     const temEndereco = dados.destinatario.endereco.length > 3;
