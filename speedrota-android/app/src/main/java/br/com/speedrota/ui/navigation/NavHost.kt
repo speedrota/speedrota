@@ -19,6 +19,7 @@ import br.com.speedrota.ui.screens.frota.TelaFrotaGestor
 import br.com.speedrota.ui.screens.frota.TelaMenuFrota
 import br.com.speedrota.ui.screens.historico.HistoricoScreen
 import br.com.speedrota.ui.screens.origem.OrigemScreen
+import br.com.speedrota.ui.screens.escolhacarga.EscolhaCargaScreen
 import br.com.speedrota.ui.screens.destinos.DestinosScreen
 import br.com.speedrota.ui.screens.rota.RotaScreen
 import br.com.speedrota.ui.screens.planos.PlanosScreen
@@ -276,7 +277,21 @@ fun SpeedRotaNavHost() {
         composable(Screen.Origem.route) {
             OrigemScreen(
                 onOrigemConfirmada = {
-                    navController.navigate(Screen.Destinos.route)
+                    navController.navigate(Screen.EscolhaCarga.route)
+                },
+                onBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+        
+        composable(Screen.EscolhaCarga.route) {
+            EscolhaCargaScreen(
+                onBaixarRota = { rotaId ->
+                    navController.navigate(Screen.Rota.createRoute(rotaId))
+                },
+                onFazerSeparacao = {
+                    navController.navigate(Screen.Separacao.createRoute())
                 },
                 onBack = {
                     navController.popBackStack()

@@ -257,10 +257,13 @@ export function TelaEscolhaCarga() {
   }
   
   function fazerSeparacaoManual() {
-    // TODOS usam o novo fluxo: Caixas → Notas → Matching → Resultado
-    // GESTOR_FROTA: Pode gerar arquivo de separação para motoristas
-    // ENTREGADOR: Gera rota direta após matching
-    irPara('separacao');
+    // GESTOR_FROTA: Vai para tela de Separação (Caixas → Notas → Matching → Resultado)
+    // ENTREGADOR: Vai para tela de Destinos (simples - só NF-e)
+    if (isGestorFrota) {
+      irPara('separacao');
+    } else {
+      irPara('destinos');
+    }
   }
   
   // Função para importar arquivo .speedrota
