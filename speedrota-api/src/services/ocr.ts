@@ -543,11 +543,37 @@ function extrairEtiquetaCaixaNatura(texto: string): DadosEtiquetaCaixa | null {
   const dados: DadosEtiquetaCaixa = {};
   
   // === CX 002 / 003 (número da caixa / total) ===
-  const cxMatch = texto.match(/\bCX\s*(\d{1,3})\s*[\/\\]\s*(\d{1,3})/i);
-  if (cxMatch) {
-    dados.caixaNumero = parseInt(cxMatch[1], 10);
-    dados.caixaTotal = parseInt(cxMatch[2], 10);
-    console.log(`[Parser Etiqueta] Caixa: ${dados.caixaNumero}/${dados.caixaTotal}`);
+  // OCR costuma confundir: CX -> OX, 0 -> O, etc
+  const cxPatterns = [
+    /\bCX\s*(\d{1,3})\s*[\/\\]\s*(\d{1,3})/i,           // Normal: CX 002/003
+    /\bCX\.?\s*(\d{1,3})\s*[\/\\]\s*(\d{1,3})/i,        // CX. 002/003
+    /\b[O0C]X\s*(\d{1,3})\s*[\/\\]\s*(\d{1,3})/i,       // OX ou 0X
+    /\bCX\s*([O0]\d{1,2})\s*[\/\\]\s*([O0]\d{1,2})/i,  // CX O02/O03
+    /\b(\d{1,3})\s*[\/\\]\s*(\d{1,3})\s*CX/i,           // 002/003 CX (invertido)
+    /\b(\d{1,3})\s*DE\s*(\d{1,3})\b/i,                   // 02 DE 03
+  ];
+  
+  for (const p of cxPatterns) {
+    const m = texto.match(p);
+    if (m) {
+      // Converter O para 0 se OCR leu errado
+      const num1 = m[1].replace(/O/gi, '0');
+      const num2 = m[2].replace(/O/gi, '0');
+      dados.caixaNumero = parseInt(num1, 10);
+      dados.caixaTotal = parseInt(num2, 10);
+      console.log(`[Parser Etiqueta] Caixa: ${dados.caixaNumero}/${dados.caixaTotal} (padrão: ${p.source.substring(0,20)}...)`);
+      break;
+    }
+  }
+  
+  // Fallback: tentar extrair de padrões mais soltos
+  if (!dados.caixaNumero) {
+    // Procurar "CAIXA 02" ou "CAIXA: 02"
+    const caixaFallback = texto.match(/CAIXA\s*:?\s*(\d{1,3})/i);
+    if (caixaFallback) {
+      dados.caixaNumero = parseInt(caixaFallback[1], 10);
+      console.log(`[Parser Etiqueta] Caixa (fallback): ${dados.caixaNumero}`);
+    }
   }
   
   // === ITENS ===
@@ -668,6 +694,11 @@ function extrairEtiquetaCaixaNatura(texto: string): DadosEtiquetaCaixa | null {
   }
   
   // === BAIRRO/RESIDENCIAL ===
+  // CIDADES a não incluir no bairro
+  const CIDADES_CONHECIDAS = ['AMERICANA', 'CAMPINAS', 'SUMARE', 'LIMEIRA', 'PIRACICABA', 
+    'SANTA BARBARA', 'NOVA ODESSA', 'HORTOLANDIA', 'PAULINIA', 'INDAIATUBA', 
+    'RIO CLARO', 'JUNDIAI', 'VALINHOS', 'VINHEDO', 'ITATIBA', 'SAO PAULO'];
+  
   const bairroPatterns = [
     /\b(RESIDENCIAL\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ\s]{3,30})/i,
     /\b(JD\.?\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ\s]{3,20})/i,
@@ -680,7 +711,16 @@ function extrairEtiquetaCaixaNatura(texto: string): DadosEtiquetaCaixa | null {
   for (const p of bairroPatterns) {
     const m = texto.match(p);
     if (m) {
-      dados.bairro = m[1].trim().toUpperCase();
+      let bairroTemp = m[1].trim().toUpperCase();
+      // Remover cidade se pegou junto
+      for (const cidade of CIDADES_CONHECIDAS) {
+        const idx = bairroTemp.indexOf(cidade);
+        if (idx > 0) {
+          bairroTemp = bairroTemp.substring(0, idx).trim();
+          console.log(`[Parser Etiqueta] Bairro cortado antes de ${cidade}`);
+        }
+      }
+      dados.bairro = bairroTemp;
       console.log(`[Parser Etiqueta] Bairro: ${dados.bairro}`);
       break;
     }
@@ -1427,15 +1467,30 @@ function extrairDadosUniversal(texto: string): DadosExtraidosFornecedor | null {
     // ========================================
     // EXTRAIR NÚMERO DA CAIXA (CX 02/03 ou Volumes)
     // ========================================
-    // Padrão 1: "CX 02 / 03" ou "CX 002/003"
-    const cxMatch = texto.match(/\bCX\s*(\d{1,3})\s*[\/\\]\s*(\d{1,3})/i);
-    if (cxMatch) {
-      dadosDANFENatura.caixaNumero = parseInt(cxMatch[1], 10);
-      dadosDANFENatura.caixaTotal = parseInt(cxMatch[2], 10);
-      console.log(`[Parser DANFE Natura] Caixa: ${dadosDANFENatura.caixaNumero}/${dadosDANFENatura.caixaTotal}`);
+    // OCR costuma confundir: CX -> OX, 0 -> O, etc
+    const cxPatternsDANFE = [
+      /\bCX\s*(\d{1,3})\s*[\/\\]\s*(\d{1,3})/i,           // Normal: CX 002/003
+      /\bCX\.?\s*(\d{1,3})\s*[\/\\]\s*(\d{1,3})/i,        // CX. 002/003
+      /\b[O0C]X\s*(\d{1,3})\s*[\/\\]\s*(\d{1,3})/i,       // OX ou 0X
+      /\bCX\s*([O0]\d{1,2})\s*[\/\\]\s*([O0]\d{1,2})/i,  // CX O02/O03
+      /\b(\d{1,3})\s*[\/\\]\s*(\d{1,3})\s*CX/i,           // 002/003 CX (invertido)
+      /\b(\d{1,3})\s*DE\s*(\d{1,3})\b/i,                   // 02 DE 03
+    ];
+    
+    for (const p of cxPatternsDANFE) {
+      const m = texto.match(p);
+      if (m) {
+        // Converter O para 0 se OCR leu errado
+        const num1 = m[1].replace(/O/gi, '0');
+        const num2 = m[2].replace(/O/gi, '0');
+        dadosDANFENatura.caixaNumero = parseInt(num1, 10);
+        dadosDANFENatura.caixaTotal = parseInt(num2, 10);
+        console.log(`[Parser DANFE Natura] Caixa: ${dadosDANFENatura.caixaNumero}/${dadosDANFENatura.caixaTotal}`);
+        break;
+      }
     }
     
-    // Padrão 2: "Volumes: - 3" ou "Volumes: 3" (apenas total)
+    // Padrão complementar: "Volumes: - 3" ou "Volumes: 3" (apenas total)
     if (!dadosDANFENatura.caixaTotal) {
       const volumesMatch = texto.match(/Volumes?:\s*[-–]?\s*(\d{1,3})/i);
       if (volumesMatch) {

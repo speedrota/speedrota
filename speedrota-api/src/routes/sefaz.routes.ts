@@ -579,8 +579,16 @@ export async function sefazRoutes(fastify: FastifyInstance) {
       console.log(`[SEFAZ OCR] SUCESSO: confiança=${resultado.confianca?.toFixed(1)}%, tipo=${resultado.tipoDocumento}, fornecedor=${resultado.fornecedor}`);
       if (resultado.caixa) {
         console.log(`[SEFAZ OCR] Dados caixa: PED=${resultado.caixa.pedido}, REM=${resultado.caixa.remessa}, CX=${resultado.caixa.numero}/${resultado.caixa.total}`);
+        // Log de match key baseada na REM (mais estável que PED para matching entre documentos)
+        if (resultado.caixa.remessa) {
+          console.log(`[SEFAZ OCR] Match Key (REM): ${resultado.caixa.remessa} - Use esta chave para agrupar caixas da mesma entrega`);
+        }
       }
       console.log('='.repeat(60));
+      
+      // Gerar matchKey baseada na REM (mais estável para matching entre documentos)
+      // PED pode variar por erro de OCR (642 vs 842), mas REM tende a ser consistente
+      const matchKey = resultado.caixa?.remessa ? `REM-${resultado.caixa.remessa}` : undefined;
       
       return {
         success: true,
@@ -594,6 +602,7 @@ export async function sefazRoutes(fastify: FastifyInstance) {
           notaFiscal: resultado.notaFiscal,
           dadosAdicionais: resultado.dadosAdicionais,
           caixa: resultado.caixa,  // Dados de etiqueta de caixa
+          matchKey,  // Chave para agrupar documentos da mesma entrega
           textoExtraido: resultado.textoExtraido  // Texto OCR para debug
         }
       };
