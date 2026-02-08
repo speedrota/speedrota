@@ -1,6 +1,6 @@
 /**
  * @description Tela de escolha: Carga já separada ou fazer separação
- * Para GESTOR_FROTA: Inclui seleção de motorista destino
+ * Para GESTOR_FROTA: Inclui seleção de motorista ou empresa destino
  * 
  * @pre Endereço de origem já definido
  * @post Navega para download de rotas prontas OU para tela de matching
@@ -10,6 +10,14 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouteStore } from '../store/routeStore';
 import { API_URL } from '../config';
 import './EscolhaCarga.css';
+
+// Tipo da empresa para seleção
+interface EmpresaFrota {
+  id: string;
+  nome: string;
+  cnpj?: string;
+  totalMotoristas?: number;
+}
 
 // Tipo do motorista para seleção
 interface MotoristaFrota {
@@ -23,6 +31,9 @@ interface MotoristaFrota {
     nome: string;
   };
 }
+
+// Tipo de destino selecionado
+type TipoDestino = 'motorista' | 'empresa' | null;
 
 // Tipo do arquivo de rota exportada (.speedrota)
 interface ArquivoRota {
@@ -95,13 +106,17 @@ export function TelaEscolhaCarga() {
   const [importando, setImportando] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // Estados para GESTOR_FROTA - seleção de motorista
+  // Estados para GESTOR_FROTA - seleção de motorista OU empresa
   const [isGestorFrota, setIsGestorFrota] = useState(false);
+  const [tipoDestinoSelecionado, setTipoDestinoSelecionado] = useState<TipoDestino>(null);
   const [motoristas, setMotoristas] = useState<MotoristaFrota[]>([]);
+  const [empresas, setEmpresas] = useState<EmpresaFrota[]>([]);
   const [motoristaSelecionado, setMotoristaSelecionado] = useState<MotoristaFrota | null>(null);
+  const [empresaSelecionada, setEmpresaSelecionada] = useState<EmpresaFrota | null>(null);
   const [carregandoMotoristas, setCarregandoMotoristas] = useState(false);
+  const [carregandoEmpresas, setCarregandoEmpresas] = useState(false);
   
-  // Verificar se é GESTOR_FROTA e buscar motoristas
+  // Verificar se é GESTOR_FROTA e buscar dados
   useEffect(() => {
     const token = localStorage.getItem('speedrota_token');
     if (token) {
@@ -110,6 +125,7 @@ export function TelaEscolhaCarga() {
         if (payload.tipoUsuario === 'GESTOR_FROTA') {
           setIsGestorFrota(true);
           buscarMotoristas();
+          buscarEmpresas();
         }
       } catch (e) {
         console.error('Erro ao parsear token:', e);
@@ -117,12 +133,13 @@ export function TelaEscolhaCarga() {
     }
   }, []);
   
-  // Buscar rotas preparadas ao carregar (ou quando seleciona motorista)
+  // Buscar rotas preparadas ao carregar (ou quando seleciona motorista/empresa)
   useEffect(() => {
-    if (!isGestorFrota || motoristaSelecionado) {
+    const destinoSelecionado = motoristaSelecionado || empresaSelecionada;
+    if (!isGestorFrota || destinoSelecionado) {
       buscarRotasPreparadas();
     }
-  }, [motoristaSelecionado, isGestorFrota]);
+  }, [motoristaSelecionado, empresaSelecionada, isGestorFrota]);
   
   async function buscarMotoristas() {
     setCarregandoMotoristas(true);
@@ -141,6 +158,37 @@ export function TelaEscolhaCarga() {
     } finally {
       setCarregandoMotoristas(false);
     }
+  }
+  
+  async function buscarEmpresas() {
+    setCarregandoEmpresas(true);
+    try {
+      const token = localStorage.getItem('speedrota_token');
+      const res = await fetch(`${API_URL}/frota/empresas`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        setEmpresas(data.empresas || data || []);
+      }
+    } catch (error) {
+      console.error('Erro ao buscar empresas:', error);
+    } finally {
+      setCarregandoEmpresas(false);
+    }
+  }
+  
+  function selecionarMotorista(m: MotoristaFrota) {
+    setMotoristaSelecionado(m);
+    setEmpresaSelecionada(null);
+    setTipoDestinoSelecionado('motorista');
+  }
+  
+  function selecionarEmpresa(e: EmpresaFrota) {
+    setEmpresaSelecionada(e);
+    setMotoristaSelecionado(null);
+    setTipoDestinoSelecionado('empresa');
   }
   
   async function buscarRotasPreparadas() {
@@ -197,8 +245,13 @@ export function TelaEscolhaCarga() {
   }
   
   function fazerSeparacaoManual() {
-    // Ir para tela de destinos para fazer o processo completo
-    irPara('destinos');
+    // GESTOR_FROTA: Vai para tela de Matching (Caixas / NF-e / Resultado)
+    // ENTREGADOR: Vai para tela de Destinos (simples - só NF-e)
+    if (isGestorFrota) {
+      irPara('matching');
+    } else {
+      irPara('destinos');
+    }
   }
   
   // Função para importar arquivo .speedrota
@@ -271,64 +324,133 @@ export function TelaEscolhaCarga() {
       <h2>📦 Preparação da Carga</h2>
       <p className="subtitulo">
         {isGestorFrota 
-          ? 'Selecione o motorista e prepare a carga'
+          ? 'Selecione o destino e prepare a carga'
           : 'A carga já foi separada pelo armazenista?'}
       </p>
       
-      {/* GESTOR_FROTA: Seleção de motorista */}
+      {/* GESTOR_FROTA: Seleção de motorista OU empresa */}
       {isGestorFrota && (
-        <section className="secao-selecao-motorista">
-          <h3>🚗 Para qual motorista?</h3>
+        <section className="secao-selecao-destino">
+          <h3>🎯 Para quem é essa carga?</h3>
           
-          {carregandoMotoristas ? (
-            <div className="carregando">
-              <span className="spinner"></span>
-              Buscando motoristas...
-            </div>
-          ) : motoristas.length === 0 ? (
-            <div className="sem-motoristas">
-              <p>Nenhum motorista cadastrado</p>
-              <button 
-                className="btn-cadastrar-motorista"
-                onClick={() => irPara('menu-frota')}
-              >
-                + Cadastrar Motorista
-              </button>
-            </div>
-          ) : (
-            <div className="lista-motoristas">
-              {motoristas.map(m => (
-                <button
-                  key={m.id}
-                  className={`card-motorista ${motoristaSelecionado?.id === m.id ? 'selecionado' : ''}`}
-                  onClick={() => setMotoristaSelecionado(m)}
-                >
-                  <div className="motorista-info">
-                    <span className="motorista-nome">{m.nome}</span>
-                    <span className="motorista-tipo">
-                      {m.tipoMotorista === 'VINCULADO' 
-                        ? `📦 ${m.empresa?.nome || 'Empresa'}`
-                        : '🚗 Autônomo'}
-                    </span>
-                  </div>
-                  <span className={`motorista-status status-${m.status.toLowerCase()}`}>
-                    {m.status === 'DISPONIVEL' ? '🟢' : m.status === 'EM_ROTA' ? '🔵' : '⚪'}
-                  </span>
-                </button>
-              ))}
+          {/* Tabs: Motorista / Empresa */}
+          <div className="tabs-destino">
+            <button 
+              className={`tab-destino ${tipoDestinoSelecionado === 'motorista' || (!tipoDestinoSelecionado && motoristas.length > 0) ? 'active' : ''}`}
+              onClick={() => setTipoDestinoSelecionado('motorista')}
+            >
+              🚗 Motorista
+            </button>
+            <button 
+              className={`tab-destino ${tipoDestinoSelecionado === 'empresa' ? 'active' : ''}`}
+              onClick={() => setTipoDestinoSelecionado('empresa')}
+            >
+              🏢 Empresa
+            </button>
+          </div>
+          
+          {/* Lista de Motoristas */}
+          {(tipoDestinoSelecionado === 'motorista' || (!tipoDestinoSelecionado && motoristas.length > 0)) && (
+            <div className="lista-destinos">
+              {carregandoMotoristas ? (
+                <div className="carregando">
+                  <span className="spinner"></span>
+                  Buscando motoristas...
+                </div>
+              ) : motoristas.length === 0 ? (
+                <div className="sem-itens">
+                  <p>Nenhum motorista cadastrado</p>
+                  <button 
+                    className="btn-cadastrar"
+                    onClick={() => irPara('menu-frota')}
+                  >
+                    + Cadastrar Motorista
+                  </button>
+                </div>
+              ) : (
+                <>
+                  {motoristas.map(m => (
+                    <button
+                      key={m.id}
+                      className={`card-destino ${motoristaSelecionado?.id === m.id ? 'selecionado' : ''}`}
+                      onClick={() => selecionarMotorista(m)}
+                    >
+                      <div className="destino-info">
+                        <span className="destino-nome">{m.nome}</span>
+                        <span className="destino-tipo">
+                          {m.tipoMotorista === 'VINCULADO' 
+                            ? `📦 ${m.empresa?.nome || 'Empresa'}`
+                            : '🚗 Autônomo'}
+                        </span>
+                      </div>
+                      <span className="destino-status">
+                        {m.status === 'DISPONIVEL' ? '🟢' : m.status === 'EM_ROTA' ? '🔵' : '⚪'}
+                      </span>
+                    </button>
+                  ))}
+                </>
+              )}
             </div>
           )}
           
+          {/* Lista de Empresas */}
+          {tipoDestinoSelecionado === 'empresa' && (
+            <div className="lista-destinos">
+              {carregandoEmpresas ? (
+                <div className="carregando">
+                  <span className="spinner"></span>
+                  Buscando empresas...
+                </div>
+              ) : empresas.length === 0 ? (
+                <div className="sem-itens">
+                  <p>Nenhuma empresa cadastrada</p>
+                  <button 
+                    className="btn-cadastrar"
+                    onClick={() => irPara('menu-frota')}
+                  >
+                    + Cadastrar Empresa
+                  </button>
+                </div>
+              ) : (
+                <>
+                  {empresas.map(e => (
+                    <button
+                      key={e.id}
+                      className={`card-destino ${empresaSelecionada?.id === e.id ? 'selecionado' : ''}`}
+                      onClick={() => selecionarEmpresa(e)}
+                    >
+                      <div className="destino-info">
+                        <span className="destino-nome">{e.nome}</span>
+                        <span className="destino-tipo">
+                          🏢 {e.cnpj || 'Empresa de Transporte'}
+                        </span>
+                      </div>
+                      <span className="destino-status">
+                        {e.totalMotoristas || 0} motoristas
+                      </span>
+                    </button>
+                  ))}
+                </>
+              )}
+            </div>
+          )}
+          
+          {/* Confirmação de seleção */}
           {motoristaSelecionado && (
-            <div className="motorista-selecionado-info">
-              ✅ Preparando carga para: <strong>{motoristaSelecionado.nome}</strong>
+            <div className="destino-selecionado-info">
+              ✅ Preparando carga para: <strong>🚗 {motoristaSelecionado.nome}</strong>
+            </div>
+          )}
+          {empresaSelecionada && (
+            <div className="destino-selecionado-info">
+              ✅ Preparando carga para: <strong>🏢 {empresaSelecionada.nome}</strong>
             </div>
           )}
         </section>
       )}
       
-      {/* Bloquear opções até selecionar motorista (se GESTOR_FROTA) */}
-      {(!isGestorFrota || motoristaSelecionado) && (
+      {/* Bloquear opções até selecionar destino (se GESTOR_FROTA) */}
+      {(!isGestorFrota || motoristaSelecionado || empresaSelecionada) && (
         <>
       {/* Opção 1: Rotas já preparadas */}
       <section className="secao-rotas-prontas">

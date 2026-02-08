@@ -140,7 +140,18 @@ export default async function frotaRoutes(fastify: FastifyInstance) {
       },
     });
 
-    return empresas;
+    // Mapear para formato com totalMotoristas
+    const empresasFormatadas = empresas.map(e => ({
+      id: e.id,
+      nome: e.nome,
+      cnpj: e.cnpj,
+      totalMotoristas: e._count.motoristas,
+      totalVeiculos: e._count.veiculos,
+      totalEquipes: e._count.equipes,
+      totalRotas: e._count.rotasEmpresa,
+    }));
+
+    return { empresas: empresasFormatadas };
   });
 
   // Buscar empresa por ID
@@ -403,7 +414,7 @@ export default async function frotaRoutes(fastify: FastifyInstance) {
       orderBy: { nome: 'asc' },
     });
 
-    return motoristas;
+    return { motoristas };
   });
 
   // Buscar motorista por ID
