@@ -55,6 +55,8 @@ const app = Fastify({
       }
     } : undefined,
   },
+  // Aumentar limite de body para 20MB (imagens base64 são grandes)
+  bodyLimit: 20 * 1024 * 1024, // 20MB
 });
 
 // ==========================================
