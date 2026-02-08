@@ -1,10 +1,14 @@
 package br.com.speedrota.ui.screens.separacao
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.util.Base64
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -51,6 +55,24 @@ fun SeparacaoScreen(
     onBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
+    
+    // Estado de permissão de câmera
+    var hasCameraPermission by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.CAMERA
+            ) == PackageManager.PERMISSION_GRANTED
+        )
+    }
+    
+    // Launcher para solicitar permissão
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        hasCameraPermission = isGranted
+    }
     
     // Launcher para câmera
     val cameraLauncherCaixa = rememberLauncherForActivityResult(
@@ -133,14 +155,26 @@ fun SeparacaoScreen(
             when (uiState.step) {
                 SeparacaoStep.CAIXAS -> CaixasStep(
                     caixas = uiState.caixas,
-                    onFotografar = { cameraLauncherCaixa.launch(null) },
+                    onFotografar = { 
+                        if (hasCameraPermission) {
+                            cameraLauncherCaixa.launch(null)
+                        } else {
+                            permissionLauncher.launch(Manifest.permission.CAMERA)
+                        }
+                    },
                     onRemover = { viewModel.removerCaixa(it) },
                     onAvancar = { viewModel.avancarParaNotas() }
                 )
                 SeparacaoStep.NOTAS -> NotasStep(
                     notas = uiState.notas,
                     caixasCount = uiState.caixas.filter { it.status == ItemStatus.READY }.size,
-                    onFotografar = { cameraLauncherNota.launch(null) },
+                    onFotografar = { 
+                        if (hasCameraPermission) {
+                            cameraLauncherNota.launch(null)
+                        } else {
+                            permissionLauncher.launch(Manifest.permission.CAMERA)
+                        }
+                    },
                     onRemover = { viewModel.removerNota(it) },
                     onVoltar = { viewModel.voltarParaCaixas() },
                     onMatching = { viewModel.executarMatching() }

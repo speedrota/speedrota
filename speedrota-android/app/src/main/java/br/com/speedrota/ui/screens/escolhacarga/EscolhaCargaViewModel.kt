@@ -12,6 +12,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONObject
@@ -100,16 +102,25 @@ class EscolhaCargaViewModel @Inject constructor(
             
             try {
                 val token = preferencesManager.token.first()
+                android.util.Log.d("EscolhaCarga", "Buscando motoristas - Token: ${token?.take(20)}...")
+                android.util.Log.d("EscolhaCarga", "URL: $apiUrl/frota/motoristas/todos")
+                
                 val request = Request.Builder()
                     .url("$apiUrl/frota/motoristas/todos")
                     .addHeader("Authorization", "Bearer $token")
                     .get()
                     .build()
                 
-                val response = client.newCall(request).execute()
+                val response = withContext(Dispatchers.IO) {
+                    client.newCall(request).execute()
+                }
+                
+                android.util.Log.d("EscolhaCarga", "Response code: ${response.code}")
                 
                 if (response.isSuccessful) {
-                    val json = JSONObject(response.body?.string() ?: "{}")
+                    val responseBody = response.body?.string() ?: "{}"
+                    android.util.Log.d("EscolhaCarga", "Response body: ${responseBody.take(500)}")
+                    val json = JSONObject(responseBody)
                     val motoristasArray = json.optJSONArray("motoristas")
                     val lista = mutableListOf<MotoristaFrota>()
                     
@@ -163,7 +174,9 @@ class EscolhaCargaViewModel @Inject constructor(
                     .get()
                     .build()
                 
-                val response = client.newCall(request).execute()
+                val response = withContext(Dispatchers.IO) {
+                    client.newCall(request).execute()
+                }
                 
                 if (response.isSuccessful) {
                     val json = JSONObject(response.body?.string() ?: "{}")

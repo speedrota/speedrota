@@ -17,6 +17,7 @@ sealed class Screen(val route: String) {
         fun createRoute(empresaId: String) = "frota-gestor/$empresaId"
     }
     data object Origem : Screen("origem")
+    data object EscolhaCarga : Screen("escolha-carga")
     data object Destinos : Screen("destinos")
     data object Rota : Screen("rota?rotaId={rotaId}") {
         fun createRoute(rotaId: String? = null) = if (rotaId != null) "rota?rotaId=$rotaId" else "rota"
