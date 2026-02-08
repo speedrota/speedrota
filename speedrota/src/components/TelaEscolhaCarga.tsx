@@ -257,13 +257,9 @@ export function TelaEscolhaCarga() {
   }
   
   function fazerSeparacaoManual() {
-    // GESTOR_FROTA: Vai para tela de Separação (Caixas → Notas → Matching → Resultado)
-    // ENTREGADOR: Vai para tela de Destinos (simples - só NF-e)
-    if (isGestorFrota) {
-      irPara('separacao');
-    } else {
-      irPara('destinos');
-    }
+    // Todos vão para tela de Separação (Caixas → Notas → Matching → Resultado)
+    // A diferença de comportamento (arquivo vs rota) é decidida na TelaSeparacao
+    irPara('separacao');
   }
   
   // Função para importar arquivo .speedrota
