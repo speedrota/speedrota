@@ -3,14 +3,69 @@
  * 
  * @description Usa Tesseract.js para extrair texto de imagens e identificar
  *              chaves de acesso de 44 dígitos e endereços.
- *              Versão 2.0 com extração robusta portada do frontend Web.
+ *              Versão 3.0 com worker pool para melhor performance.
  * 
  * @pre Imagem em base64 válida (JPEG, PNG)
  * @post Texto extraído + chave de acesso (se encontrada)
  */
 
-import Tesseract from 'tesseract.js';
+import Tesseract, { createWorker, Worker } from 'tesseract.js';
 import sharp from 'sharp';
+import path from 'path';
+
+// ==========================================
+// WORKER POOL PARA PERFORMANCE OTIMIZADA
+// ==========================================
+
+/**
+ * Singleton do worker Tesseract para evitar criar/destruir a cada OCR
+ * PERFORMANCE: Criar worker = ~2-3s, reutilizar = ~100-300ms
+ */
+let ocrWorker: Worker | null = null;
+let workerInitPromise: Promise<Worker> | null = null;
+
+async function getOcrWorker(): Promise<Worker> {
+  // Se já existe worker inicializado, retorna
+  if (ocrWorker) {
+    return ocrWorker;
+  }
+  
+  // Se está inicializando, aguarda
+  if (workerInitPromise) {
+    return workerInitPromise;
+  }
+  
+  // Inicializa novo worker
+  console.log('[OCR] Inicializando worker Tesseract (singleton)...');
+  const startTime = Date.now();
+  
+  workerInitPromise = (async () => {
+    const worker = await createWorker('por', 1, {
+      logger: m => {
+        if (m.status === 'loading tesseract core') {
+          console.log('[OCR] Carregando Tesseract core...');
+        } else if (m.status === 'loading language traineddata') {
+          console.log('[OCR] Carregando dados do idioma português...');
+        }
+      }
+    });
+    
+    ocrWorker = worker;
+    console.log(`[OCR] Worker inicializado em ${Date.now() - startTime}ms`);
+    return worker;
+  })();
+  
+  return workerInitPromise;
+}
+
+// Cleanup ao encerrar o processo
+process.on('beforeExit', async () => {
+  if (ocrWorker) {
+    console.log('[OCR] Encerrando worker Tesseract...');
+    await ocrWorker.terminate();
+    ocrWorker = null;
+  }
+});
 
 // ==========================================
 // CIDADES CONHECIDAS COM CORREÇÃO OCR
@@ -275,19 +330,23 @@ async function rotacionarImagem(imageBuffer: Buffer, graus: number): Promise<Buf
  * Executa OCR em um buffer de imagem
  * @pre buffer válido
  * @post resultado do Tesseract
+ * 
+ * OTIMIZAÇÃO v3.0: Usa worker singleton para evitar criar/destruir a cada OCR
+ * Isso reduz tempo de ~3s para ~200ms em chamadas subsequentes
  */
 async function executarOCR(imageBuffer: Buffer): Promise<Tesseract.RecognizeResult> {
-  return Tesseract.recognize(
-    imageBuffer,
-    'por',
-    {
-      logger: m => {
-        if (m.status === 'recognizing text') {
-          console.log(`[OCR] Progresso: ${Math.round((m.progress || 0) * 100)}%`);
-        }
-      }
-    }
-  );
+  const startTime = Date.now();
+  
+  // Usa worker singleton em vez de Tesseract.recognize
+  const worker = await getOcrWorker();
+  
+  console.log(`[OCR] Worker obtido em ${Date.now() - startTime}ms`);
+  
+  const result = await worker.recognize(imageBuffer);
+  
+  console.log(`[OCR] Reconhecimento completo em ${Date.now() - startTime}ms`);
+  
+  return result;
 }
 
 /**

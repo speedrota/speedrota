@@ -91,7 +91,8 @@ class EscolhaCargaViewModel @Inject constructor(
             if (isGestor) {
                 buscarMotoristas()
             } else {
-                buscarRotasPreparadas()
+                // Buscar rotas de forma silenciosa (não bloqueia UI)
+                buscarRotasPreparadasSilencioso()
             }
         }
     }
@@ -162,7 +163,9 @@ class EscolhaCargaViewModel @Inject constructor(
     
     fun selecionarMotorista(motorista: MotoristaFrota) {
         _uiState.value = _uiState.value.copy(motoristaSelecionado = motorista)
-        buscarRotasPreparadas()
+        // Não buscar rotas automaticamente - só quando o usuário pedir
+        // O usuário pode querer ir direto para Separação
+        buscarRotasPreparadasSilencioso()
     }
     
     fun buscarRotasPreparadas() {
@@ -230,6 +233,77 @@ class EscolhaCargaViewModel @Inject constructor(
                     isLoading = false,
                     erro = e.message
                 )
+            }
+        }
+    }
+    
+    /**
+     * Busca rotas preparadas sem exibir erro ao usuário
+     * Usado para carregamento em background quando o usuário ainda pode querer ir para Separação
+     */
+    private fun buscarRotasPreparadasSilencioso() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true)
+            
+            try {
+                val token = preferencesManager.token.first()
+                val request = Request.Builder()
+                    .url("$apiUrl/rotas/preparadas")
+                    .addHeader("Authorization", "Bearer $token")
+                    .get()
+                    .build()
+                
+                val response = withContext(Dispatchers.IO) {
+                    client.newCall(request).execute()
+                }
+                
+                if (response.isSuccessful) {
+                    val json = JSONObject(response.body?.string() ?: "{}")
+                    val rotasArray = json.optJSONArray("rotas")
+                    val lista = mutableListOf<RotaPreparada>()
+                    
+                    if (rotasArray != null) {
+                        for (i in 0 until rotasArray.length()) {
+                            val r = rotasArray.getJSONObject(i)
+                            val paradasArray = r.optJSONArray("paradas")
+                            val caixasArray = r.optJSONArray("caixas")
+                            
+                            val caixasPreview = mutableListOf<CaixaPreview>()
+                            if (caixasArray != null) {
+                                for (j in 0 until minOf(6, caixasArray.length())) {
+                                    val c = caixasArray.getJSONObject(j)
+                                    caixasPreview.add(CaixaPreview(
+                                        id = c.getString("id"),
+                                        tagVisual = c.optString("tagVisual", null),
+                                        tagCor = if (c.has("tagCor")) c.getInt("tagCor") else null,
+                                        destinatario = c.optString("destinatario", null)
+                                    ))
+                                }
+                            }
+                            
+                            lista.add(RotaPreparada(
+                                id = r.getString("id"),
+                                preparadaEm = r.optString("preparadaEm", ""),
+                                totalParadas = paradasArray?.length() ?: 0,
+                                totalCaixas = caixasArray?.length() ?: 0,
+                                caixasPreview = caixasPreview
+                            ))
+                        }
+                    }
+                    
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        rotasDisponiveis = lista
+                    )
+                } else {
+                    // Falhou mas não mostra erro - usuário pode ir para Separação
+                    android.util.Log.w("EscolhaCarga", "Rotas preparadas não disponíveis: ${response.code}")
+                    _uiState.value = _uiState.value.copy(isLoading = false)
+                }
+            } catch (e: Exception) {
+                // Falhou silenciosamente - não bloquear o fluxo
+                android.util.Log.w("EscolhaCarga", "Erro ao buscar rotas preparadas: ${e.message}")
+                _uiState.value = _uiState.value.copy(isLoading = false)
             }
         }
     }

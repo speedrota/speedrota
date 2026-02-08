@@ -1,7 +1,16 @@
 /**
  * @fileoverview Serviço de OCR para extração de dados de NF-e
  * 
- * VERSÃO 2.1 - COM PRÉ-PROCESSAMENTO DE IMAGEM
+ * VERSÃO 4.0 - OCR VIA API BACKEND EXCLUSIVO
+ * 
+ * ⚠️ PRODUÇÃO: App hospedado no Vercel/Render
+ * - Função principal processarImagemNFe usa SOMENTE API
+ * - API funciona OU retorna erro (sem fallback impossível)
+ * - Sem simulação, sem dados fake
+ * 
+ * Funções legadas (Tesseract.js browser) ainda disponíveis:
+ * - extrairTexto() / extrairTextoRapido() - lentas mas funcionam
+ * - Preferir extrairTextoViaApi() para performance
  * 
  * Otimizado para formatos brasileiros de NF-e incluindo:
  * - DANFE tradicional
@@ -11,9 +20,97 @@
 
 import { createWorker, Worker } from 'tesseract.js';
 import type { DadosNFe, Fornecedor } from '../types';
+import { API_URL } from '../config';
 
 // ==========================================
-// WORKER DO TESSERACT
+// OCR VIA API BACKEND (RECOMENDADO)
+// ==========================================
+
+export interface OcrApiResponse {
+  success: boolean;
+  data?: {
+    chaveAcesso?: string;
+    textoExtraido?: string;
+    confianca?: number;
+    tipoDocumento?: string;
+    fornecedor?: string;
+    endereco?: {
+      logradouro?: string;
+      numero?: string;
+      complemento?: string;
+      bairro?: string;
+      cidade?: string;
+      uf?: string;
+      cep?: string;
+      enderecoCompleto?: string;
+    };
+    destinatario?: {
+      nome?: string;
+    };
+    dadosAdicionais?: {
+      nomeDestinatario?: string;
+      enderecoDestinatario?: string;
+    };
+    notaFiscal?: {
+      numero?: string;
+      serie?: string;
+      dataEmissao?: string;
+      valorTotal?: number;
+      chaveAcesso?: string;
+    };
+  };
+  error?: string;
+}
+
+/**
+ * Processa imagem via API backend (worker pool otimizado)
+ * @pre imagemBase64 é imagem válida
+ * @post Dados OCR extraídos ou null se falhar
+ */
+export async function processarOcrViaApi(imagemBase64: string): Promise<OcrApiResponse | null> {
+  try {
+    console.log('[OCR API] Enviando imagem para backend...');
+    const startTime = Date.now();
+    
+    const response = await fetch(`${API_URL}/sefaz/ocr/analisar`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ imagem: imagemBase64 }),
+    });
+    
+    const result = await response.json();
+    
+    console.log(`[OCR API] Resposta em ${Date.now() - startTime}ms, sucesso: ${result.success}`);
+    
+    return result;
+  } catch (error) {
+    console.error('[OCR API] Erro:', error);
+    return null;
+  }
+}
+
+/**
+ * Extrai APENAS o texto via API backend (para etiquetas de caixa)
+ * Mais simples que processarOcrViaApi que parseia NF-e
+ * @pre imagemBase64 é imagem válida
+ * @post Texto extraído ou string vazia se falhar
+ */
+export async function extrairTextoViaApi(imagemBase64: string): Promise<string> {
+  try {
+    const result = await processarOcrViaApi(imagemBase64);
+    return result?.data?.textoExtraido || '';
+  } catch (error) {
+    console.error('[OCR API] Erro ao extrair texto:', error);
+    return '';
+  }
+}
+
+// ==========================================
+// WORKER DO TESSERACT (BROWSER LOCAL)
+// ⚠️ NOTA: Tesseract.js funciona no browser mas é LENTO
+// Preferir API backend (mais rápido com worker pool)
 // ==========================================
 
 let tesseractWorker: Worker | null = null;
@@ -1353,30 +1450,84 @@ function calcularConfianca(dados: { endereco: string; cidade: string; cep: strin
 // FUNÇÃO PRINCIPAL
 // ==========================================
 
+/**
+ * Processa imagem de NF-e via API backend
+ * 
+ * @pre imagem é File, Blob ou base64 válido
+ * @post Retorna DadosNFe ou null se falhar/sem dados mínimos
+ * @throws Error se API falhar (NÃO há fallback em produção)
+ * 
+ * ⚠️ PRODUÇÃO: Sem fallback local. API funciona OU erro.
+ */
 export async function processarImagemNFe(
   imagem: File | Blob | string,
   onProgress?: (progress: OCRProgress) => void
 ): Promise<DadosNFe | null> {
   console.log('[OCR] ========================================');
-  console.log('[OCR] Processando imagem de NF-e v2.0');
+  console.log('[OCR] Processando imagem de NF-e v4.0');
+  console.log('[OCR] Modo: API (sem fallback local)');
   console.log('[OCR] ========================================');
   
   try {
-    const texto = await extrairTexto(imagem, onProgress);
+    onProgress?.({ progress: 0.1, stage: 'preparing' });
     
-    if (!texto || texto.length < 30) {
-      console.error('[OCR] Texto insuficiente extraído');
+    // Converter imagem para base64 se necessário
+    let base64Image: string;
+    if (typeof imagem === 'string') {
+      base64Image = imagem.replace(/^data:image\/[^;]+;base64,/, '');
+    } else {
+      const reader = new FileReader();
+      base64Image = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => {
+          const result = reader.result as string;
+          resolve(result.replace(/^data:image\/[^;]+;base64,/, ''));
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(imagem);
+      });
+    }
+    
+    onProgress?.({ progress: 0.3, stage: 'recognizing' });
+    
+    // Chamar API - ÚNICA fonte de OCR em produção
+    const apiResult = await processarOcrViaApi(base64Image);
+    
+    // Verificar resposta da API
+    if (!apiResult) {
+      console.error('[OCR] API não respondeu');
+      throw new Error('Serviço de OCR indisponível. Tente novamente.');
+    }
+    
+    if (!apiResult.success) {
+      console.error('[OCR] API retornou erro:', apiResult.error);
+      throw new Error(apiResult.error || 'Erro ao processar imagem no servidor');
+    }
+    
+    if (!apiResult.data) {
+      console.error('[OCR] API retornou sucesso mas sem dados');
       return null;
     }
     
-    const dados = parsearNFe(texto);
+    onProgress?.({ progress: 0.9, stage: 'parsing' });
     
-    if (!dados) {
-      console.warn('[OCR] Parser retornou null');
-      return null;
-    }
+    const dados: DadosNFe = {
+      chaveAcesso: apiResult.data.chaveAcesso || apiResult.data.notaFiscal?.chaveAcesso || '',
+      destinatario: {
+        nome: apiResult.data.destinatario?.nome || apiResult.data.dadosAdicionais?.nomeDestinatario || '',
+        endereco: apiResult.data.endereco?.logradouro || '',
+        numero: apiResult.data.endereco?.numero || '',
+        complemento: apiResult.data.endereco?.complemento || '',
+        bairro: apiResult.data.endereco?.bairro || '',
+        cidade: apiResult.data.endereco?.cidade || '',
+        uf: apiResult.data.endereco?.uf || '',
+        cep: apiResult.data.endereco?.cep || '',
+      },
+      fornecedor: (apiResult.data.fornecedor?.toLowerCase() || 'outro') as Fornecedor,
+      confiancaOCR: apiResult.data.confianca || 0.85,
+      textoOriginal: apiResult.data.textoExtraido || '',
+    };
     
-    // Verificar se tem dados mínimos
+    // Verificar dados mínimos para geocodificação
     const temEndereco = dados.destinatario.endereco.length > 3;
     const temCidade = dados.destinatario.cidade.length > 2;
     const temCEP = dados.destinatario.cep.length >= 8;
@@ -1385,7 +1536,7 @@ export async function processarImagemNFe(
     const temDadosMinimos = temEndereco || temCEP || (temCidade && temBairro);
     
     if (!temDadosMinimos) {
-      console.warn('[OCR] Dados mínimos não encontrados');
+      console.warn('[OCR] Dados mínimos para geocodificação não encontrados');
       console.warn('  endereco:', dados.destinatario.endereco);
       console.warn('  cidade:', dados.destinatario.cidade);
       console.warn('  cep:', dados.destinatario.cep);
@@ -1393,9 +1544,18 @@ export async function processarImagemNFe(
       return null;
     }
     
+    onProgress?.({ progress: 1.0, stage: 'complete' });
+    
     console.log('[OCR] ========================================');
-    console.log('[OCR] SUCESSO - Dados extraídos');
+    console.log('[OCR] SUCESSO via API - Dados extraídos');
     console.log('[OCR] ========================================');
+    
+    return dados;
+  } catch (error) {
+    console.error('[OCR] Erro:', error);
+    throw error;
+  }
+}
     
     return dados;
   } catch (error) {

@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.util.Base64
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import br.com.speedrota.data.api.SpeedRotaApi
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,9 +23,14 @@ import javax.inject.Inject
  * 2. STEP NOTAS - Fotografar NF-e/DANFEs
  * 3. MATCHING AUTOMÁTICO - PED/REM/SubRota
  * 4. RESULTADO - IDs visuais para cada par
+ * 
+ * @pre API SpeedRotaApi injetada via Hilt
+ * @post Dados reais extraídos via OCR, não simulados
  */
 @HiltViewModel
-class SeparacaoViewModel @Inject constructor() : ViewModel() {
+class SeparacaoViewModel @Inject constructor(
+    private val api: SpeedRotaApi
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SeparacaoUiState())
     val uiState: StateFlow<SeparacaoUiState> = _uiState.asStateFlow()
@@ -54,7 +60,14 @@ class SeparacaoViewModel @Inject constructor() : ViewModel() {
     // STEP 1: CAIXAS
     // ============================================================
 
+    /**
+     * Adiciona caixa e processa via OCR real da API
+     * @pre base64Image é imagem válida em base64
+     * @post Caixa adicionada com status PROCESSING, depois READY ou ERROR
+     */
     fun adicionarCaixa(base64Image: String) {
+        android.util.Log.d("Separacao", "adicionarCaixa chamado, imagem size: ${base64Image.length}")
+        
         val id = "caixa-${System.currentTimeMillis()}"
         val novaCaixa = CaixaItem(
             id = id,
@@ -66,28 +79,60 @@ class SeparacaoViewModel @Inject constructor() : ViewModel() {
             caixas = it.caixas + novaCaixa
         )}
         
-        // Simular processamento OCR
+        android.util.Log.d("Separacao", "Caixa adicionada com status PROCESSING, total: ${_uiState.value.caixas.size}")
+        
+        // Processar OCR via API REAL
         viewModelScope.launch {
-            delay(1500) // Simular OCR
-            
-            // Em produção, chamar API de OCR aqui
-            val dadosExtraidos = CaixaDados(
-                pedido = extrairCampo(base64Image, "PED"),
-                remessa = extrairCampo(base64Image, "REM"),
-                subRota = extrairCampo(base64Image, "SR"),
-                cep = extrairCampo(base64Image, "CEP"),
-                destinatario = "Destino Teste"
-            )
-            
-            _uiState.update { state ->
-                state.copy(
-                    caixas = state.caixas.map { c ->
-                        if (c.id == id) c.copy(
-                            status = ItemStatus.READY,
-                            dados = dadosExtraidos
-                        ) else c
+            try {
+                android.util.Log.d("Separacao", "Chamando API OCR para caixa $id")
+                
+                // Chamar API de OCR real
+                val response = api.analisarImagemNota(mapOf("imagem" to base64Image))
+                
+                if (response.isSuccessful && response.body()?.success == true) {
+                    val data = response.body()?.data
+                    val textoExtraido = data?.textoExtraido ?: ""
+                    
+                    android.util.Log.d("Separacao", "OCR API retornou ${textoExtraido.length} chars")
+                    
+                    // Extrair campos PED/REM/SubRota do texto OCR
+                    val dadosExtraidos = CaixaDados(
+                        pedido = extrairCampoDoTexto(textoExtraido, "PED"),
+                        remessa = extrairCampoDoTexto(textoExtraido, "REM"),
+                        subRota = extrairCampoDoTexto(textoExtraido, "SR"),
+                        cep = data?.endereco?.cep ?: extrairCampoDoTexto(textoExtraido, "CEP"),
+                        destinatario = data?.destinatario?.nome 
+                            ?: data?.dadosAdicionais?.nomeDestinatario
+                            ?: extrairCampoDoTexto(textoExtraido, "DEST")
+                    )
+                    
+                    android.util.Log.d("Separacao", "OCR completo para caixa $id: PED=${dadosExtraidos.pedido}, REM=${dadosExtraidos.remessa}")
+                
+                    _uiState.update { state ->
+                        state.copy(
+                            caixas = state.caixas.map { c ->
+                                if (c.id == id) c.copy(
+                                    status = ItemStatus.READY,
+                                    dados = dadosExtraidos
+                                ) else c
+                            }
+                        )
                     }
-                )
+                } else {
+                    val errorMsg = response.body()?.error ?: response.errorBody()?.string() ?: "Erro desconhecido"
+                    android.util.Log.e("Separacao", "Erro API OCR: $errorMsg")
+                    throw Exception(errorMsg)
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("Separacao", "Erro ao processar caixa $id: ${e.message}", e)
+                _uiState.update { state ->
+                    state.copy(
+                        caixas = state.caixas.map { c ->
+                            if (c.id == id) c.copy(status = ItemStatus.ERROR) else c
+                        },
+                        erro = "Erro ao processar caixa: ${e.message}"
+                    )
+                }
             }
         }
     }
@@ -106,7 +151,14 @@ class SeparacaoViewModel @Inject constructor() : ViewModel() {
     // STEP 2: NOTAS
     // ============================================================
 
+    /**
+     * Adiciona nota fiscal e processa via OCR real da API
+     * @pre base64Image é imagem válida em base64
+     * @post Nota adicionada com status PROCESSING, depois READY ou ERROR
+     */
     fun adicionarNota(base64Image: String) {
+        android.util.Log.d("Separacao", "adicionarNota chamado, imagem size: ${base64Image.length}")
+        
         val id = "nota-${System.currentTimeMillis()}"
         val novaNota = NotaItem(
             id = id,
@@ -118,31 +170,75 @@ class SeparacaoViewModel @Inject constructor() : ViewModel() {
             notas = it.notas + novaNota
         )}
         
-        // Simular processamento OCR
+        android.util.Log.d("Separacao", "Nota adicionada com status PROCESSING, total: ${_uiState.value.notas.size}")
+        
+        // Processar OCR via API REAL
         viewModelScope.launch {
-            delay(2000) // Simular OCR de NF-e (mais demorado)
-            
-            // Em produção, chamar API de OCR aqui
-            val dadosExtraidos = NotaDados(
-                pedido = extrairCampo(base64Image, "PED"),
-                remessa = extrairCampo(base64Image, "REM"),
-                subRota = extrairCampo(base64Image, "SR"),
-                destinatario = "Cliente Teste",
-                endereco = "Rua Teste, 123",
-                cidade = "São Paulo",
-                uf = "SP",
-                cep = "01310-100"
-            )
-            
-            _uiState.update { state ->
-                state.copy(
-                    notas = state.notas.map { n ->
-                        if (n.id == id) n.copy(
-                            status = ItemStatus.READY,
-                            dados = dadosExtraidos
-                        ) else n
+            try {
+                android.util.Log.d("Separacao", "Chamando API OCR para nota $id")
+                
+                // Chamar API de OCR real
+                val response = api.analisarImagemNota(mapOf("imagem" to base64Image))
+                
+                if (response.isSuccessful && response.body()?.success == true) {
+                    val data = response.body()?.data
+                    val textoExtraido = data?.textoExtraido ?: ""
+                    
+                    android.util.Log.d("Separacao", "OCR API retornou ${textoExtraido.length} chars, confianca: ${data?.confianca}")
+                    
+                    // Montar endereço completo
+                    val enderecoCompleto = data?.endereco?.let { end ->
+                        listOfNotNull(
+                            end.logradouro,
+                            end.numero?.let { ", $it" },
+                            end.complemento?.let { " - $it" },
+                            end.bairro?.let { " - $it" }
+                        ).joinToString("")
+                    } ?: data?.dadosAdicionais?.enderecoDestinatario ?: ""
+                    
+                    // Extrair campos PED/REM/SubRota do texto OCR
+                    val dadosExtraidos = NotaDados(
+                        pedido = data?.notaFiscal?.numero 
+                            ?: extrairCampoDoTexto(textoExtraido, "PED"),
+                        remessa = extrairCampoDoTexto(textoExtraido, "REM"),
+                        subRota = extrairCampoDoTexto(textoExtraido, "SR"),
+                        destinatario = data?.destinatario?.nome 
+                            ?: data?.dadosAdicionais?.nomeDestinatario
+                            ?: extrairCampoDoTexto(textoExtraido, "DEST")
+                            ?: "Destinatário",
+                        endereco = enderecoCompleto.ifEmpty { null } ?: "Endereço não identificado",
+                        cidade = data?.endereco?.cidade ?: "",
+                        uf = data?.endereco?.uf ?: "",
+                        cep = data?.endereco?.cep ?: extrairCampoDoTexto(textoExtraido, "CEP") ?: ""
+                    )
+                    
+                    android.util.Log.d("Separacao", "OCR completo para nota $id: PED=${dadosExtraidos.pedido}, DEST=${dadosExtraidos.destinatario}")
+                    
+                    _uiState.update { state ->
+                        state.copy(
+                            notas = state.notas.map { n ->
+                                if (n.id == id) n.copy(
+                                    status = ItemStatus.READY,
+                                    dados = dadosExtraidos
+                                ) else n
+                            }
+                        )
                     }
-                )
+                } else {
+                    val errorMsg = response.body()?.error ?: response.errorBody()?.string() ?: "Erro desconhecido"
+                    android.util.Log.e("Separacao", "Erro API OCR: $errorMsg")
+                    throw Exception(errorMsg)
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("Separacao", "Erro ao processar nota $id: ${e.message}", e)
+                _uiState.update { state ->
+                    state.copy(
+                        notas = state.notas.map { n ->
+                            if (n.id == id) n.copy(status = ItemStatus.ERROR) else n
+                        },
+                        erro = "Erro ao processar nota: ${e.message}"
+                    )
+                }
             }
         }
     }
@@ -308,17 +404,46 @@ class SeparacaoViewModel @Inject constructor() : ViewModel() {
     }
 
     // ============================================================
-    // HELPERS
+    // HELPERS - PARSING REAL DE TEXTO OCR
     // ============================================================
 
-    private fun extrairCampo(base64: String, campo: String): String? {
-        // Em produção, usar OCR real
-        // Por enquanto, gerar dados fake para teste
+    /**
+     * Extrai campos do texto OCR usando padrões regex
+     * @pre texto é resultado do OCR da API
+     * @post Valor extraído ou null se não encontrado
+     * @invariant Nunca retorna dados fake/aleatórios
+     */
+    private fun extrairCampoDoTexto(texto: String, campo: String): String? {
+        if (texto.isBlank()) return null
+        
         return when (campo) {
-            "PED" -> "PED${(1000..9999).random()}"
-            "REM" -> "REM${(100..999).random()}"
-            "SR" -> "SR-${('A'..'Z').random()}${(1..9).random()}"
-            "CEP" -> "${(10000..99999).random()}-${(100..999).random()}"
+            "PED" -> {
+                // Padrões: "PED: 123456", "PEDIDO 123456", "PED123456"
+                val regex = Regex("(?:PED|PEDIDO)[:\\s]*([0-9]{4,12})", RegexOption.IGNORE_CASE)
+                regex.find(texto)?.groupValues?.getOrNull(1)
+            }
+            "REM" -> {
+                // Padrões: "REM: 123456", "REMESSA 123456", "SHIPMENT 123456"
+                val regex = Regex("(?:REM|REMESSA|SHIPMENT)[:\\s]*([0-9]{4,12})", RegexOption.IGNORE_CASE)
+                regex.find(texto)?.groupValues?.getOrNull(1)
+            }
+            "SR" -> {
+                // Padrões: "SUB_ROTA: A1", "SUBROTA SR-B2", "SR: C3"
+                val regex = Regex("(?:SUB[_\\-\\s]?ROTA|SUBROTA|SR)[:\\s]*([A-Z0-9\\-]{2,10})", RegexOption.IGNORE_CASE)
+                regex.find(texto)?.groupValues?.getOrNull(1)?.uppercase()
+            }
+            "CEP" -> {
+                // Padrões: "CEP: 01310-100", "01310-100", "01310100"
+                val regexComLabel = Regex("CEP[:\\s]*(\\d{5}[-]?\\d{3})", RegexOption.IGNORE_CASE)
+                val regexSemLabel = Regex("(\\d{5}[-]\\d{3})")
+                regexComLabel.find(texto)?.groupValues?.getOrNull(1)
+                    ?: regexSemLabel.find(texto)?.groupValues?.getOrNull(1)
+            }
+            "DEST" -> {
+                // Padrões: "DEST: Nome", "DESTINATÁRIO: Nome"
+                val regex = Regex("(?:DEST|DESTINAT[ÁA]RIO)[:\\s]*([A-Za-zÀ-ú\\s]{3,50})", RegexOption.IGNORE_CASE)
+                regex.find(texto)?.groupValues?.getOrNull(1)?.trim()
+            }
             else -> null
         }
     }
