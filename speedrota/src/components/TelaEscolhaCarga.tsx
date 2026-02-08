@@ -112,7 +112,9 @@ export function TelaEscolhaCarga() {
   const [baixando, setBaixando] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [importando, setImportando] = useState(false);
+  const [importandoSeparacao, setImportandoSeparacao] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const separacaoInputRef = useRef<HTMLInputElement>(null);
   
   // Estados para GESTOR_FROTA - seleção de motorista OU empresa
   const [isGestorFrota, setIsGestorFrota] = useState(false);
@@ -325,6 +327,109 @@ export function TelaEscolhaCarga() {
   
   function abrirSeletorArquivo() {
     fileInputRef.current?.click();
+  }
+  
+  // Função para abrir diálogo de arquivo de separação
+  async function abrirSeletorArquivoSeparacao() {
+    // Tentar usar File System Access API para diálogo "Abrir"
+    if ('showOpenFilePicker' in window) {
+      try {
+        const [handle] = await (window as any).showOpenFilePicker({
+          types: [{
+            description: 'Arquivo de Separação',
+            accept: { 'text/plain': ['.txt'] }
+          }],
+          multiple: false
+        });
+        const file = await handle.getFile();
+        await processarArquivoSeparacao(file);
+        return;
+      } catch (err: any) {
+        if (err.name === 'AbortError') return; // Usuário cancelou
+        console.warn('[EscolhaCarga] Fallback para input tradicional:', err);
+      }
+    }
+    // Fallback: input tradicional
+    separacaoInputRef.current?.click();
+  }
+  
+  // Função para processar arquivo de separação
+  async function processarArquivoSeparacao(file: File) {
+    setImportandoSeparacao(true);
+    setErro(null);
+    
+    try {
+      const texto = await file.text();
+      const linhas = texto.split('\n');
+      
+      // Parse do arquivo de separação
+      // Formato: TAG: <tag> | Nome: <nome> | Endereço: <endereco> | CEP: <cep>
+      const destinos: Array<{
+        tag: string;
+        nome: string;
+        endereco: string;
+        cep: string;
+      }> = [];
+      
+      for (const linha of linhas) {
+        if (linha.includes('TAG:') && linha.includes('Nome:') && linha.includes('Endereço:')) {
+          const tagMatch = linha.match(/TAG:\s*([^|]+)/);
+          const nomeMatch = linha.match(/Nome:\s*([^|]+)/);
+          const enderecoMatch = linha.match(/Endereço:\s*([^|]+)/);
+          const cepMatch = linha.match(/CEP:\s*([^|]+)/);
+          
+          if (tagMatch && nomeMatch && enderecoMatch) {
+            destinos.push({
+              tag: tagMatch[1].trim(),
+              nome: nomeMatch[1].trim(),
+              endereco: enderecoMatch[1].trim(),
+              cep: cepMatch ? cepMatch[1].trim() : ''
+            });
+          }
+        }
+      }
+      
+      if (destinos.length === 0) {
+        throw new Error('Nenhum destino encontrado no arquivo');
+      }
+      
+      // Limpar destinos antigos e adicionar novos
+      limparDestinos();
+      
+      for (const d of destinos) {
+        adicionarDestino({
+          nome: d.nome,
+          endereco: d.endereco,
+          cidade: '',
+          uf: '',
+          cep: d.cep,
+          lat: 0, // Será geocodificado depois
+          lng: 0,
+          fornecedor: 'outro',
+          fonte: 'manual',
+          confianca: 1
+        });
+      }
+      
+      console.log(`[EscolhaCarga] Carregados ${destinos.length} destinos do arquivo de separação`);
+      irPara('rota');
+    } catch (error) {
+      console.error('Erro ao processar arquivo de separação:', error);
+      setErro('Erro ao processar arquivo de separação. Verifique o formato.');
+    } finally {
+      setImportandoSeparacao(false);
+      if (separacaoInputRef.current) {
+        separacaoInputRef.current.value = '';
+      }
+    }
+  }
+  
+  // Handler para input file de separação (fallback)
+  function handleSeparacaoFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (file) {
+      processarArquivoSeparacao(file);
+    }
   }
   
   return (
@@ -557,6 +662,32 @@ export function TelaEscolhaCarga() {
             <>📂 Selecionar Arquivo .speedrota</>
           )}
         </button>
+        
+        {/* Carregar arquivo de separação */}
+        <div style={{ marginTop: '12px' }}>
+          <input
+            ref={separacaoInputRef}
+            type="file"
+            accept=".txt"
+            onChange={handleSeparacaoFileChange}
+            style={{ display: 'none' }}
+          />
+          <button 
+            className="btn-importar-arquivo"
+            onClick={abrirSeletorArquivoSeparacao}
+            disabled={importandoSeparacao}
+            style={{ background: '#059669' }}
+          >
+            {importandoSeparacao ? (
+              <>
+                <span className="spinner-small"></span>
+                Carregando...
+              </>
+            ) : (
+              <>📋 Carregar Arquivo de Separação (.txt)</>
+            )}
+          </button>
+        </div>
       </section>
       
       {/* Divider */}

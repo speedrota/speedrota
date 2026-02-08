@@ -351,6 +351,96 @@ class EscolhaCargaViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(rotaBaixada = null)
     }
     
+    /**
+     * Processa arquivo de separação carregado pelo usuário
+     * @param conteudo Conteúdo do arquivo texto
+     */
+    fun processarArquivoSeparacao(conteudo: String) {
+        viewModelScope.launch {
+            try {
+                android.util.Log.d("EscolhaCarga", "Processando arquivo: ${conteudo.length} chars, ${conteudo.lines().size} linhas")
+                
+                // Parse básico do arquivo de separação
+                // O arquivo tem formato:
+                // 📦 1. TAG: XXX-000-00
+                //    Para: Nome Destinatário
+                //    End: Endereço, Número
+                //    Bairro - Cidade/UF
+                //    CEP: 00000-000
+                
+                val destinos = mutableListOf<ParsedDestino>()
+                var currentDestino: MutableMap<String, String>? = null
+                
+                conteudo.lines().forEach { linha ->
+                    when {
+                        linha.contains("📦") && linha.contains("TAG:") -> {
+                            // Novo destino
+                            currentDestino?.let { 
+                                if (it.containsKey("endereco")) {
+                                    destinos.add(ParsedDestino(
+                                        tag = it["tag"] ?: "",
+                                        nome = it["nome"] ?: "",
+                                        endereco = it["endereco"] ?: "",
+                                        cep = it["cep"] ?: ""
+                                    ))
+                                }
+                            }
+                            currentDestino = mutableMapOf()
+                            // Extrair TAG
+                            val tagMatch = Regex("TAG:\\s*(\\S+)").find(linha)
+                            currentDestino?.set("tag", tagMatch?.groupValues?.get(1) ?: "")
+                        }
+                        linha.trim().startsWith("Para:") -> {
+                            currentDestino?.set("nome", linha.substringAfter("Para:").trim())
+                        }
+                        linha.trim().startsWith("End:") -> {
+                            currentDestino?.set("endereco", linha.substringAfter("End:").trim())
+                        }
+                        linha.trim().startsWith("CEP:") -> {
+                            currentDestino?.set("cep", linha.substringAfter("CEP:").trim())
+                        }
+                    }
+                }
+                
+                // Último destino
+                currentDestino?.let { 
+                    if (it.containsKey("endereco")) {
+                        destinos.add(ParsedDestino(
+                            tag = it["tag"] ?: "",
+                            nome = it["nome"] ?: "",
+                            endereco = it["endereco"] ?: "",
+                            cep = it["cep"] ?: ""
+                        ))
+                    }
+                }
+                
+                android.util.Log.d("EscolhaCarga", "Destinos extraídos: ${destinos.size}")
+                destinos.forEachIndexed { idx, d -> 
+                    android.util.Log.d("EscolhaCarga", "  $idx: ${d.tag} - ${d.nome} - ${d.endereco}")
+                }
+                
+                // TODO: Transferir para RotaDataHolder
+                if (destinos.isNotEmpty()) {
+                    _uiState.value = _uiState.value.copy(
+                        erro = null
+                    )
+                    // Podemos simular que baixamos uma rota aqui
+                }
+                
+            } catch (e: Exception) {
+                android.util.Log.e("EscolhaCarga", "Erro ao processar arquivo: ${e.message}", e)
+                _uiState.value = _uiState.value.copy(erro = "Erro ao processar arquivo: ${e.message}")
+            }
+        }
+    }
+    
+    data class ParsedDestino(
+        val tag: String,
+        val nome: String,
+        val endereco: String,
+        val cep: String
+    )
+    
     companion object {
         val CORES_TAG = mapOf(
             1 to 0xFFf97316.toInt(),

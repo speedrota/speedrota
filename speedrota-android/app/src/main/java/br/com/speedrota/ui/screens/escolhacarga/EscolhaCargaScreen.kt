@@ -1,5 +1,8 @@
 package br.com.speedrota.ui.screens.escolhacarga
 
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -15,6 +18,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -41,6 +45,31 @@ fun EscolhaCargaScreen(
     onBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
+    
+    // Estado para arquivo carregado
+    var arquivoCarregado by remember { mutableStateOf<String?>(null) }
+    
+    // Launcher para carregar arquivo de separação
+    val carregarArquivoLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            try {
+                context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                    val conteudo = inputStream.bufferedReader().use { it.readText() }
+                    arquivoCarregado = conteudo
+                    Toast.makeText(context, "Arquivo carregado! ${conteudo.lines().size} linhas", Toast.LENGTH_SHORT).show()
+                    android.util.Log.d("EscolhaCarga", "Arquivo carregado: ${conteudo.length} chars")
+                    // TODO: Processar arquivo de separação e carregar destinos
+                    viewModel.processarArquivoSeparacao(conteudo)
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("EscolhaCarga", "Erro ao carregar arquivo: ${e.message}", e)
+                Toast.makeText(context, "Erro ao carregar: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
     
     // Navegar quando baixar rota
     LaunchedEffect(uiState.rotaBaixada) {
@@ -322,6 +351,23 @@ fun EscolhaCargaScreen(
                             Icon(Icons.Default.CameraAlt, contentDescription = null)
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("Escanear Notas e Caixas", fontSize = 16.sp)
+                        }
+                        
+                        Spacer(modifier = Modifier.height(12.dp))
+                        
+                        // Botão para carregar arquivo de separação existente
+                        OutlinedButton(
+                            onClick = { 
+                                carregarArquivoLauncher.launch(arrayOf("text/plain", "text/*"))
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Icon(Icons.Default.Upload, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Carregar Arquivo de Separação", fontSize = 14.sp)
                         }
                     }
                 }

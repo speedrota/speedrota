@@ -6,6 +6,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.Base64
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -37,6 +38,9 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /**
  * Tela de Separação de Carga
@@ -212,6 +216,36 @@ fun SeparacaoScreen(
         }
     }
     
+    // Estado para armazenar conteúdo do arquivo a salvar
+    var conteudoArquivoParaSalvar by remember { mutableStateOf<String?>(null) }
+    
+    // Launcher para salvar arquivo com diálogo de escolha de diretório
+    val salvarArquivoLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("text/plain")
+    ) { uri ->
+        if (uri != null && conteudoArquivoParaSalvar != null) {
+            try {
+                context.contentResolver.openOutputStream(uri)?.use { outputStream ->
+                    outputStream.write(conteudoArquivoParaSalvar!!.toByteArray(Charsets.UTF_8))
+                }
+                Toast.makeText(context, "Arquivo salvo com sucesso!", Toast.LENGTH_SHORT).show()
+                android.util.Log.d("SeparacaoScreen", "Arquivo salvo em: $uri")
+            } catch (e: Exception) {
+                android.util.Log.e("SeparacaoScreen", "Erro ao salvar arquivo: ${e.message}", e)
+                Toast.makeText(context, "Erro ao salvar: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+            conteudoArquivoParaSalvar = null
+        }
+    }
+    
+    // Função para iniciar salvamento com diálogo
+    fun salvarArquivoComDialogo() {
+        val conteudo = viewModel.gerarArquivoSeparacao()
+        conteudoArquivoParaSalvar = conteudo
+        val filename = "separacao_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())}.txt"
+        salvarArquivoLauncher.launch(filename)
+    }
+    
     // Inicializar com dados do destino
     LaunchedEffect(Unit) {
         viewModel.setDestinoInfo(motoristaId, motoristaNome, empresaId, empresaNome)
@@ -315,7 +349,8 @@ fun SeparacaoScreen(
                     caixasNaoPareadas = uiState.caixasNaoPareadas,
                     notasNaoPareadas = uiState.notasNaoPareadas,
                     onBaixarArquivo = { 
-                        viewModel.compartilharArquivo(context)
+                        // Salvar arquivo com diálogo de escolha de diretório
+                        salvarArquivoComDialogo()
                     },
                     onGerarRota = {
                         // Transferir destinos para o holder antes de navegar

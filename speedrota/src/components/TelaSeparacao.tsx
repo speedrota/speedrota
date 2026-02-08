@@ -539,7 +539,7 @@ export default function TelaSeparacao() {
     irPara('rota');
   };
   
-  const gerarArquivoSeparacao = () => {
+  const gerarArquivoSeparacao = async () => {
     // Gerar arquivo TXT/PDF com as separações para o motorista
     const linhas: string[] = [
       '═══════════════════════════════════════════════════',
@@ -582,12 +582,40 @@ export default function TelaSeparacao() {
       });
     }
     
-    // Download
-    const blob = new Blob([linhas.join('\n')], { type: 'text/plain;charset=utf-8' });
+    const conteudo = linhas.join('\n');
+    const filename = `separacao_${new Date().toISOString().slice(0,10)}.txt`;
+    
+    // Tentar usar File System Access API para diálogo "Salvar Como"
+    if ('showSaveFilePicker' in window) {
+      try {
+        const handle = await (window as any).showSaveFilePicker({
+          suggestedName: filename,
+          types: [{
+            description: 'Arquivo de Texto',
+            accept: { 'text/plain': ['.txt'] }
+          }]
+        });
+        const writable = await handle.createWritable();
+        await writable.write(conteudo);
+        await writable.close();
+        console.log('[Separacao] Arquivo salvo com diálogo de sistema');
+        return;
+      } catch (err: any) {
+        // Usuário cancelou ou API não suportada
+        if (err.name !== 'AbortError') {
+          console.warn('[Separacao] Fallback para download tradicional:', err);
+        } else {
+          return; // Usuário cancelou
+        }
+      }
+    }
+    
+    // Fallback: download tradicional
+    const blob = new Blob([conteudo], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `separacao_${new Date().toISOString().slice(0,10)}.txt`;
+    a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
   };
