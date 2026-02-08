@@ -143,12 +143,15 @@ class EscolhaCargaViewModel @Inject constructor(
                         motoristas = lista
                     )
                 } else {
+                    val errorBody = response.body?.string() ?: ""
+                    android.util.Log.e("EscolhaCarga", "Erro ${response.code}: $errorBody")
                     _uiState.value = _uiState.value.copy(
                         carregandoMotoristas = false,
-                        erro = "Erro ao buscar motoristas"
+                        erro = "Erro ${response.code} ao buscar motoristas"
                     )
                 }
             } catch (e: Exception) {
+                android.util.Log.e("EscolhaCarga", "Exception: ${e.message}", e)
                 _uiState.value = _uiState.value.copy(
                     carregandoMotoristas = false,
                     erro = e.message
