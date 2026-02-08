@@ -15,6 +15,7 @@ import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 
 import { env } from './config/env.js';
+import { testConnection } from './lib/prisma.js';
 import { authRoutes } from './routes/auth.routes.js';
 import { userRoutes } from './routes/user.routes.js';
 import { rotaRoutes } from './routes/rota.routes.js';
@@ -272,6 +273,15 @@ app.setErrorHandler((error, request, reply) => {
 
 const start = async () => {
   try {
+    // Warmup database connection (Neon cold start)
+    console.log('[Server] Warming up database connection...');
+    const dbConnected = await testConnection();
+    if (dbConnected) {
+      console.log('[Server] Database connection ready');
+    } else {
+      console.warn('[Server] Database warmup failed, will retry on first request');
+    }
+
     await app.listen({ 
       port: env.PORT, 
       host: env.HOST,
