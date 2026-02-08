@@ -45,19 +45,34 @@ export async function withRetry<T>(
       return await fn();
     } catch (error) {
       lastError = error as Error;
+      const errorMsg = lastError.message || '';
       const isConnectionError = 
-        lastError.message?.includes('Can\'t reach database server') ||
-        lastError.message?.includes('Connection refused') ||
-        lastError.message?.includes('PrismaClientInitializationError') ||
+        errorMsg.includes('Can\'t reach database server') ||
+        errorMsg.includes('Connection refused') ||
+        errorMsg.includes('PrismaClientInitializationError') ||
+        errorMsg.includes('Closed') ||
+        errorMsg.includes('kind: Closed') ||
+        errorMsg.includes('connection') ||
+        errorMsg.includes('ECONNRESET') ||
+        errorMsg.includes('ETIMEDOUT') ||
         lastError.name === 'PrismaClientInitializationError';
       
       if (!isConnectionError || attempt === maxRetries) {
         throw error;
       }
       
+      // Reconectar antes da retry
+      try {
+        await prisma.$disconnect();
+        await prisma.$connect();
+        console.log(`[Prisma] Reconexão bem sucedida na tentativa ${attempt}`);
+      } catch {
+        console.log(`[Prisma] Falha na reconexão, continuando retry...`);
+      }
+      
       // Backoff exponencial: 1s, 2s, 4s
       const waitMs = Math.pow(2, attempt - 1) * 1000;
-      console.log(`[Prisma] Tentativa ${attempt}/${maxRetries} falhou, aguardando ${waitMs}ms...`);
+      console.log(`[Prisma] Tentativa ${attempt}/${maxRetries} falhou (${errorMsg.slice(0, 50)}...), aguardando ${waitMs}ms...`);
       await new Promise(resolve => setTimeout(resolve, waitMs));
     }
   }

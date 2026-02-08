@@ -15,7 +15,7 @@ import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 
 import { env } from './config/env.js';
-import { testConnection } from './lib/prisma.js';
+import { testConnection, prisma } from './lib/prisma.js';
 import { authRoutes } from './routes/auth.routes.js';
 import { userRoutes } from './routes/user.routes.js';
 import { rotaRoutes } from './routes/rota.routes.js';
@@ -135,6 +135,26 @@ declare module '@fastify/jwt' {
 // ==========================================
 // HOOKS GLOBAIS
 // ==========================================
+
+// Hook para garantir conexão com banco (Neon cold start)
+app.addHook('onRequest', async (request) => {
+  // Ignorar rotas de health/docs
+  if (request.url === '/health' || request.url.startsWith('/docs')) {
+    return;
+  }
+  
+  // Verificar conexão com retry implícito
+  try {
+    await testConnection();
+  } catch (error) {
+    request.log.warn('Banco desconectado, tentando reconectar...');
+    try {
+      await prisma.$connect();
+    } catch {
+      request.log.error('Falha ao reconectar com banco');
+    }
+  }
+});
 
 // Log de requisições
 app.addHook('onRequest', async (request) => {
