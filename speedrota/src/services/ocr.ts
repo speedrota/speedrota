@@ -1469,7 +1469,7 @@ export async function processarImagemNFe(
   console.log('[OCR] ========================================');
   
   try {
-    onProgress?.({ progress: 0.1, stage: 'preparing' });
+    onProgress?.({ progress: 0.1, status: 'preparing' });
     
     // Converter imagem para base64 se necessário
     let base64Image: string;
@@ -1487,7 +1487,7 @@ export async function processarImagemNFe(
       });
     }
     
-    onProgress?.({ progress: 0.3, stage: 'recognizing' });
+    onProgress?.({ progress: 0.3, status: 'recognizing' });
     
     // Chamar API - ÚNICA fonte de OCR em produção
     const apiResult = await processarOcrViaApi(base64Image);
@@ -1508,10 +1508,12 @@ export async function processarImagemNFe(
       return null;
     }
     
-    onProgress?.({ progress: 0.9, stage: 'parsing' });
+    onProgress?.({ progress: 0.9, status: 'parsing' });
     
     const dados: DadosNFe = {
-      chaveAcesso: apiResult.data.chaveAcesso || apiResult.data.notaFiscal?.chaveAcesso || '',
+      numero: apiResult.data.notaFiscal?.numero || apiResult.data.chaveAcesso || '',
+      serie: apiResult.data.notaFiscal?.serie,
+      dataEmissao: apiResult.data.notaFiscal?.dataEmissao,
       destinatario: {
         nome: apiResult.data.destinatario?.nome || apiResult.data.dadosAdicionais?.nomeDestinatario || '',
         endereco: apiResult.data.endereco?.logradouro || '',
@@ -1524,7 +1526,6 @@ export async function processarImagemNFe(
       },
       fornecedor: (apiResult.data.fornecedor?.toLowerCase() || 'outro') as Fornecedor,
       confiancaOCR: apiResult.data.confianca || 0.85,
-      textoOriginal: apiResult.data.textoExtraido || '',
     };
     
     // Verificar dados mínimos para geocodificação
@@ -1544,7 +1545,7 @@ export async function processarImagemNFe(
       return null;
     }
     
-    onProgress?.({ progress: 1.0, stage: 'complete' });
+    onProgress?.({ progress: 1.0, status: 'complete' });
     
     console.log('[OCR] ========================================');
     console.log('[OCR] SUCESSO via API - Dados extraídos');
