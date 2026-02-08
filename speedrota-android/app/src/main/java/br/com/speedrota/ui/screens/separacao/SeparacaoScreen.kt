@@ -78,36 +78,57 @@ fun SeparacaoScreen(
     val cameraLauncherCaixa = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicturePreview()
     ) { bitmap ->
+        android.util.Log.d("SeparacaoScreen", "=====================================")
+        android.util.Log.d("SeparacaoScreen", "cameraLauncherCaixa callback")
+        android.util.Log.d("SeparacaoScreen", "bitmap is null: ${bitmap == null}")
         bitmap?.let {
+            android.util.Log.d("SeparacaoScreen", "Bitmap recebido: ${it.width}x${it.height}")
             val base64 = bitmapToBase64(it)
+            android.util.Log.d("SeparacaoScreen", "Base64 gerado: ${base64.length} chars")
+            android.util.Log.d("SeparacaoScreen", "Chamando viewModel.adicionarCaixa()...")
             viewModel.adicionarCaixa(base64)
+            android.util.Log.d("SeparacaoScreen", "viewModel.adicionarCaixa() chamado!")
         }
+        android.util.Log.d("SeparacaoScreen", "=====================================")
     }
     
     val cameraLauncherNota = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicturePreview()
     ) { bitmap ->
+        android.util.Log.d("SeparacaoScreen", "=====================================")
+        android.util.Log.d("SeparacaoScreen", "cameraLauncherNota callback")
+        android.util.Log.d("SeparacaoScreen", "bitmap is null: ${bitmap == null}")
         bitmap?.let {
+            android.util.Log.d("SeparacaoScreen", "Bitmap recebido: ${it.width}x${it.height}")
             val base64 = bitmapToBase64(it)
+            android.util.Log.d("SeparacaoScreen", "Base64 gerado: ${base64.length} chars")
+            android.util.Log.d("SeparacaoScreen", "Chamando viewModel.adicionarNota()...")
             viewModel.adicionarNota(base64)
+            android.util.Log.d("SeparacaoScreen", "viewModel.adicionarNota() chamado!")
         }
+        android.util.Log.d("SeparacaoScreen", "=====================================")
     }
     
     // Launcher para selecionar múltiplas imagens (lote) - Caixas
     val imageLauncherCaixas = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetMultipleContents()
     ) { uris ->
+        android.util.Log.d("SeparacaoScreen", "imageLauncherCaixas: ${uris.size} imagens selecionadas")
         uris.forEach { uri ->
             try {
+                android.util.Log.d("SeparacaoScreen", "Processando URI: $uri")
                 val inputStream = context.contentResolver.openInputStream(uri)
                 val bitmap = android.graphics.BitmapFactory.decodeStream(inputStream)
                 inputStream?.close()
                 bitmap?.let {
+                    android.util.Log.d("SeparacaoScreen", "Bitmap decodificado: ${it.width}x${it.height}")
                     val base64 = bitmapToBase64(it)
+                    android.util.Log.d("SeparacaoScreen", "Base64 gerado: ${base64.length} chars")
                     viewModel.adicionarCaixa(base64)
+                    android.util.Log.d("SeparacaoScreen", "adicionarCaixa() chamado!")
                 }
             } catch (e: Exception) {
-                android.util.Log.e("Separacao", "Erro ao processar imagem: ${e.message}")
+                android.util.Log.e("SeparacaoScreen", "Erro ao processar imagem: ${e.message}", e)
             }
         }
     }
@@ -116,17 +137,22 @@ fun SeparacaoScreen(
     val imageLauncherNotas = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetMultipleContents()
     ) { uris ->
+        android.util.Log.d("SeparacaoScreen", "imageLauncherNotas: ${uris.size} imagens selecionadas")
         uris.forEach { uri ->
             try {
+                android.util.Log.d("SeparacaoScreen", "Processando URI: $uri")
                 val inputStream = context.contentResolver.openInputStream(uri)
                 val bitmap = android.graphics.BitmapFactory.decodeStream(inputStream)
                 inputStream?.close()
                 bitmap?.let {
+                    android.util.Log.d("SeparacaoScreen", "Bitmap decodificado: ${it.width}x${it.height}")
                     val base64 = bitmapToBase64(it)
+                    android.util.Log.d("SeparacaoScreen", "Base64 gerado: ${base64.length} chars")
                     viewModel.adicionarNota(base64)
+                    android.util.Log.d("SeparacaoScreen", "adicionarNota() chamado!")
                 }
             } catch (e: Exception) {
-                android.util.Log.e("Separacao", "Erro ao processar imagem: ${e.message}")
+                android.util.Log.e("SeparacaoScreen", "Erro ao processar imagem: ${e.message}", e)
             }
         }
     }

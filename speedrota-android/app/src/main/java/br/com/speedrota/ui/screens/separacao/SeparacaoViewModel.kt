@@ -2,16 +2,19 @@ package br.com.speedrota.ui.screens.separacao
 
 import android.graphics.Bitmap
 import android.util.Base64
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.speedrota.data.api.SpeedRotaApi
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import javax.inject.Inject
 
@@ -66,11 +69,12 @@ class SeparacaoViewModel @Inject constructor(
      * @post Caixa adicionada com status PROCESSING, depois READY ou ERROR
      */
     fun adicionarCaixa(base64Image: String) {
-        android.util.Log.d("Separacao", "=====================================")
-        android.util.Log.d("Separacao", "adicionarCaixa INICIADO")
-        android.util.Log.d("Separacao", "Imagem size: ${base64Image.length} chars")
-        android.util.Log.d("Separacao", "=====================================")
-        
+        Log.d("SeparacaoVM", "=====================================")
+        Log.d("SeparacaoVM", "adicionarCaixa() CHAMADO")
+        Log.d("SeparacaoVM", "Imagem size: ${base64Image.length} chars")
+        Log.d("SeparacaoVM", "API instance: $api")
+        Log.d("SeparacaoVM", "=====================================")
+
         val id = "caixa-${System.currentTimeMillis()}"
         val novaCaixa = CaixaItem(
             id = id,
@@ -82,25 +86,35 @@ class SeparacaoViewModel @Inject constructor(
             caixas = it.caixas + novaCaixa
         )}
         
-        android.util.Log.d("Separacao", "Caixa adicionada com status PROCESSING, total: ${_uiState.value.caixas.size}")
-        
+        Log.d("SeparacaoVM", "Caixa adicionada com status PROCESSING, total: ${_uiState.value.caixas.size}")
+
         // Processar OCR via API REAL
         viewModelScope.launch {
-            android.util.Log.d("Separacao", "Coroutine iniciada para caixa $id")
+            Log.d("SeparacaoVM", "Coroutine INICIADA para caixa $id")
+            Log.d("SeparacaoVM", "Thread atual: ${Thread.currentThread().name}")
             try {
-                android.util.Log.d("Separacao", "Chamando API OCR para caixa $id...")
-                
-                // Chamar API de OCR real
-                val response = api.analisarImagemNota(mapOf("imagem" to base64Image))
-                
-                android.util.Log.d("Separacao", "Resposta recebida: isSuccessful=${response.isSuccessful}, code=${response.code()}")
-                
+                Log.d("SeparacaoVM", "Chamando API OCR em IO thread...")
+
+                // Chamar API de OCR real com Dispatchers.IO
+                val response = withContext(Dispatchers.IO) {
+                    Log.d("SeparacaoVM", "Dentro de withContext(IO), thread: ${Thread.currentThread().name}")
+                    Log.d("SeparacaoVM", "Fazendo requisição POST para sefaz/ocr/analisar...")
+                    api.analisarImagemNota(mapOf("imagem" to base64Image))
+                }
+
+                Log.d("SeparacaoVM", "=====================================")
+                Log.d("SeparacaoVM", "RESPOSTA RECEBIDA")
+                Log.d("SeparacaoVM", "isSuccessful: ${response.isSuccessful}")
+                Log.d("SeparacaoVM", "HTTP Code: ${response.code()}")
+                Log.d("SeparacaoVM", "Body success: ${response.body()?.success}")
+                Log.d("SeparacaoVM", "=====================================")
+
                 if (response.isSuccessful && response.body()?.success == true) {
                     val data = response.body()?.data
                     val textoExtraido = data?.textoExtraido ?: ""
                     
-                    android.util.Log.d("Separacao", "OCR API retornou ${textoExtraido.length} chars")
-                    
+                    Log.d("SeparacaoVM", "OCR API retornou ${textoExtraido.length} chars")
+
                     // Extrair campos PED/REM/SubRota do texto OCR
                     val dadosExtraidos = CaixaDados(
                         pedido = extrairCampoDoTexto(textoExtraido, "PED"),
@@ -112,8 +126,8 @@ class SeparacaoViewModel @Inject constructor(
                             ?: extrairCampoDoTexto(textoExtraido, "DEST")
                     )
                     
-                    android.util.Log.d("Separacao", "OCR completo para caixa $id: PED=${dadosExtraidos.pedido}, REM=${dadosExtraidos.remessa}")
-                
+                    Log.d("SeparacaoVM", "OCR completo para caixa $id: PED=${dadosExtraidos.pedido}, REM=${dadosExtraidos.remessa}")
+
                     _uiState.update { state ->
                         state.copy(
                             caixas = state.caixas.map { c ->
@@ -127,19 +141,20 @@ class SeparacaoViewModel @Inject constructor(
                 } else {
                     val errorBody = response.errorBody()?.string()
                     val errorMsg = response.body()?.error ?: errorBody ?: "Erro desconhecido"
-                    android.util.Log.e("Separacao", "=====================================")
-                    android.util.Log.e("Separacao", "Erro API OCR para caixa $id")
-                    android.util.Log.e("Separacao", "HTTP Code: ${response.code()}")
-                    android.util.Log.e("Separacao", "Error Body: $errorBody")
-                    android.util.Log.e("Separacao", "=====================================")
+                    Log.e("SeparacaoVM", "=====================================")
+                    Log.e("SeparacaoVM", "ERRO API OCR para caixa $id")
+                    Log.e("SeparacaoVM", "HTTP Code: ${response.code()}")
+                    Log.e("SeparacaoVM", "Error Body: $errorBody")
+                    Log.e("SeparacaoVM", "=====================================")
                     throw Exception("HTTP ${response.code()}: $errorMsg")
                 }
             } catch (e: Exception) {
-                android.util.Log.e("Separacao", "=====================================")
-                android.util.Log.e("Separacao", "EXCEPTION ao processar caixa $id")
-                android.util.Log.e("Separacao", "Type: ${e.javaClass.simpleName}")
-                android.util.Log.e("Separacao", "Message: ${e.message}")
-                android.util.Log.e("Separacao", "=====================================", e)
+                Log.e("SeparacaoVM", "=====================================")
+                Log.e("SeparacaoVM", "EXCEPTION ao processar caixa $id")
+                Log.e("SeparacaoVM", "Type: ${e.javaClass.simpleName}")
+                Log.e("SeparacaoVM", "Message: ${e.message}")
+                Log.e("SeparacaoVM", "Cause: ${e.cause}")
+                Log.e("SeparacaoVM", "=====================================", e)
                 _uiState.update { state ->
                     state.copy(
                         caixas = state.caixas.map { c ->
@@ -172,12 +187,12 @@ class SeparacaoViewModel @Inject constructor(
      * @post Nota adicionada com status PROCESSING, depois READY ou ERROR
      */
     fun adicionarNota(base64Image: String) {
-        android.util.Log.d("Separacao", "=====================================")
-        android.util.Log.d("Separacao", "adicionarNota INICIADO")
-        android.util.Log.d("Separacao", "Imagem size: ${base64Image.length} chars")
-        android.util.Log.d("Separacao", "Imagem preview: ${base64Image.take(100)}...")
-        android.util.Log.d("Separacao", "=====================================")
-        
+        Log.d("SeparacaoVM", "=====================================")
+        Log.d("SeparacaoVM", "adicionarNota() CHAMADO")
+        Log.d("SeparacaoVM", "Imagem size: ${base64Image.length} chars")
+        Log.d("SeparacaoVM", "API instance: $api")
+        Log.d("SeparacaoVM", "=====================================")
+
         val id = "nota-${System.currentTimeMillis()}"
         val novaNota = NotaItem(
             id = id,
@@ -189,26 +204,35 @@ class SeparacaoViewModel @Inject constructor(
             notas = it.notas + novaNota
         )}
         
-        android.util.Log.d("Separacao", "Nota adicionada com status PROCESSING, total: ${_uiState.value.notas.size}")
-        
+        Log.d("SeparacaoVM", "Nota adicionada com status PROCESSING, total: ${_uiState.value.notas.size}")
+
         // Processar OCR via API REAL
         viewModelScope.launch {
-            android.util.Log.d("Separacao", "Coroutine iniciada para nota $id")
+            Log.d("SeparacaoVM", "Coroutine INICIADA para nota $id")
+            Log.d("SeparacaoVM", "Thread atual: ${Thread.currentThread().name}")
             try {
-                android.util.Log.d("Separacao", "Chamando API OCR para nota $id...")
-                android.util.Log.d("Separacao", "API endpoint: sefaz/ocr/analisar")
-                
-                // Chamar API de OCR real
-                val response = api.analisarImagemNota(mapOf("imagem" to base64Image))
-                
-                android.util.Log.d("Separacao", "Resposta recebida: isSuccessful=${response.isSuccessful}, code=${response.code()}")
-                
+                Log.d("SeparacaoVM", "Chamando API OCR em IO thread...")
+
+                // Chamar API de OCR real com Dispatchers.IO
+                val response = withContext(Dispatchers.IO) {
+                    Log.d("SeparacaoVM", "Dentro de withContext(IO), thread: ${Thread.currentThread().name}")
+                    Log.d("SeparacaoVM", "Fazendo requisição POST para sefaz/ocr/analisar...")
+                    api.analisarImagemNota(mapOf("imagem" to base64Image))
+                }
+
+                Log.d("SeparacaoVM", "=====================================")
+                Log.d("SeparacaoVM", "RESPOSTA RECEBIDA (nota)")
+                Log.d("SeparacaoVM", "isSuccessful: ${response.isSuccessful}")
+                Log.d("SeparacaoVM", "HTTP Code: ${response.code()}")
+                Log.d("SeparacaoVM", "Body success: ${response.body()?.success}")
+                Log.d("SeparacaoVM", "=====================================")
+
                 if (response.isSuccessful && response.body()?.success == true) {
                     val data = response.body()?.data
                     val textoExtraido = data?.textoExtraido ?: ""
                     
-                    android.util.Log.d("Separacao", "OCR API retornou ${textoExtraido.length} chars, confianca: ${data?.confianca}")
-                    
+                    Log.d("SeparacaoVM", "OCR API retornou ${textoExtraido.length} chars, confianca: ${data?.confianca}")
+
                     // Montar endereço completo
                     val enderecoCompleto = data?.endereco?.let { end ->
                         listOfNotNull(
@@ -235,8 +259,8 @@ class SeparacaoViewModel @Inject constructor(
                         cep = data?.endereco?.cep ?: extrairCampoDoTexto(textoExtraido, "CEP") ?: ""
                     )
                     
-                    android.util.Log.d("Separacao", "OCR completo para nota $id: PED=${dadosExtraidos.pedido}, DEST=${dadosExtraidos.destinatario}")
-                    
+                    Log.d("SeparacaoVM", "OCR completo para nota $id: PED=${dadosExtraidos.pedido}, DEST=${dadosExtraidos.destinatario}")
+
                     _uiState.update { state ->
                         state.copy(
                             notas = state.notas.map { n ->
@@ -250,20 +274,20 @@ class SeparacaoViewModel @Inject constructor(
                 } else {
                     val errorBody = response.errorBody()?.string()
                     val errorMsg = response.body()?.error ?: errorBody ?: "Erro desconhecido"
-                    android.util.Log.e("Separacao", "=====================================")
-                    android.util.Log.e("Separacao", "Erro API OCR para nota $id")
-                    android.util.Log.e("Separacao", "HTTP Code: ${response.code()}")
-                    android.util.Log.e("Separacao", "Error Body: $errorBody")
-                    android.util.Log.e("Separacao", "Error Msg: $errorMsg")
-                    android.util.Log.e("Separacao", "=====================================")
+                    Log.e("SeparacaoVM", "=====================================")
+                    Log.e("SeparacaoVM", "ERRO API OCR para nota $id")
+                    Log.e("SeparacaoVM", "HTTP Code: ${response.code()}")
+                    Log.e("SeparacaoVM", "Error Body: $errorBody")
+                    Log.e("SeparacaoVM", "=====================================")
                     throw Exception("HTTP ${response.code()}: $errorMsg")
                 }
             } catch (e: Exception) {
-                android.util.Log.e("Separacao", "=====================================")
-                android.util.Log.e("Separacao", "EXCEPTION ao processar nota $id")
-                android.util.Log.e("Separacao", "Type: ${e.javaClass.simpleName}")
-                android.util.Log.e("Separacao", "Message: ${e.message}")
-                android.util.Log.e("Separacao", "=====================================", e)
+                Log.e("SeparacaoVM", "=====================================")
+                Log.e("SeparacaoVM", "EXCEPTION ao processar nota $id")
+                Log.e("SeparacaoVM", "Type: ${e.javaClass.simpleName}")
+                Log.e("SeparacaoVM", "Message: ${e.message}")
+                Log.e("SeparacaoVM", "Cause: ${e.cause}")
+                Log.e("SeparacaoVM", "=====================================", e)
                 _uiState.update { state ->
                     state.copy(
                         notas = state.notas.map { n ->
