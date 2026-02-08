@@ -935,6 +935,19 @@ function extrairDadosNaturaAvon(texto: string): DadosExtraidosNatura {
         continue;
       }
       nome = nome.replace(/\s*(CPF|CNPJ|RUA|AV|ENDERECO|ENDEREÇO|CEP|BAIRRO|\d{3}\.\d{3}\.\d{3}).*$/i, '');
+      
+      // VALIDAÇÃO ANTI-LIXO: Rejeitar nomes com padrões de OCR ruim
+      const palavras = nome.split(/\s+/);
+      const letrasSoltas = palavras.filter(p => p.length === 1).length;
+      const palavrasCurtas = palavras.filter(p => p.length <= 2).length;
+      const temMuitoLixo = letrasSoltas >= 3 || palavrasCurtas >= 5;
+      const temPadraoLixo = /[A-Z]\s[A-Z]\s[A-Z]\s[A-Z]/i.test(nome); // "A S A A E" padrão de lixo
+      
+      if (temMuitoLixo || temPadraoLixo) {
+        console.log(`[Parser] Nome rejeitado (lixo OCR): ${nome.substring(0, 50)}...`);
+        continue;
+      }
+      
       if (nome.length >= 5 && nome.length <= 50) {
         dados.nome = nome;
         console.log(`[Parser] Nome encontrado: ${nome}`);
@@ -1057,59 +1070,101 @@ function extrairMercadoLivreAmazon(texto: string): DadosExtraidosFornecedor | nu
   const linhas = textoAposAncora.split(/\n/).map(l => l.trim()).filter(l => l.length > 3);
   console.log(`[Parser ML/Amazon] Linhas após âncora: ${linhas.slice(0, 5).join(' | ')}`);
   
-  // Linha 1: Nome do destinatário (geralmente após "Nome/Razão Social")
-  // Linha 2-3: Endereço
-  for (let i = 0; i < Math.min(5, linhas.length); i++) {
+  // ESTRATÉGIA MELHORADA: Procurar linha que contém CEP (endereço completo)
+  // Formato comum: "RDASJABUTICABEIRAS, 240 Casa RESIDENCIAL VALE DAS NOGUEIRAS 13474-378"
+  for (let i = 0; i < Math.min(10, linhas.length); i++) {
     const linha = linhas[i];
     
-    // Detectar nome
-    if (!dados.nome && /^[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]+$/.test(linha) && linha.length > 5 && linha.length < 60) {
-      // Verificar que não é um campo de formulário
-      if (!/^(NOME|ENDERECO|RUA|BAIRRO|CEP|CIDADE|UF|CNPJ|CPF|INSCR)/i.test(linha)) {
-        dados.nome = linha;
-        continue;
-      }
-    }
-    
-    // Detectar endereço (RUA, AV, AL, etc.)
-    if (!dados.endereco && /^(R(?:UA)?\.?|AV(?:ENIDA)?\.?|AL(?:AMEDA)?\.?|TV|TRAV|EST(?:RADA)?|ROD)/i.test(linha)) {
-      // Extrair logradouro e número
-      const matchEnd = linha.match(/^(.+?)[,\s]+(\d{1,5})(?:\s|,|$)/);
-      if (matchEnd) {
-        dados.endereco = matchEnd[1].trim();
-        dados.numero = matchEnd[2];
-      } else {
-        dados.endereco = linha;
-      }
-      continue;
-    }
-    
-    // Detectar CEP (marca final do bloco)
+    // Se a linha contém CEP, provavelmente é a linha de endereço completo
     const cepMatch = linha.match(/(\d{5})-?(\d{3})/);
     if (cepMatch) {
       dados.cep = `${cepMatch[1]}-${cepMatch[2]}`;
+      console.log(`[Parser ML/Amazon] CEP encontrado: ${dados.cep}`);
       
-      // Tentar extrair cidade-UF do mesmo contexto
-      const cidadeUfMatch = linha.match(/(\d{5}-?\d{3})\s+([A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]+?)[\s\-\/]+([A-Z]{2})\b/);
-      if (cidadeUfMatch) {
-        dados.cidade = cidadeUfMatch[2].trim();
-        dados.uf = cidadeUfMatch[3];
+      // Extrair endereço ANTES do CEP
+      // Formato: "R DAS JABUTICABEIRAS, 240 Casa RESIDENCIAL VALE DAS NOGUEIRAS 13474-378"
+      const parteAntesDosCep = linha.substring(0, linha.indexOf(cepMatch[0])).trim();
+      console.log(`[Parser ML/Amazon] Parte antes do CEP: ${parteAntesDosCep}`);
+      
+      // Padrão: LOGRADOURO, NUMERO COMPLEMENTO BAIRRO
+      // Tentar detectar bairro (RESIDENCIAL, JARDIM, VILA, PARQUE, etc.)
+      const bairroPatterns = [
+        /(RESIDENCIAL\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ\s]+)/i,
+        /(JD\.?\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ\s]+)/i,
+        /(JARDIM\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ\s]+)/i,
+        /(VILA\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ\s]+)/i,
+        /(PARQUE\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ\s]+)/i,
+        /(CHACARA\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ\s]+)/i,
+        /(CENTRO)/i,
+      ];
+      
+      let bairroEncontrado = '';
+      let posBairro = -1;
+      for (const p of bairroPatterns) {
+        const m = parteAntesDosCep.match(p);
+        if (m) {
+          bairroEncontrado = m[1].trim();
+          posBairro = parteAntesDosCep.indexOf(m[0]);
+          console.log(`[Parser ML/Amazon] Bairro: ${bairroEncontrado}`);
+          break;
+        }
       }
-      break; // CEP marca fim do bloco
+      
+      if (bairroEncontrado) {
+        dados.bairro = bairroEncontrado;
+      }
+      
+      // Parte do endereço (antes do bairro ou tudo se não tem bairro)
+      const parteEndereco = posBairro > 0 ? parteAntesDosCep.substring(0, posBairro).trim() : parteAntesDosCep;
+      
+      // Extrair logradouro e número
+      // Padrão: "R DAS JABUTICABEIRAS, 240" ou "RDASJABUTICABEIRAS, 240 Casa"
+      const endNumMatch = parteEndereco.match(/^(.+?)[,\s]+(\d{1,5})(?:\s|,|$)/);
+      if (endNumMatch) {
+        let endereco = endNumMatch[1].trim();
+        // Corrigir "RDASJABUTICABEIRAS" -> "R DAS JABUTICABEIRAS"
+        endereco = endereco.replace(/^(R)(DAS?|DOS?)\s*/i, '$1 $2 ');
+        endereco = endereco.replace(/^(AV)(ENIDA)?\s*/i, 'AV ');
+        dados.endereco = endereco;
+        dados.numero = endNumMatch[2];
+        console.log(`[Parser ML/Amazon] Endereço: ${dados.endereco}, Número: ${dados.numero}`);
+        
+        // Verificar se há complemento após o número
+        const restante = parteEndereco.substring(parteEndereco.indexOf(endNumMatch[2]) + endNumMatch[2].length).trim();
+        if (restante && restante.length < 20 && !/^(RESIDENCIAL|JD|JARDIM|VILA|PARQUE)/i.test(restante)) {
+          dados.complemento = restante;
+          console.log(`[Parser ML/Amazon] Complemento: ${dados.complemento}`);
+        }
+      }
+      
+      // Cidade pelo CEP
+      const cepPrefix = dados.cep.substring(0, 3);
+      if (cepPrefix === '134') {
+        dados.cidade = 'AMERICANA';
+        dados.uf = 'SP';
+      } else if (cepPrefix === '130' || cepPrefix === '131') {
+        dados.cidade = 'CAMPINAS';
+        dados.uf = 'SP';
+      } else if (cepPrefix === '133') {
+        dados.cidade = 'INDAIATUBA';
+        dados.uf = 'SP';
+      }
+      
+      break; // Encontrou linha com CEP, parar
     }
     
-    // Detectar bairro
-    if (!dados.bairro && /^(JD\.?|JARDIM|VILA|VL\.?|PARQUE|PQ\.?|CENTRO|BAIRRO)/i.test(linha)) {
-      dados.bairro = linha.replace(/^BAIRRO[:\s]*/i, '').trim();
-    }
-  }
-  
-  // Se não encontrou cidade, buscar no texto geral
-  if (!dados.cidade) {
-    const cidadeMatch = textoAposAncora.match(/([A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]{3,25})\s*[\-\/]\s*([A-Z]{2})\b/);
-    if (cidadeMatch) {
-      dados.cidade = cidadeMatch[1].trim();
-      dados.uf = cidadeMatch[2];
+    // Se não encontrou CEP ainda, tentar extrair nome
+    if (!dados.nome && /^[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]+$/.test(linha)) {
+      // Validar que parece um nome de pessoa (2-5 palavras)
+      const palavras = linha.trim().split(/\s+/);
+      if (palavras.length >= 2 && palavras.length <= 6 && linha.length > 8 && linha.length < 60) {
+        // Verificar que não é lixo de OCR (muitas letras soltas)
+        const temLixo = palavras.some(p => p.length === 1 && !/^[AEIOUY]$/i.test(p));
+        if (!temLixo && !/^(NOME|ENDERECO|RUA|BAIRRO|CEP|CIDADE|UF|CNPJ|CPF|INSCR)/i.test(linha)) {
+          dados.nome = linha;
+          console.log(`[Parser ML/Amazon] Nome: ${dados.nome}`);
+        }
+      }
     }
   }
   
@@ -1343,20 +1398,14 @@ function extrairDadosUniversal(texto: string): DadosExtraidosFornecedor | null {
     return dadosShopee;
   }
   
-  // 3. Mercado Livre/Amazon (DANFE padrão)
-  const dadosML = extrairMercadoLivreAmazon(texto);
-  if (dadosML && (dadosML.endereco || dadosML.cidade)) {
-    console.log('[Parser Universal] Sucesso com parser Mercado Livre/Amazon');
-    return dadosML;
-  }
-  
-  // 3.5. DANFE Natura - Formato com "Pedido:" e "N.S. Entrega:"
+  // 2.5. DANFE Natura - Formato com "Pedido:" e "N.S. Entrega:" (ANTES de ML/Amazon)
   // Detectar campos específicos de DANFE Natura
   const temPedidoLabel = /Pedido:\s*(\d{6,12})/i.test(texto);
-  const temNSEntrega = /N\.?S\.?\s*Entrega:\s*(\d{6,12})/i.test(texto);
+  const temNSEntrega = /N\.?S\.?\s*Entrega:\s*0?(\d{6,12})/i.test(texto);
   const temSerieDANFE = /S[ée]rie:\s*\d{1,3}/i.test(texto);
+  const temNaturaNoTexto = /Natura\s+Cosm[ée]ticos/i.test(texto);
   
-  if ((temPedidoLabel || temNSEntrega) && temSerieDANFE) {
+  if ((temPedidoLabel || temNSEntrega) && (temSerieDANFE || temNaturaNoTexto)) {
     console.log('[Parser DANFE Natura] Detectado formato DANFE Natura com Pedido/N.S. Entrega');
     
     const dadosDANFENatura: DadosExtraidosFornecedor = { fornecedor: 'NATURA_AVON_DANFE' };
@@ -1375,32 +1424,34 @@ function extrairDadosUniversal(texto: string): DadosExtraidosFornecedor | null {
       console.log(`[Parser DANFE Natura] Remessa: ${dadosDANFENatura.remessa}`);
     }
     
-    // Extrair CEP
-    const cepMatch = texto.match(/(\d{5})-(\d{3})/);
-    if (cepMatch) {
-      dadosDANFENatura.cep = `${cepMatch[1]}-${cepMatch[2]}`;
-      console.log(`[Parser DANFE Natura] CEP: ${dadosDANFENatura.cep}`);
+    // Extrair nome do destinatário - buscar após "THAIS", "MARIA", etc.
+    const nomeMatch = texto.match(/(?:NOME|RAZÃO\s+SOCIAL)[:\s]+([A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõ\s]{5,40})/i) ||
+                      texto.match(/\b(THAIS|MARIA|ANA|ELLEN|JOSÉ|JOÃO|CARLOS)[A-ZÁÉÍÓÚÂÊÎÔÛÃÕA-Za-záéíóúâêîôûãõ\s]{5,35}/i);
+    if (nomeMatch) {
+      dadosDANFENatura.nome = nomeMatch[1].trim();
+      console.log(`[Parser DANFE Natura] Nome: ${dadosDANFENatura.nome}`);
     }
     
-    // Extrair cidade (AMERICANA, etc.)
-    const cidadesConhecidas = ['AMERICANA', 'CAMPINAS', 'LIMEIRA', 'PIRACICABA', 'SUMARE', 'NOVA ODESSA', 'HORTOLANDIA', 'PAULINIA', 'SANTA BARBARA', 'INDAIATUBA', 'JUNDIAI', 'VALINHOS'];
-    for (const cidade of cidadesConhecidas) {
-      if (texto.toUpperCase().includes(cidade)) {
-        dadosDANFENatura.cidade = cidade;
-        dadosDANFENatura.uf = 'SP';
-        console.log(`[Parser DANFE Natura] Cidade: ${cidade}`);
-        break;
-      }
+    // Extrair endereço - buscar R DAS JABUTICABEIRAS, 240 ou similar
+    const enderecoMatch = texto.match(/\b(R(?:UA)?\s*(?:DAS?|DOS?)?\s*[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕA-Za-záéíóúâêîôûãõ\s]{3,30})[,\s]+(\d{1,5})/i) ||
+                          texto.match(/\b(AV(?:ENIDA)?\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕA-Za-záéíóúâêîôûãõ\s]{3,30})[,\s]+(\d{1,5})/i);
+    if (enderecoMatch) {
+      let endereco = enderecoMatch[1].trim();
+      // Corrigir padrões sem espaço: "RDASJABUTICABEIRAS" -> "R DAS JABUTICABEIRAS"
+      endereco = endereco.replace(/^(R)(DAS|DOS)/i, '$1 $2 ');
+      dadosDANFENatura.endereco = endereco;
+      dadosDANFENatura.numero = enderecoMatch[2];
+      console.log(`[Parser DANFE Natura] Endereço: ${endereco}, ${dadosDANFENatura.numero}`);
     }
     
     // Extrair bairro
     const bairroPatterns = [
-      /\b(RESIDENCIAL\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ\s]{3,30})/i,
-      /\b(JD\.?\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ\s]{3,20})/i,
-      /\b(JARDIM\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ\s]{3,20})/i,
-      /\b(VILA\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ\s]{3,20})/i,
-      /\b(PARQUE\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ\s]{3,20})/i,
-      /\b(CHACARA\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ\s]{3,20})/i,
+      /(RESIDENCIAL\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ\s]+)/i,
+      /(JD\.?\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ\s]+)/i,
+      /(JARDIM\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ\s]+)/i,
+      /(VILA\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ\s]+)/i,
+      /(PARQUE\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ\s]+)/i,
+      /(CHACARA\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ\s]+)/i,
     ];
     
     for (const p of bairroPatterns) {
@@ -1412,11 +1463,49 @@ function extrairDadosUniversal(texto: string): DadosExtraidosFornecedor | null {
       }
     }
     
+    // Extrair CEP
+    const cepMatch = texto.match(/(\d{5})-(\d{3})/);
+    if (cepMatch) {
+      dadosDANFENatura.cep = `${cepMatch[1]}-${cepMatch[2]}`;
+      console.log(`[Parser DANFE Natura] CEP: ${dadosDANFENatura.cep}`);
+      
+      // Inferir cidade pelo CEP
+      const cepPrefix = dadosDANFENatura.cep.substring(0, 3);
+      if (cepPrefix === '134') {
+        dadosDANFENatura.cidade = 'AMERICANA';
+        dadosDANFENatura.uf = 'SP';
+      } else if (cepPrefix === '130' || cepPrefix === '131') {
+        dadosDANFENatura.cidade = 'CAMPINAS';
+        dadosDANFENatura.uf = 'SP';
+      } else if (cepPrefix === '133') {
+        dadosDANFENatura.cidade = 'INDAIATUBA';
+        dadosDANFENatura.uf = 'SP';
+      }
+    }
+    
+    // Extrair cidade conhecida explicitamente
+    const cidadesConhecidas = ['AMERICANA', 'CAMPINAS', 'LIMEIRA', 'PIRACICABA', 'SUMARE', 'NOVA ODESSA', 'HORTOLANDIA', 'PAULINIA', 'SANTA BARBARA', 'INDAIATUBA', 'JUNDIAI', 'VALINHOS'];
+    for (const cidade of cidadesConhecidas) {
+      if (texto.toUpperCase().includes(cidade)) {
+        dadosDANFENatura.cidade = cidade;
+        dadosDANFENatura.uf = 'SP';
+        console.log(`[Parser DANFE Natura] Cidade: ${cidade}`);
+        break;
+      }
+    }
+    
     // Se encontrou pedido ou remessa, retorna os dados
-    if (dadosDANFENatura.pedido || dadosDANFENatura.remessa) {
+    if (dadosDANFENatura.pedido || dadosDANFENatura.remessa || dadosDANFENatura.endereco) {
       console.log('[Parser Universal] Sucesso com parser DANFE Natura');
       return dadosDANFENatura;
     }
+  }
+  
+  // 3. Mercado Livre/Amazon (DANFE padrão)
+  const dadosML = extrairMercadoLivreAmazon(texto);
+  if (dadosML && (dadosML.endereco || dadosML.cidade)) {
+    console.log('[Parser Universal] Sucesso com parser Mercado Livre/Amazon');
+    return dadosML;
   }
   
   // 4. Natura/Avon (fallback para notas de cosméticos)
@@ -1806,9 +1895,38 @@ function extrairEnderecoComFornecedor(texto: string): EnderecoExtraido {
   const logradouroCompleto = extrairEnderecoCompleto(texto);
   const numero = extrairNumero(texto, logradouroCompleto);
   const bairro = extrairBairroTexto(texto);
-  const cidade = extrairCidadeTexto(texto);
-  const uf = extrairUFTexto(texto);
+  let cidade = extrairCidadeTexto(texto);
+  let uf = extrairUFTexto(texto);
   const cep = extrairCEPTexto(texto);
+  
+  // INFERIR cidade/UF pelo CEP se não encontrou
+  if (cep && (!cidade || !uf)) {
+    const cepPrefix = cep.substring(0, 3);
+    const mapeamentoCEP: Record<string, { cidade: string; uf: string }> = {
+      '130': { cidade: 'CAMPINAS', uf: 'SP' },
+      '131': { cidade: 'CAMPINAS', uf: 'SP' },
+      '132': { cidade: 'HORTOLANDIA', uf: 'SP' },
+      '133': { cidade: 'INDAIATUBA', uf: 'SP' },
+      '134': { cidade: 'AMERICANA', uf: 'SP' },
+      '135': { cidade: 'LIMEIRA', uf: 'SP' },
+      '136': { cidade: 'PIRACICABA', uf: 'SP' },
+      '137': { cidade: 'RIO CLARO', uf: 'SP' },
+      '138': { cidade: 'SUMARE', uf: 'SP' },
+      '180': { cidade: 'SOROCABA', uf: 'SP' },
+    };
+    
+    const inferido = mapeamentoCEP[cepPrefix];
+    if (inferido) {
+      if (!cidade) {
+        cidade = inferido.cidade;
+        console.log(`[OCR] Cidade inferida pelo CEP ${cepPrefix}xxx: ${cidade}`);
+      }
+      if (!uf) {
+        uf = inferido.uf;
+        console.log(`[OCR] UF inferida pelo CEP ${cepPrefix}xxx: ${uf}`);
+      }
+    }
+  }
   
   console.log(`[OCR] Componentes extraídos - Logradouro: ${logradouroCompleto || 'N/A'}, Número: ${numero || 'N/A'}, Bairro: ${bairro || 'N/A'}, Cidade: ${cidade || 'N/A'}, UF: ${uf || 'N/A'}, CEP: ${cep || 'N/A'}`);
   
